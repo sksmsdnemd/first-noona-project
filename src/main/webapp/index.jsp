@@ -9,7 +9,7 @@
 %>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="Refresh" content="0; URL=common/LoginF.do" />
-<title>VELOCE</title>
+<title>VELOCEIndex</title>
 <body>
 </body>
 </html>
