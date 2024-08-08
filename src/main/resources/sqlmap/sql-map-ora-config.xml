@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMapConfig PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-config-2.dtd">
+<sqlMapConfig>
+
+	<!-- COMMON  START -->
+    <sqlMap resource="sqlmap/oracle/COM/COMMON.xml" />
+    <sqlMap resource="sqlmap/oracle/COM/CodeList.xml" />
+	<!-- COMMON  END -->
+	
+	<!-- management  START -->
+	<sqlMap resource="sqlmap/oracle/management/BaseCodeSqlMap.xml" />
+	<sqlMap resource="sqlmap/oracle/management/MenuSqlMap.xml" />    
+	<sqlMap resource="sqlmap/oracle/management/ActionLogSqlMap.xml" />    
+	<sqlMap resource="sqlmap/oracle/management/CallTestSqlMap.xml" />
+    <!-- management  END -->
+    
+    <!-- USERMAN  START -->
+    <sqlMap resource="sqlmap/oracle/USERMAN/userManSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/USERMAN/userTelSqlMap.xml" />
+    <!-- USERMAN  END -->
+    
+    <!-- recording  START -->
+    <sqlMap resource="sqlmap/oracle/recording/RecSearchSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/recording/RecFileSqlMap.xml" />
+    <!-- recording  END -->
+    
+    <!-- system  START -->
+    <sqlMap resource="sqlmap/oracle/system/SysGroupSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/system/SysInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/system/IpInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/system/ProcInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/system/ResMonSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/system/ResMonDefSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/system/BkLabelSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/system/BkInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/system/SysCheckingSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/system/StatSqlMap.xml" />
+    <!-- system  END -->
+    
+    <!-- alarm  START -->
+    <sqlMap resource="sqlmap/oracle/alarm/ErrCodeSqlMap.xml" />
+    <!-- alarm  END -->
+    
+    <!-- GROUPBASE  START -->
+    <sqlMap resource="sqlmap/oracle/GROUPBASE/GroupSqlMap.xml" />
+    <!-- GROUPBASE  END -->
+    
+    <!-- recManagement  START -->
+    <sqlMap resource="sqlmap/oracle/recManagement/RecSampleCallSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/recManagement/RecInfoSqlMap.xml" />
+    <!-- recManagement  END -->
+    
+    <!-- Maintenance START 20181031 -->
+    <sqlMap resource="sqlmap/oracle/Maintenance/maintenanceSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/Maintenance/veloceRestSqlMap.xml" />
+    <sqlMap resource="sqlmap/oracle/Maintenance/gubunRestSqlMap.xml" />
+    <!-- Maintenance END -->
+
+</sqlMapConfig>

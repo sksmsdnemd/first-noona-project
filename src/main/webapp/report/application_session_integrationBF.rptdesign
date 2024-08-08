@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Written by Eclipse BIRT 2.0 -->
+<report xmlns="http://www.eclipse.org/birt/2005/design" version="3.2.6" id="1">
+    <property name="createdBy">Eclipse BIRT Designer Version 2.0.1 Build &lt;20060222-1204></property>
+    <property name="units">in</property>
+    <property name="comments">Copyright (c) 2006 Innovent Solutions, Inc.</property>
+    <method name="beforeFactory"><![CDATA[// Create a hash table which will contain lists of other lists
+	var topMap = new Packages.java.util.Hashtable();
+
+	
+	// Request Attributes
+	var request = reportContext.getHttpServletRequest();
+	var requestAttrMap = new Packages.java.util.Hashtable();
+	var attrNames = request.getAttributeNames();
+	do {
+		var aName = attrNames.nextElement();
+		requestAttrMap.put(aName, request.getAttribute(aName).toString());
+	} while (attrNames.hasMoreElements())
+	topMap.put("requestAttributes", requestAttrMap);
+	
+	// Request Parameters
+	var requestParamMap = new Packages.java.util.Hashtable();
+	var paramIter = request.getParameterMap().entrySet().iterator();
+	do{
+		var entry = paramIter.next();
+		requestParamMap.put(entry.getKey(), (entry.getValue()[0]));	
+	} while (paramIter.hasNext())
+	topMap.put("requestParameters",requestParamMap);
+
+	
+	// Session Attributes
+	var sessionAttrMap = new Packages.java.util.Hashtable();
+	var session = request.getSession();
+	// Insert a variable on the session
+	session.setAttribute("ReportAttribute", "arbitrary value to pass to container");
+	var sessionAttrNames = session.getAttributeNames();
+	var i = 0;
+	do  {
+		i ++;
+		var aaa = sessionAttrNames.nextElement();
+		sessionAttrMap.put(aaa, session.getAttribute(aaa));
+	} while (sessionAttrNames.hasMoreElements()) 
+	topMap.put("sessionAttributes", sessionAttrMap);	
+	
+
+	// Get the system properties
+	topMap.put("systemProps", Packages.java.lang.System.getProperties());
+
+	// Store top map as a global
+	reportContext.setPersistentGlobalVariable("topMap", topMap);]]></method>
+    <data-sources>
+        <script-data-source name="setScript" id="4"/>
+    </data-sources>
+    <data-sets>
+        <script-data-set name="setEnvironmentVars" id="5">
+            <list-property name="resultSetHints">
+                <structure>
+                    <property name="position">1</property>
+                    <property name="name">propName</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">2</property>
+                    <property name="name">propValue</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">3</property>
+                    <property name="name">propType</property>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <list-property name="columnHints">
+                <structure>
+                    <property name="columnName">propName</property>
+                </structure>
+                <structure>
+                    <property name="columnName">propValue</property>
+                </structure>
+                <structure>
+                    <property name="columnName">propType</property>
+                </structure>
+            </list-property>
+            <structure name="cachedMetaData">
+                <list-property name="resultSet">
+                    <structure>
+                        <property name="position">1</property>
+                        <property name="name">propName</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">2</property>
+                        <property name="name">propValue</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">3</property>
+                        <property name="name">propType</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                </list-property>
+            </structure>
+            <property name="dataSource">setScript</property>
+            <method name="open"><![CDATA[aMap = reportContext.getPersistentGlobalVariable("topMap");
+topIter = aMap.entrySet().iterator();
+if (topIter == null)
+{
+	topIterator = new Packages.java.util.Iterator();
+	Packages.java.util.logging.Logger.getLogger("").info("OPEN NULL " );
+}
+innerIter = null;]]></method>
+            <method name="fetch"><![CDATA[do 
+{ // find an innerIter that has a new value
+	if (innerIter == null || innerIter.hasNext() == false)
+	{ 	// no value in the inner iterator, get the next Hashtable out of the toHashtable
+		if (topIter.hasNext())
+		{	
+			outerObject = topIter.next(); 
+			innerIter = outerObject.getValue().entrySet().iterator();
+		}
+		else
+		{ // no more top hash tables. close things up
+			return false;
+		}
+	}
+} 
+while (innerIter.hasNext() == false)
+
+// we must have another innerIter
+innerObject = innerIter.next();
+
+row["propName"] = innerObject.getKey();
+row["propValue"] = innerObject.getValue().toString();
+row["propType"] = outerObject.getKey();
+return true;
+
+
+
+/*
+		Iterator i = topMap.entrySet().iterator();
+		while (i.hasNext()) {
+			Entry entry = (Entry) i.next();
+			logger.info(entry.getKey() + " " + entry.getValue() );
+		}
+*/]]></method>
+        </script-data-set>
+    </data-sets>
+    <styles>
+        <style name="detail" id="36">
+            <property name="backgroundColor">#FFFF80</property>
+            <property name="fontFamily">Arial</property>
+            <property name="fontSize">small</property>
+        </style>
+        <style name="headerfooter" id="37">
+            <property name="backgroundColor">#004080</property>
+            <property name="fontFamily">Arial</property>
+            <property name="fontSize">small</property>
+            <property name="fontWeight">bold</property>
+            <property name="color">#FFFFFF</property>
+        </style>
+        <style name="groupheader" id="38">
+            <property name="backgroundColor">#0080FF</property>
+            <property name="fontFamily">Arial</property>
+            <property name="fontSize">small</property>
+            <property name="fontWeight">bold</property>
+            <property name="color">#FFFFFF</property>
+        </style>
+    </styles>
+    <page-setup>
+        <simple-master-page name="Simple MasterPage" id="2">
+            <property name="orientation">landscape</property>
+            <property name="topMargin">0.5in</property>
+            <property name="leftMargin">0.5in</property>
+            <property name="bottomMargin">0.5in</property>
+            <property name="rightMargin">0.5in</property>
+        </simple-master-page>
+    </page-setup>
+    <body>
+        <table id="6">
+            <property name="width">100%</property>
+            <property name="dataSet">setEnvironmentVars</property>
+            <list-property name="boundDataColumns">
+                <structure>
+                    <property name="name">propName</property>
+                    <expression name="expression">dataSetRow["propName"]</expression>
+                </structure>
+                <structure>
+                    <property name="name">propValue</property>
+                    <expression name="expression">dataSetRow["propValue"]</expression>
+                </structure>
+                <structure>
+                    <property name="name">propType</property>
+                    <expression name="expression">dataSetRow["propType"]</expression>
+                    <property name="aggregateOn">propType</property>
+                </structure>
+            </list-property>
+            <column id="16"/>
+            <column id="17"/>
+            <header>
+                <row id="7">
+                    <property name="style">headerfooter</property>
+                    <cell id="8">
+                        <label id="18">
+                            <text-property name="text">propName</text-property>
+                        </label>
+                    </cell>
+                    <cell id="9">
+                        <label id="20">
+                            <text-property name="text">propValue</text-property>
+                        </label>
+                    </cell>
+                </row>
+            </header>
+            <group id="22">
+                <property name="groupName">propType</property>
+                <property name="interval">none</property>
+                <property name="sortDirection">asc</property>
+                <expression name="keyExpr">row["propType"]</expression>
+                <header>
+                    <row id="23">
+                        <property name="backgroundColor">#FFFF80</property>
+                        <cell id="24">
+                            <data id="29">
+                                <property name="fontWeight">bold</property>
+                                <property name="resultSetColumn">propType</property>
+                            </data>
+                        </cell>
+                        <cell id="25"/>
+                    </row>
+                    <row id="33">
+                        <property name="height">2pt</property>
+                        <property name="backgroundColor">#000000</property>
+                        <cell id="34"/>
+                        <cell id="35"/>
+                    </row>
+                </header>
+                <footer>
+                    <row id="26">
+                        <cell id="27"/>
+                        <cell id="28"/>
+                    </row>
+                </footer>
+            </group>
+            <detail>
+                <row id="10">
+                    <property name="style">groupheader</property>
+                    <cell id="11">
+                        <data id="19">
+                            <property name="fontSize">small</property>
+                            <property name="resultSetColumn">propName</property>
+                        </data>
+                    </cell>
+                    <cell id="12">
+                        <data id="21">
+                            <property name="fontSize">small</property>
+                            <property name="resultSetColumn">propValue</property>
+                        </data>
+                    </cell>
+                </row>
+                <row id="30">
+                    <property name="height">2pt</property>
+                    <property name="backgroundColor">#C0C0C0</property>
+                    <cell id="31"/>
+                    <cell id="32"/>
+                </row>
+            </detail>
+            <footer>
+                <row id="13">
+                    <cell id="14"/>
+                    <cell id="15"/>
+                </row>
+            </footer>
+        </table>
+    </body>
+</report>

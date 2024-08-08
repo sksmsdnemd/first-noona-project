@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ 	"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="sysCheck">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="sysCheck.getSummarySystem" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysCheck.getSummarySystem */
+	
+		SELECT 
+				RM.system_id system_id , SI.system_name system_name, SYSTEM_IP, RM.res_code res_code, code_name
+				, RM.res_name res_name, RM.res_max res_total, RM.res_max*USE_MAX/100 res_used, USE_MAX use_max_percent
+				, DATE_FORMAT(STR_TO_DATE(RegTimeMin, '%Y%m%d%H%i%s'), '%Y%m%d%H%i%s') as reg_time_min, RegTimeMax as reg_time_max
+			FROM (
+				select 
+						S.SYS_GROUP_ID, S.system_id, S.res_code,S.res_name, S.RES_MAX USE_MAX
+						, MIN(CONCAT(reg_date, reg_time)) RegTimeMin, MAX(CONCAT(reg_date, reg_time)) RegTimeMax
+					from( 
+						SELECT SYS_GROUP_ID, system_id, res_code,res_name
+								, AVG(RES_AVG) RES_AVG, MAX(RES_AVG) RES_MAX
+							FROM tb_sta_resource
+						WHERE reg_date > DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -15 DAY), '%Y%m%d') 
+						GROUP BY SYS_GROUP_ID, system_id, res_code, res_name 
+						) S , tb_sta_resource R
+				WHERE reg_date      > DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -15 DAY), '%Y%m%d') 
+					AND R.system_id = S.system_id 
+					AND R.res_code  = S.res_code 
+					AND R.res_name  = S.res_name
+					AND R.res_avg   = S.RES_MAX
+				GROUP BY S.SYS_GROUP_ID, S.system_id, S.res_code,S.res_name, S.RES_MAX	
+				) TS , tb_sys_sysinfo SI, tb_sys_resmon RM,
+				(SELECT code_id, code_name FROM tb_mng_basecode WHERE class_id='res_class') RC,
+				(SELECT SYS_GROUP_ID,SYSTEM_ID,SYSTEM_IP FROM tb_sys_ipinfo) IP
+		WHERE SI.system_id      = RM.system_id 
+			AND RM.SYS_GROUP_ID = SI.SYS_GROUP_ID 
+			AND RM.RES_CODE     = code_id
+			AND TS.SYSTEM_ID    = SI.SYSTEM_ID 
+			AND TS.SYS_GROUP_ID = SI.SYS_GROUP_ID
+			AND TS.RES_CODE     = RM.res_code 
+			AND RM.res_name     = TS.res_name
+			AND IP.SYSTEM_ID    = SI.SYSTEM_ID 
+			AND IP.SYS_GROUP_ID = SI.SYS_GROUP_ID
+			<isNotEmpty prepend="AND" property="findSysName">
+				SI.system_id = #findSysName#
+			</isNotEmpty>
+		ORDER BY SYSTEM_IP, RM.system_id, SI.system_name, res_code
+	</select>
+	
+	<select id="sysCheck.getSummaryProcess" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysCheck.getSummaryProcess */
+		SELECT 
+				P.system_id, system_name, P.process_id, process_name, PROC_VER, PORT_IDX MRS_PORT_IDX  
+				, CONCAT(case IFNULL(HA_MODE,'0') WHEN '2' then 'Std-' else 'Act-' END,
+				  case IFNULL(act_flag,'0') WHEN '1' then 'Run' WHEN '2' then 'Down' WHEN '3' then 'Stop' else 'Wait' end) ACT_FLAG  
+				, IFNULL(ERR_CNT,0) ERR_CNT
+				, CASE substr(PROCESS_NAME, 1, 3) WHEN 'MRU' THEN IFNULL(MRU_REC_CNT, 0) ELSE 0 END MRU_REC_CNT 
+				, CASE substr(PROCESS_NAME, 1, 3) WHEN 'MRU' THEN IFNULL(MTU_REC_CNT, 0) ELSE 0 END MTU_REC_CNT
+				, CASE substr(PROCESS_NAME, 1, 3) WHEN 'MFU' THEN IFNULL(MFU_CNT, 0) ELSE 0 END MFU_CNT
+			FROM tb_sys_procinfo P
+				LEFT OUTER JOIN
+					(SELECT 1 sys_group_id, system_id,process_id, COUNT(*) ERR_CNT 
+						FROM tb_err_errlog 
+					WHERE err_date >= DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -1 DAY), '%Y%m%d')
+						AND err_msg LIKE 'Process fault%'
+					GROUP BY system_id ,process_id
+					) E 
+					ON E.system_id = P.system_id 
+					AND E.process_id = P.process_id 
+					AND E.sys_group_id = P.sys_group_id
+				LEFT OUTER JOIN tb_sys_sysinfo S 
+					ON S.system_id = P.system_id
+				LEFT OUTER JOIN 
+					(SELECT 1 sys_group_id, mrs_system_id, COUNT(*) MRU_REC_CNT 
+						FROM tb_rec_file F, tb_rec_file_index I
+					WHERE F.rec_key = I.rec_key
+						AND F.rec_time BETWEEN DATE_FORMAT(SYSDATE(), '%Y%m%d') AND CONCAT(DATE_FORMAT(SYSDATE(),'%Y%m%d'), '99')
+						AND SEARCH_VISIBLE IN (0,1)
+					GROUP BY mrs_system_id 
+					) MRU_SUM 
+					ON P.system_id = MRU_SUM.mrs_system_id 
+					AND MRU_SUM.sys_group_id = P.sys_group_id
+				LEFT OUTER JOIN 
+					(SELECT 1 sys_group_id, MRS_SYSTEM_ID, COUNT(*) MTU_REC_CNT 
+						FROM tb_rec_file F, tb_rec_file_index I
+					WHERE F.rec_key = I.rec_key
+						AND F.rec_time BETWEEN DATE_FORMAT(SYSDATE(), '%Y%m%d') AND CONCAT(DATE_FORMAT(SYSDATE(),'%Y%m%d'), '99')
+						AND search_visible = 1
+					GROUP BY mrs_system_id
+					) MTU_SUM 
+					ON P.system_id = MTU_SUM.mrs_system_id 
+					and MTU_SUM.sys_group_id = P.sys_group_id
+				LEFT OUTER JOIN 
+					(SELECT 'MFU' PROC_NAME,COUNT(*) MFU_CNT 
+						FROM tb_rec_reclog
+					WHERE WORK_SDATE > CURDATE()
+					) MFU_SUM 
+					ON process_name LIKE concat(MFU_SUM.PROC_NAME , '%')
+		WHERE 1=1
+			<isNotEmpty prepend="AND" property="findSysName">
+		 		P.system_id = #findSysName# 
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findProcessName">
+		 		P.process_id =#findProcessName#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findActFalg">
+				<isEqual property="findActFalg" compareValue="0"> 			P.HA_MODE = '2' 				</isEqual>
+				<isEqual property="findActFalg" compareValue="1"><![CDATA[ 	IFNULL(P.HA_MODE,'0') <> '2' ]]> 	</isEqual>
+			</isNotEmpty>
+		ORDER BY P.system_id, process_id
+	</select>
+	
+	<select id="sysCheck.getSummaryRecode" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysCheck.getSummaryRecode */
+		select 
+				err_content, rec_date, mrs_system_id, dn_no, phone_ip, IFNULL(user_name ,'') user_name
+				, user_id, rec_x_cnt, rec_o_count, rec_all	
+			from (
+				select 
+						CASE WHEN user_name IS NULL THEN 'USER' ELSE err_content END err_content 
+						, rec_date, mrs_system_id, dn_no, phone_ip 
+						, CASE WHEN user_name IS NULL 
+							THEN CASE WHEN ts.user_id IS NULL THEN 'NotLogin' ELSE 'NotRegist' END 
+							ELSE user_name END user_name
+						, ts.user_id 
+						, IFNULL(SUM(rec_x_count),0) rec_x_cnt 
+						, IFNULL(SUM(rec_o_count),0) rec_o_count 
+						, IFNULL(SUM(rec_x_count),0) + IFNULL(SUM(rec_o_count),0) rec_all
+					from (
+						select 
+								CASE length(IFNULL(user_id,'')) WHEN 0 THEN 'USER' ELSE 'PACKET' END err_content
+								, <![CDATA[ CASE WHEN i.upload_kind > '2' AND i.upload_kind < '9' THEN count(*) END rec_o_count ]]>
+								, <![CDATA[ CASE WHEN i.upload_kind < '3' OR i.upload_kind = '9' THEN count(*) END rec_x_count	]]>
+								, tenant_id, substr(f.rec_time,1,8) rec_date, mrs_system_id, dn_no, phone_ip, f.user_id
+							FROM tb_rec_file f, tb_rec_file_index i
+						WHERE f.rec_key = i.rec_key
+							AND f.rec_time BETWEEN DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -18 DAY), '%Y%m%d') AND DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL 18 DAY), '%Y%m%d')
+						GROUP BY tenant_id, substr(f.rec_time,1,8), mrs_system_id, dn_no, phone_ip, f.user_id, i.upload_kind
+						) ts 
+						LEFT OUTER JOIN tb_mng_userinfo u 
+							on ts.tenant_id = u.tenant_id 
+							and ts.user_id = u.user_id
+				GROUP BY err_content, rec_date, mrs_system_id, dn_no, phone_ip, user_name, ts.user_id, ts.tenant_id
+				HAVING <![CDATA[ IFNULL(sum(rec_x_count),0) > 0 ]]> OR user_name IS NULL
+				) t
+		WHERE 1=1 
+			<isNotEmpty prepend="AND" property="findSysName">
+			 	mrs_system_id = #findSysName#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findUserName">
+			 	user_name = #findUserName#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findUserId">
+			 	user_id = #findUserId#
+			</isNotEmpty>
+			<isNotEmpty property="findErrCont">
+				<isEqual prepend="AND" property="findErrCont" compareValue="0">
+					err_content = 'USER'<!-- '사용자미등록녹취' 수정 2014-09-25 -->
+				</isEqual>
+				<isEqual prepend="AND" property="findErrCont" compareValue="1">
+					err_content = 'PACKET'<!-- '패킷미수신녹취' 수정 2014-09-25 -->
+				</isEqual>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findPhoneIp">
+				phone_ip like  concat(#findPhoneIp# , '%')
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findDnNo">
+				dn_no = #findDnNo#
+			</isNotEmpty>
+		ORDER BY err_content, rec_date, mrs_system_id, dn_no, phone_ip, user_name 
+	</select>
+
+</sqlMap>

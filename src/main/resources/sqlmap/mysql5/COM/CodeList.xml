@@ -1,0 +1,583 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="comboBoxCode"> 
+    <typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+   	
+ 	<!-- 회사아이디 -->  
+	<select id="comboBoxCode.getTenantList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getTenantList */
+		SELECT TENANT_ID AS CODE
+			 , TENANT_NAME AS CODE_NM
+		  FROM TB_MNG_COMPANY
+		 WHERE EXPIRE_DATE IS NULL
+			OR IFNULL(EXPIRE_DATE, '') = ''
+		 ORDER BY TENANT_NAME
+	</select>	
+
+	<!-- 그룹아이디 -->
+	<select id="comboBoxCode.getGroupList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getGroupList */
+		SELECT t1.GROUP_ID AS CODE
+			 , CONCAT(REPEAT(<![CDATA[ '&nbsp;&nbsp;' ]]>, t1.GROUP_LEVEL - 1), t1.GROUP_NAME) AS CODE_NM
+		  FROM (
+			SELECT a.*
+				 , b.GROUP_NAME AS PARENT_NAME
+			     , CONCAT_WS('>', j.GROUP_NAME, i.GROUP_NAME, h.GROUP_NAME, g.GROUP_NAME, f.GROUP_NAME, e.GROUP_NAME, d.GROUP_NAME, c.GROUP_NAME, b.GROUP_NAME, a.GROUP_NAME) AS NAME_PATH
+			     , CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID) AS ID_PATH
+			     , (LENGTH(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID))
+			       - LENGTH(REPLACE(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>', ''))
+			       + 1) AS GROUP_LEVEL
+			     , CONCAT('>', CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>') AS ID_PATH_SEARCH
+			  FROM TB_MNG_GROUP a
+			  LEFT OUTER JOIN TB_MNG_GROUP b ON a.PARENT_ID = b.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP c ON b.PARENT_ID = c.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP d ON c.PARENT_ID = d.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP e ON d.PARENT_ID = e.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP f ON e.PARENT_ID = f.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP g ON f.PARENT_ID = g.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP h ON g.PARENT_ID = h.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP i ON h.PARENT_ID = i.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP j ON i.PARENT_ID = j.GROUP_ID
+			 WHERE a.TENANT_ID = #findTenantId#
+		  ) t1
+		 WHERE 1 =1
+		<isNotEmpty property="controlAuth">
+		   AND t1.ID_PATH_SEARCH REGEXP (SELECT CONCAT('>', REPLACE(CONTROL_AUTH, ',', '>|>'), '>') FROM TB_MNG_USERINFO WHERE TENANT_ID = #findTenantId# AND USER_ID = #userId#)
+		</isNotEmpty>
+		<isEmpty property="controlAuth">
+			<isNotEmpty property="grantId">
+				<isEqual property="grantId" compareValue="GroupManager">
+		   AND t1.ID_PATH_SEARCH like CONCAT('%>', (SELECT GROUP_ID FROM TB_MNG_USERINFO WHERE TENANT_ID = #findTenantId# AND USER_ID = #userId#), '>%')
+				</isEqual>
+				<isEqual property="grantId" compareValue="Agent">
+		   AND t1.GROUP_ID = (SELECT GROUP_ID FROM TB_MNG_USERINFO WHERE TENANT_ID = #findTenantId# AND USER_ID = #userId#)
+				</isEqual>
+			</isNotEmpty>
+		</isEmpty>
+		 ORDER BY t1.ID_PATH
+	</select>
+	
+	<!-- 그룹아이디 하위포함 -->
+	<select id="comboBoxCode.getGroupDepthList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getGroupDepthList */
+		SELECT t1.GROUP_ID AS CODE
+			 , CONCAT(REPEAT(<![CDATA[ '&nbsp;&nbsp;' ]]>, t1.GROUP_LEVEL - 1), t1.GROUP_NAME) AS CODE_NM
+		  FROM (
+			SELECT a.*
+				 , b.GROUP_NAME AS PARENT_NAME
+			     , CONCAT_WS('>', j.GROUP_NAME, i.GROUP_NAME, h.GROUP_NAME, g.GROUP_NAME, f.GROUP_NAME, e.GROUP_NAME, d.GROUP_NAME, c.GROUP_NAME, b.GROUP_NAME, a.GROUP_NAME) AS NAME_PATH
+			     , CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID) AS ID_PATH
+			     , (LENGTH(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID))
+			       - LENGTH(REPLACE(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>', ''))
+			       + 1) AS GROUP_LEVEL
+			     , CONCAT('>', CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>') AS ID_PATH_SEARCH
+			  FROM TB_MNG_GROUP a
+			  LEFT OUTER JOIN TB_MNG_GROUP b ON a.PARENT_ID = b.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP c ON b.PARENT_ID = c.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP d ON c.PARENT_ID = d.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP e ON d.PARENT_ID = e.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP f ON e.PARENT_ID = f.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP g ON f.PARENT_ID = g.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP h ON g.PARENT_ID = h.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP i ON h.PARENT_ID = i.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP j ON i.PARENT_ID = j.GROUP_ID
+			 WHERE a.TENANT_ID = #findTenantId#
+		  ) t1
+		 WHERE 1 =1
+		<isNotEmpty property="controlAuth">
+		   AND t1.ID_PATH_SEARCH REGEXP (SELECT CONCAT('>', REPLACE(CONTROL_AUTH, ',', '>|>'), '>') FROM TB_MNG_USERINFO WHERE TENANT_ID = #findTenantId# AND USER_ID = #userId#)
+		</isNotEmpty>
+		<isEmpty property="controlAuth">
+			<isNotEmpty property="grantId">
+				<isEqual property="grantId" compareValue="GroupManager">
+		   AND t1.ID_PATH_SEARCH LIKE CONCAT('%>', (SELECT GROUP_ID FROM TB_MNG_USERINFO WHERE TENANT_ID = #findTenantId# AND USER_ID = #userId#), '>%')
+				</isEqual>
+				<isEqual property="grantId" compareValue="Agent">
+		   AND t1.GROUP_ID = (SELECT GROUP_ID FROM TB_MNG_USERINFO WHERE TENANT_ID = #findTenantId# AND USER_ID = #userId#)
+				</isEqual>
+			</isNotEmpty>
+		</isEmpty>
+		 ORDER BY t1.ID_PATH
+	</select>
+	
+	<!-- 그룹아이디(depth) -->
+	<select id="comboBoxCode.getDepthGroupList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getDepthGroupList */
+		SELECT t1.GROUP_ID AS CODE
+			 , CONCAT(REPEAT(<![CDATA[ '&nbsp;&nbsp;' ]]>, t1.GROUP_LEVEL - 1), t1.GROUP_NAME) AS CODE_NM
+		  FROM (
+			SELECT a.*
+				 , b.GROUP_NAME AS PARENT_NAME
+			     , CONCAT_WS('>', j.GROUP_NAME, i.GROUP_NAME, h.GROUP_NAME, g.GROUP_NAME, f.GROUP_NAME, e.GROUP_NAME, d.GROUP_NAME, c.GROUP_NAME, b.GROUP_NAME, a.GROUP_NAME) AS NAME_PATH
+			     , CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID) AS ID_PATH
+			     , (LENGTH(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID))
+			       - LENGTH(REPLACE(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>', ''))
+			       + 1) AS GROUP_LEVEL
+			     , CONCAT('>', CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>') AS ID_PATH_SEARCH
+			  FROM TB_MNG_GROUP a
+			  LEFT OUTER JOIN TB_MNG_GROUP b ON a.PARENT_ID = b.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP c ON b.PARENT_ID = c.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP d ON c.PARENT_ID = d.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP e ON d.PARENT_ID = e.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP f ON e.PARENT_ID = f.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP g ON f.PARENT_ID = g.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP h ON g.PARENT_ID = h.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP i ON h.PARENT_ID = i.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP j ON i.PARENT_ID = j.GROUP_ID
+			 WHERE a.TENANT_ID = #findTenantId#
+		  ) t1
+		 WHERE 1 =1
+		<isNotEmpty property="controlAuth">
+		   AND t1.ID_PATH_SEARCH REGEXP (SELECT CONCAT('>', REPLACE(CONTROL_AUTH, ',', '>|>'), '>') FROM TB_MNG_USERINFO WHERE TENANT_ID = #findTenantId# AND USER_ID = #userId#)
+		</isNotEmpty>
+		<isEmpty property="controlAuth">
+			<isNotEmpty property="grantId">
+				<isEqual property="grantId" compareValue="GroupManager">
+		   AND t1.ID_PATH_SEARCH like CONCAT('%>', (SELECT GROUP_ID FROM TB_MNG_USERINFO WHERE TENANT_ID = #findTenantId# AND USER_ID = #userId#), '>%')
+				</isEqual>
+				<isEqual property="grantId" compareValue="Agent">
+		   AND t1.GROUP_ID = (SELECT GROUP_ID FROM TB_MNG_USERINFO WHERE TENANT_ID = #findTenantId# AND USER_ID = #userId#)
+				</isEqual>
+			</isNotEmpty>
+		</isEmpty>
+		 ORDER BY t1.ID_PATH
+	</select>
+	
+	<!-- 그룹 목록 -->
+	<select id="comboBoxCode.getGroupListByParentCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getGroupListByParentCnt */
+		SELECT
+			  COUNT(*) AS CNT
+			FROM
+			  TB_MNG_GROUP A INNER JOIN
+			  (
+			    SELECT 
+			      TENANT_ID, PARENT_ID, COUNT(*) AS CNT
+			    FROM TB_MNG_GROUP
+			    WHERE ((#parentId# IS NULL OR #parentId# = '') AND DEPTH = 'A') OR  
+			          ((#parentId# IS NOT NULL AND #parentId# != '') AND PARENT_ID IN (
+			                        SELECT 
+			                          GROUP_ID AS PARENT_ID 
+			                        FROM 
+			                          TB_MNG_GROUP 
+			                        WHERE PARENT_ID = #parentId# AND (((#tenantId# IS NULL OR #tenantId# = '') AND 1=1) OR ((#tenantId# IS NOT NULL AND #tenantId# != '') AND TENANT_ID = #tenantId#))))
+			    GROUP BY TENANT_ID, PARENT_ID
+			  ) B
+			  ON A.TENANT_ID = B.TENANT_ID AND A.PARENT_ID = B.PARENT_ID
+			WHERE
+			  ((#tenantId# IS NULL OR #tenantId# = '') AND 1=1) OR ((#tenantId# IS NOT NULL AND #tenantId# != '') AND A.TENANT_ID = #tenantId#)
+	</select>
+	
+	<!-- 그룹 목록 -->
+	<select id="comboBoxCode.getGroupListByParent" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getGroupListByParent */
+		SELECT
+			  GROUP_ID, GROUP_NAME
+			FROM
+			  TB_MNG_GROUP A INNER JOIN
+			  (
+			    SELECT 
+			      TENANT_ID, PARENT_ID, COUNT(*) AS CNT
+			    FROM TB_MNG_GROUP
+			    WHERE ((#parentId# IS NULL OR #parentId# = '') AND DEPTH = 'A') OR  
+			          ((#parentId# IS NOT NULL AND #parentId# != '') AND PARENT_ID IN (
+			                        SELECT 
+			                          GROUP_ID AS PARENT_ID 
+			                        FROM 
+			                          TB_MNG_GROUP 
+			                        WHERE PARENT_ID = #parentId# AND (((#tenantId# IS NULL OR #tenantId# = '') AND 1=1) OR ((#tenantId# IS NOT NULL AND #tenantId# != '') AND TENANT_ID = #tenantId#))))
+			    GROUP BY TENANT_ID, PARENT_ID
+			  ) B
+			  ON A.TENANT_ID = B.TENANT_ID AND A.PARENT_ID = B.PARENT_ID
+			WHERE
+			  ((#tenantId# IS NULL OR #tenantId# = '') AND 1=1) OR ((#tenantId# IS NOT NULL AND #tenantId# != '') AND A.TENANT_ID = #tenantId#)
+	</select>
+	
+	
+	<select id="comboBoxCode.getControlAuthList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getControlAuthList */
+		SELECT t1.GROUP_ID AS CODE
+			 , CONCAT(REPEAT(<![CDATA[ '&nbsp;&nbsp;' ]]>, t1.GROUP_LEVEL - 1), t1.GROUP_NAME) AS CODE_NM
+		  FROM (
+			SELECT a.*
+				 , b.GROUP_NAME AS PARENT_NAME
+			     , CONCAT_WS('>', j.GROUP_NAME, i.GROUP_NAME, h.GROUP_NAME, g.GROUP_NAME, f.GROUP_NAME, e.GROUP_NAME, d.GROUP_NAME, c.GROUP_NAME, b.GROUP_NAME, a.GROUP_NAME) AS NAME_PATH
+			     , CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID) AS ID_PATH
+			     , (LENGTH(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID))
+			       - LENGTH(REPLACE(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>', ''))
+			       + 1) AS GROUP_LEVEL
+			     , CONCAT(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>') AS ID_PATH_STR
+			  FROM TB_MNG_GROUP a
+			  LEFT OUTER JOIN TB_MNG_GROUP b ON a.PARENT_ID = b.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP c ON b.PARENT_ID = c.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP d ON c.PARENT_ID = d.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP e ON d.PARENT_ID = e.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP f ON e.PARENT_ID = f.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP g ON f.PARENT_ID = g.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP h ON g.PARENT_ID = h.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP i ON h.PARENT_ID = i.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP j ON i.PARENT_ID = j.GROUP_ID
+			 WHERE a.TENANT_ID = #findTenantId#
+		  ) t1
+		 ORDER BY t1.ID_PATH
+	</select>
+	
+	<!-- 제어그룹에서 dept가 아닌 group id로 받기 -->
+	<select id="comboBoxCode.getControlAuthCodeList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getControlAuthCodeList */
+		select group_id code, replace(CONCAT(lpad('-|', (length(depth)-1)*2, '-|'), group_name),'-|',<![CDATA[ '&nbsp;&nbsp;' ]]>) code_nm
+		
+			FROM TB_MNG_GROUP
+		where tenant_id = #findTenantId#
+			<isNotEmpty property="grantId">
+				<isEqual property="grantId" compareValue="GroupManager">  
+					and depth in 
+						(
+						select g.group_id, g.depth
+							from TB_MNG_GROUP g,
+								(
+								select group_id, depth from TB_MNG_GROUP g, TB_MNG_USERINFO u
+								where g.tenant_id = u.tenant_id
+									/*and g.group_id = u.group_id*/
+									and instr(CONCAT(',', control_auth, ','), CONCAT(',', g.depth, ',')) > 0
+									and u.user_id = #userId#
+									and u.tenant_id = #findTenantId#
+								) c
+						where g.depth LIKE CONCAT(c.depth, '%')
+							and tenant_id = #findTenantId#
+						)
+				</isEqual>
+			</isNotEmpty>
+			<isNotEmpty property="controlAuth">
+				<isNotEqual property="grantId" compareValue="GroupManager">  
+					and depth in 
+						(
+						select g.group_id, g.depth
+							from TB_MNG_GROUP g,
+								(
+								select group_id, depth from TB_MNG_GROUP g, TB_MNG_USERINFO u
+								where g.tenant_id = u.tenant_id
+									/*and instr(CONCAT(',', g.depth, ','), CONCAT(',', control_auth, ',')) > 0*/
+									and instr(CONCAT(',', control_auth, ','), CONCAT(',', g.depth, ',')) > 0
+									and u.user_id = #userId#
+									and u.tenant_id = #findTenantId#
+								) c
+						where g.depth LIKE CONCAT(c.depth, '%')
+							and tenant_id = #findTenantId#
+						)
+				</isNotEqual>
+			</isNotEmpty>
+		order by depth
+	</select>
+	
+	<!-- 사용자아이디 -->
+	<select id="comboBoxCode.getUserListByGroup" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getUserListByGroup */
+		select user_id code, CONCAT(user_name, '-', user_id) code_nm 
+			FROM TB_MNG_USERINFO
+		where tenant_id = #findTenantId#	
+				and group_id = #findGroupId# 
+		order by user_name
+	</select>
+	
+	
+	<!-- 사용자아이디 -->
+	<select id="comboBoxCode.getUserCodeList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getUserCodeList */
+		SELECT USER_ID AS CODE
+			 , CONCAT(USER_NAME, '(', USER_ID, ')') AS CODE_NM 
+		  FROM TB_MNG_USERINFO
+		 WHERE TENANT_ID = #findTenantId#	
+		   AND GROUP_ID = #findGroupId# 
+		 ORDER BY USER_NAME
+	</select>	
+	
+	<select id="comboBoxCode.getUserListDetail" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getUserListDetail */
+		SELECT a.USER_ID, a.GROUP_ID, a.USER_NAME, b.GROUP_NAME
+		  FROM TB_MNG_USERINFO a
+		 INNER JOIN TB_MNG_GROUP b
+			ON a.GROUP_ID = b.GROUP_ID
+		 WHERE 1 = 1
+		   AND (((#findTenantId# IS NULL OR #findTenantId# = '') AND 1=1) OR ((#findTenantId# IS NOT NULL AND #findTenantId# != '') AND a.TENANT_ID = #findTenantId#))
+		   AND (((#findGroupId# IS NULL OR #findGroupId# = '') AND 1=1) OR ((#findGroupId# IS NOT NULL AND #findGroupId# != '') AND a.GROUP_ID = #findGroupId#))
+		   AND (((#findUserName# IS NULL OR #findUserName# = '') AND 1=1) OR ((#findUserName# IS NOT NULL AND #findUserName# != '') AND a.USER_NAME = #findUserName#))
+		 ORDER BY a.USER_NAME
+	</select>
+	
+	<update id="comboBoxCode.updateUserAuth" parameterClass="java.util.HashMap">
+		/* ID : comboBoxCode.updateUserAuth */
+		UPDATE TB_MNG_USERINFO
+		   SET CONTROL_AUTH = #findControlAuth#
+		 WHERE TENANT_ID = #findTenantId#
+		   AND USER_ID = #userid#
+	</update>
+	
+	<update id="comboBoxCode.updateUserAuth_" parameterClass="java.util.HashMap">
+		/* ID : comboBoxCode.updateUserAuth */
+		UPDATE TB_MNG_USERINFO
+		   SET CONTROL_AUTH = (
+				CASE WHEN CONTROL_AUTH IS NOT NULL AND CONTROL_AUTH != '' THEN CONCAT(CONTROL_AUTH, ',', #findControlAuth#)
+					 ELSE #findControlAuth#
+				END
+		   )
+		 WHERE TENANT_ID = #findTenantId#
+		   AND USER_ID = #userid#
+	</update>
+	
+	<!-- 사용자아이디 -->
+	<select id="comboBoxCode.getUserList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getUserList */
+		SELECT USER_ID AS CODE
+			 , CONCAT(USER_NAME, '-', USER_ID) AS CODE_NM
+		  FROM TB_MNG_USERINFO
+		 WHERE TENANT_ID = #findTenantId#
+		<isNotEmpty property="findGroupId">
+		   AND GROUP_ID = LPAD(#findGroupId#, INSTR(#findGroupId#, '_') - 1, ' ')
+		</isNotEmpty>
+		 ORDER BY USER_NAME
+	</select>	
+	
+	<select id="comboBoxCode.TEST" parameterClass="java.util.HashMap" resultClass="egovMap">
+		SELECT USER_ID
+		  FROM TB_MNG_USERINFO
+		 WHERE USER_ID IN ($userList$)
+	</select>
+	
+	<!-- 사용자아이디 -->
+	<select id="comboBoxCode.getUserList_Parentheses" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getUserList_Parentheses */
+		SELECT USER_ID AS CODE
+			 , CONCAT(USER_NAME, '(', USER_ID, ')') AS CODE_NM 
+		  FROM TB_MNG_USERINFO
+		 WHERE TENANT_ID = #findTenantId#	
+		<isNotEmpty property="findGroupId"> 
+		   AND GROUP_ID = LPAD(#findGroupId#, INSTR(#findGroupId#, '_') - 1) 
+		</isNotEmpty> 	
+		 ORDER BY USER_NAME
+	</select>	
+       
+    <!-- 마킹코드 -->
+	<select id="comboBoxCode.getMarkCodeList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getMarkCodeList */
+		SELECT MARKING_ID AS CODE
+			 , MARKING_CLASS AS CODE_NM
+			 , MARKING_COLOR
+		  FROM TB_REC_MARKCODE
+		 WHERE TENANT_ID = #findTenantId#
+		 ORDER BY MARKING_ID, MARKING_CLASS
+	</select>	
+	       
+	<!-- 시스템 아이디-->
+	<!-- <select id="comboBoxCode.getSystemList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getSystemList */
+		select system_id code, system_name code_nm
+			FROM tb_sys_sysinfo
+		order by system_name
+	</select> -->
+	
+	<select id="comboBoxCode.getMruSystemList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getMruSystemList */
+		SELECT DISTINCT s.SYSTEM_ID AS CODE
+			 , s.SYSTEM_NAME AS CODE_NM
+			 , p.PROCESS_NAME
+		  FROM TB_SYS_SYSINFO s, TB_SYS_PROCINFO p
+		 WHERE s.SYSTEM_ID = p.SYSTEM_ID
+		   AND p.PROCESS_CODE = '41'
+		 ORDER BY s.SYSTEM_NAME
+	</select>	
+	<select id="comboBoxCode.getVssProcessList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getVssProcessList */
+		SELECT SYSTEM_ID, PROCESS_ID 
+		  FROM TB_SYS_PROCINFO
+		 WHERE PROCESS_CODE = '43'
+	</select>				
+	<select id="comboBoxCode.getMruVssSystemList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getMruVssSystemList */
+<!-- 		select distinct s.system_id code, system_name code_nm, process_name -->
+		SELECT DISTINCT s.SYSTEM_ID AS CODE
+			 , s.SYSTEM_NAME AS CODE_NM
+		  FROM TB_SYS_SYSINFO s, TB_SYS_PROCINFO p
+		 WHERE s.SYSTEM_ID = p.SYSTEM_ID
+		   AND (p.PROCESS_CODE='41' OR p.process_code= '43')
+		   AND IFNULL(NULLIF(s.SYSTEM_ID, ''), 0) NOT IN (SELECT SLAVE_SYSTEM_ID FROM TB_SYS_PROCINFO WHERE IFNULL(NULLIF(SLAVE_SYSTEM_ID, ''), 0) > 0)
+		 ORDER BY s.SYSTEM_NAME
+	</select>				
+	
+	<!-- 시스템 코드 -->
+	<select id="comboBoxCode.getSystemId" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getSystemId */
+		SELECT SYSTEM_ID AS CODE_NM
+			 , SYSTEM_NAME AS CODE
+		  FROM TB_SYS_SYSINFO
+		 ORDER BY SYSTEM_NAME
+	</select>
+	
+	<!-- 시스템 이름 -->
+	<select id="comboBoxCode.getSystemName" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getSystemName */
+		SELECT SYSTEM_ID AS CODE
+			 , SYSTEM_NAME AS CODE_NM
+		  FROM TB_SYS_SYSINFO
+		 WHERE SYSTEM_ID = #findSystemId#
+		 ORDER BY SYSTEM_NAME
+	</select>
+	
+	<!-- 프로세스 아이디 -->
+	<select id="comboBoxCode.getProcessList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getProcessList */
+		SELECT PROCESS_ID AS CODE
+			 , PROCESS_NAME AS CODE_NM
+		  FROM TB_SYS_PROCINFO
+		<isNotEmpty property="findSystemId">
+		 WHERE SYSTEM_ID = #findSystemId#
+			<isNotEmpty property="findProcessName">
+		   AND (PROCESS_CODE = '41' OR PROCESS_CODE = '43')
+			</isNotEmpty>
+		</isNotEmpty>
+		ORDER BY PROCESS_NAME
+	</select>
+	
+	<select id="comboBoxCode.getProcessList2" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getProcessList2 */
+		SELECT PROCESS_ID AS CODE
+			 , CONCAT(PROCESS_NAME, '_', PROCESS_ID) AS CODE_NM
+		  FROM TB_SYS_PROCINFO
+		<isNotEmpty property="findSystemId">
+		 WHERE SYSTEM_ID = #findSystemId# 
+			<isNotEmpty property="findProcessName">
+		   AND (PROCESS_CODE = '41' OR PROCESS_CODE = '43')
+		   AND ACT_FLAG = 1
+			</isNotEmpty>
+		</isNotEmpty>
+		 ORDER BY PROCESS_NAME
+	</select>
+	
+	<select id="comboBoxCode.getProcessId" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getProcessId */
+		SELECT PROCESS_ID AS CODE_NM, PROCESS_NAME AS CODE
+		  FROM TB_SYS_PROCINFO
+		 ORDER BY PROCESS_NAME
+	</select>
+	
+	<select id="comboBoxCode.getProcessName" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getProcessName */
+		SELECT PROCESS_ID AS CODE, PROCESS_NAME AS CODE_NM
+		  FROM TB_SYS_PROCINFO
+		 WHERE PROCESS_ID = #findProcessId#
+		 ORDER BY PROCESS_NAME
+	</select>
+		
+    <!-- 권한코드 -->
+	<select id="comboBoxCode.getGrantList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getGrantList */
+		SELECT GRANT_ID AS CODE, GRANT_NAME AS CODE_NM
+		  FROM TB_MNG_AUTH
+		 WHERE TENANT_ID = #findTenantId#
+		 ORDER BY AUTH_RANK
+	</select>				 
+			       
+    <!-- OSU IP 추출 -->
+	<select id="comboBoxCode.getOsuIpList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getOsuIpList */
+		SELECT SYSTEM_IP AS CODE, SYSTEM_ID AS CODE_NM 
+		  FROM TB_SYS_IPINFO
+		 WHERE IP_USE_ITEM LIKE '%82-1%'
+	</select>				 
+
+	<select id="comboBoxCode.getMfuIpList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getMfuIpList */
+		SELECT CASE WHEN (DOMAIN_ADDR = '' OR DOMAIN_ADDR IS NULL) AND (MFU_IP = '' OR MFU_IP IS NULL) THEN SYSTEM_IP
+        			WHEN (DOMAIN_ADDR = '' OR DOMAIN_ADDR IS NULL) AND (MFU_IP != '' OR MFU_IP IS NOT NULL) THEN MFU_IP
+					ELSE DOMAIN_ADDR
+			   END AS CODE
+			 , SYSTEM_ID AS CODE_NM
+			 , IP_NAT
+		  FROM TB_SYS_IPINFO
+		 WHERE IP_USE_ITEM LIKE '%62-1%'
+		 LIMIT 1
+	</select>				 
+		
+    <!-- MRS IP 추출 -->
+	<!-- <select id="comboBoxCode.getMrsIpList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getMrsIpList */
+		select system_ip code, system_id code_nm 
+			from TB_SYS_IPINFO
+		where ip_use_item like '%411-1%'
+	</select> -->					       
+
+    <!-- MRU Process 추출 -->
+	<select id="comboBoxCode.getMruProcessList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getMruProcessList */
+		SELECT SYSTEM_ID, PROCESS_ID
+		  FROM TB_SYS_PROCINFO
+		 WHERE PROCESS_CODE = '41'
+	</select>					       
+
+
+    <!-- Dn play MRS IP 추출 -->
+	<select id="comboBoxCode.getDnMrsIpList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getDnMrsIpList */
+		SELECT i.SYSTEM_IP AS CODE, i.IP_DESC AS CODE_NM, s.ACT_FLAG 
+		  FROM (
+			SELECT SYSTEM_ID, PROCESS_ID, ACT_FLAG
+			  FROM TB_SYS_PROCINFO
+			 WHERE SYSTEM_ID= #findSystemId# 
+			   AND PROCESS_ID = #findProcessId#
+			 UNION ALL
+			SELECT SYSTEM_ID, PROCESS_ID,HA_MODE
+			  FROM TB_SYS_PROCINFO
+			 WHERE SYSTEM_ID = (SELECT SLAVE_SYSTEM_ID FROM TB_SYS_PROCINFO WHERE SYSTEM_ID = #findSystemId# AND PROCESS_ID = #findProcessId#)
+			   AND PROCESS_ID = (SELECT SLAVE_PROCESS_ID FROM TB_SYS_PROCINFO WHERE SYSTEM_ID = #findSystemId# AND PROCESS_ID = #findProcessId#)
+		  ) s, TB_SYS_IPINFO i
+		 WHERE s.SYSTEM_ID = i.SYSTEM_ID
+			<!-- and ip_use_item like #findUseNat# -->
+		   AND i.IP_USE_ITEM LIKE '411-1%'
+		 ORDER BY s.ACT_FLAG DESC
+	</select>					       
+
+    <!-- 메뉴 추출 -->
+	<select id="comboBoxCode.getMenuList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getMenuList */
+		SELECT 
+			<isNotEmpty property="actionLog">
+			   MENU_NAME AS CODE
+			</isNotEmpty>
+			<isEmpty property="actionLog">
+			   CONCAT('a_', DEPTH1_ID, '_', DEPTH2_ID, '_', DEPTH3_ID) AS CODE
+			</isEmpty>
+			 , MENU_NAME AS CODE_NM
+		  FROM TB_MNG_MENU
+		 WHERE LENGTH(SRC_DO) > 1
+	</select>						       
+
+    <!-- 메뉴 추출 -->
+	<select id="comboBoxCode.getConfigValue" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : comboBoxCode.getConfigValue */
+		SELECT VAL_CUR AS CODE, KEY_CODE AS CODE_NM
+		  FROM TB_WAS_CONFIG
+		 WHERE SECTION = #section# 
+		   AND KEY_CODE = #keyCode#
+	</select>					
+	
+	<!-- VSS,MRU -->
+    <select id="comboBoxCode.getMruMruVSSIpList" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : comboBoxCode.getMruMruVSSList */
+		SELECT ip.SYSTEM_IP
+		  FROM TB_SYS_PROCINFO pro
+		 INNER JOIN TB_SYS_IPINFO ip
+			ON pro.SYS_GROUP_ID = ip.SYS_GROUP_ID
+		   AND pro.SYSTEM_ID = ip.SYSTEM_ID
+		WHERE pro.PROCESS_CODE IN ('43','41')
+		GROUP BY ip.SYSTEM_IP
+    </select>       
+
+    <!-- 프로세스 아이디 -->
+    <select id="comboBoxCode.getSystemIdToProcessList" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : comboBoxCode.getSystemIdToProcessList */
+		SELECT PROCESS_ID AS CODE, PROCESS_NAME AS CODE_NM
+		  FROM TB_SYS_PROCINFO
+		 WHERE SYSTEM_ID = #findSystemId#
+		 ORDER BY PROCESS_NAME
+    </select>
+</sqlMap>

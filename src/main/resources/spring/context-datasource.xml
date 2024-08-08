@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jdbc="http://www.springframework.org/schema/jdbc" 
+		xmlns:jee="http://www.springframework.org/schema/jee"
+		xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+						http://www.springframework.org/schema/jdbc  http://www.springframework.org/schema/jdbc/spring-jdbc-3.0.xsd
+						http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.0.xsd">
+    <!-- <jdbc:embedded-database id="dataSource" type="HSQL"> <jdbc:script location= "classpath:/db/sampledb.sql"/> </jdbc:embedded-database> -->
+    <!-- hsql <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close"> <property name="driverClassName" value="net.sf.log4jdbc.DriverSpy"/> <property name="url" value="jdbc:log4jdbc:hsqldb:hsql://localhost/sampledb"/> <property name="username" value="sa"/> </bean> -->
+    <!-- mysql <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close"> <property name="driverClassName" value="com.mysql.jdbc.Driver"/> <property name="url" value="jdbc:mysql://db2:1621/rte"/> <property name="username" value="rte"/> <property name="password" value="rte01"/> </bean> -->
+    <!-- oracle -->
+	
+	
+	<!-- <jee:jndi-lookup id="dataSourceFromJNDI" jndi-name="java:comp/env/jdbc/vel" expected-type="javax.sql.DataSource"/> -->
+	<!-- <jee:jndi-lookup id="dataSourceFromJNDI" jndi-name="java:comp/env/jdbc/vel" expected-type="javax.sql.DataSource"/> -->
+	
+	<!-- <bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean">
+		<property name="jndiName" value="java:comp/env/jdbc/vel"/>
+	</bean> -->
+	
+	<!-- jndi shinhan -->
+	<!-- <jee:jndi-lookup jndi-name="VELOCEXA" id="dataSource" resource-ref="true" /> -->
+	
+	<!-- <bean id="dataSource" class="com.bridgetec.common.SecurityDBCPBasicDataSource" destroy-method="close">
+        <property name="dataSourceFromJNDI" ref="dataSourceFromJNDI" />
+    </bean> -->
+		
+	
+	<bean id="dataSource" class="com.bridgetec.common.SecurityDBCPBasicDataSource" destroy-method="close">
+        <property name="driverClassName" value="${Globals.ARGO.RDB.Driver}" />
+        <property name="url" value="${Globals.ARGO.RDB.Url}" />
+        <property name="username" value="${Globals.ARGO.RDB.Account}" />
+        <property name="password" value="${Globals.ARGO.RDB.Password}" />
+ 		<property name="defaultAutoCommit" value="true" />
+        <property name="initialSize" value="10" />
+        <property name="maxActive" value="100" />
+        <property name="maxIdle" value="50" />
+        <property name="maxWait" value="30000" />
+        <property name="testOnBorrow" value="true" />
+        <property name="testOnReturn" value="false" />
+        <property name="testWhileIdle" value="true" />
+        <property name="timeBetweenEvictionRunsMillis" value="60000" />
+        <property name="removeAbandoned" value="true" />
+        <property name="removeAbandonedTimeout" value="60" />
+        <property name="logAbandoned" value="false" />
+        <property name="validationQuery" value="${Globals.ARGO.RDB.ValidationSql}" />
+    </bean>
+    
+    
+    
+    
+    <!-- <WatchedResource>WEB-INF/web.xml</WatchedResource>
+    <Resource name="jdbc/vel" auth="Container" type="javax.sql.DataSource"
+              maxActive="10" maxIdle="8" maxWait="10000"
+              username="VELOCE_REAL" password="aleldj1!"
+              driverClassName="com.tmax.tibero.jdbc.TbDriver"
+              url="jdbc:tibero:thin:@192.168.10.1:9629:VELOCEDB"
+              closeMethod="close" /> -->
+    
+<!--     <bean id="dataSource" class="com.bridgetec.common.SecurityDBCPBasicDataSource" destroy-method="close"> -->
+<!--         <property name="driverClassName" value="com.tmax.tibero.jdbc.TbDriver" /> -->
+<!--         <property name="url" value="${Globals.ARGO.RDB.Url}" /> -->
+<!--         <property name="username" value="${Globals.ARGO.RDB.Account}" /> -->
+<!--         <property name="password" value="${Globals.ARGO.RDB.Password}" /> -->
+<!--         <property name="defaultAutoCommit" value="true" /> -->
+<!--         <property name="initialSize" value="5" /> -->
+<!--         <property name="maxActive" value="50" /> -->
+<!--         <property name="maxIdle" value="20" /> -->
+<!--         <property name="maxWait" value="5000" /> -->
+<!--         <property name="validationQuery" value="SELECT 1 FROM DUAL" /> -->
+<!--         <property name="testOnBorrow" value="true" /> -->
+<!--         <property name="testOnReturn" value="false" /> -->
+<!--         <property name="testWhileIdle" value="true" /> -->
+<!--         <property name="timeBetweenEvictionRunsMillis" value="30000" /> -->
+<!--         <property name="removeAbandoned" value="true" /> -->
+<!--         <property name="removeAbandonedTimeout" value="60" /> -->
+<!--         <property name="logAbandoned" value="false" /> -->
+<!--     </bean> -->
+    
+
+
+</beans>

@@ -1,0 +1,91 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="actionLog">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="actionLog.getActionLogCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : actionLog.getActionLogCount */
+		SELECT COUNT(*) CNT
+		  FROM TB_MNG_ACTIONLOG a 
+		<isEmpty property="findUserNameText">  LEFT OUTER JOIN TB_MNG_USERINFO b</isEmpty>
+		<isNotEmpty property="findUserNameText">
+		  JOIN (
+			SELECT TENANT_ID, GROUP_ID, USER_ID, USER_NAME 
+			  FROM TB_MNG_USERINFO
+			 WHERE TENANT_ID = #findTenantId#
+			<isNotEmpty property="findGroupId">   AND GROUP_ID = #findGroupId#</isNotEmpty>
+			<isNotEmpty property="findUserId">   AND USER_ID = #findUserId#</isNotEmpty>
+			<isNotEmpty property="findUserNameText">
+			   AND (USER_ID LIKE CONCAT('%', #findUserNameText#, '%') 
+					OR USER_NAME LIKE CONCAT('%', #findUserNameText#, '%'))
+			</isNotEmpty>
+		  ) b
+		</isNotEmpty>
+			ON a.TENANT_ID = b.TENANT_ID 
+		   AND a.USER_ID = b.USER_ID
+		WHERE a.TENANT_ID = #findTenantId#
+			AND	<![CDATA[ DATE_FORMAT(LOG_DATE, '%Y-%m-%d %H:%i:%s') >= CONCAT(DATE_FORMAT(DATE_FORMAT(#txtDate1_From#,'%Y-%m-%d'),'%Y-%m-%d'), ' 00:00:00') ]]> 
+			AND <![CDATA[ DATE_FORMAT(LOG_DATE, '%Y-%m-%d %H:%i:%s') <= CONCAT(DATE_FORMAT(DATE_FORMAT(#txtDate1_To#,'%Y-%m-%d'),'%Y-%m-%d'), ' 23:59:59') ]]> 
+			<isNotEmpty property="findGroupId">   AND GROUP_ID = #findGroupId#</isNotEmpty>
+			<isNotEmpty property="findUserId">   AND a.USER_ID = #findUserId#</isNotEmpty>
+			<isNotEmpty property="findMenu">   AND WORK_MENU = #findMenu#</isNotEmpty>
+			<isNotEmpty property="findContent">   AND WORK_LOG LIKE CONCAT('%', #findContent#, '%')</isNotEmpty>
+	</select>
+
+	<select id="actionLog.getActionLogList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : actionLog.getActionLogList */
+		SELECT *
+		  FROM (
+			SELECT TB_IN.*
+			  FROM (
+				SELECT a.TENANT_ID, DATE_FORMAT(a.LOG_DATE,'%Y-%m-%d %H:%i:%s') LOG_DATE, a.USER_ID, b.USER_NAME
+					 , a.LOG_KEY, a.ACTION_CLASS, a.ACTION_CODE, a.WORK_IP, a.WORK_MENU, a.WORK_LOG
+				  FROM TB_MNG_ACTIONLOG a 
+				<isEmpty property="findUserNameText">  LEFT OUTER JOIN TB_MNG_USERINFO b</isEmpty>
+				<isNotEmpty property="findUserNameText">
+				  JOIN (
+					SELECT TENANT_ID, GROUP_ID, USER_ID, USER_NAME 
+					  FROM TB_MNG_USERINFO
+					WHERE TENANT_ID = #findTenantId#
+					<isNotEmpty property="findGroupId">   AND GROUP_ID = #findGroupId#</isNotEmpty>
+					<isNotEmpty property="findUserId">   AND USER_ID = #findUserId#</isNotEmpty>
+					<isNotEmpty property="findUserNameText">
+					   AND (USER_ID LIKE CONCAT('%', #findUserNameText#, '%') 
+		 					OR USER_NAME LIKE CONCAT('%', #findUserNameText#, '%'))
+		 			</isNotEmpty>
+				  ) b
+				</isNotEmpty> 
+					ON a.TENANT_ID = b.TENANT_ID 
+				   AND a.USER_ID = b.USER_ID
+				 WHERE a.TENANT_ID = #findTenantId#
+				<isNotEmpty property="txtDate1_From">
+				   AND <![CDATA[ DATE_FORMAT(LOG_DATE,'%Y-%m-%d %H:%i:%s') >= CONCAT(DATE_FORMAT(DATE_FORMAT(#txtDate1_From#,'%Y-%m-%d'),'%Y-%m-%d'), ' 00:00:00') ]]> 
+				   AND <![CDATA[ DATE_FORMAT(LOG_DATE,'%Y-%m-%d %H:%i:%s') <= CONCAT(DATE_FORMAT(DATE_FORMAT(#txtDate1_To#,'%Y-%m-%d'),'%Y-%m-%d'), ' 23:59:59') ]]> 
+				</isNotEmpty>
+				<isEmpty property="txtDate1_From">
+				   AND <![CDATA[ DATE_FORMAT(LOG_DATE,'%Y-%m-%d %H:%i:%s') >= CONCAT(DATE_FORMAT(SYSDATE(), '%Y-%m-%d'), ' 00:00:00') ]]> 
+				   AND <![CDATA[ DATE_FORMAT(LOG_DATE,'%Y-%m-%d %H:%i:%s') <= CONCAT(DATE_FORMAT(SYSDATE(), '%Y-%m-%d'), ' 23:59:59') ]]> 
+				</isEmpty>
+				<isNotEmpty property="findGroupId">   AND GROUP_ID = #findGroupId#</isNotEmpty>
+				<isNotEmpty property="findUserId">   AND a.USER_ID = #findUserId#</isNotEmpty>
+				<isNotEmpty property="findMenu">   AND WORK_MENU = #findMenu#</isNotEmpty>
+				<isNotEmpty property="findContent">   AND WORK_LOG LIKE CONCAT('%', #findContent#, '%')</isNotEmpty>
+				 ORDER BY a.LOG_DATE DESC, a.LOG_KEY DESC
+				 LIMIT $iEPageNo$
+			  ) TB_IN
+			 ORDER BY LOG_DATE ASC, LOG_KEY ASC
+			 LIMIT $iSPageNo$
+		  ) TB_OUT 
+		 ORDER BY TENANT_ID DESC, LOG_DATE DESC
+	</select>
+
+	<insert id="actionLog.setActionLogInsert" parameterClass="java.util.HashMap">
+		/* ID : actionLog.setActionLogInsert */
+		INSERT INTO TB_MNG_ACTIONLOG (
+			TENANT_ID, LOG_DATE, USER_ID, ACTION_CLASS, ACTION_CODE, WORK_IP, WORK_MENU, WORK_LOG 
+		) VALUES (
+			NULLIF(#tenantId#, ''), SYSDATE(), NULLIF(#userId#, ''), NULLIF(#actionClass#, ''), NULLIF(#actionCode#, ''), NULLIF(#workIp#, ''), NULLIF(#workMenu#, ''), NULLIF(#workLog#, '')
+		)
+	</insert>
+</sqlMap>

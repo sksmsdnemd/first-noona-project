@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<report xmlns="http://www.eclipse.org/birt/2005/design" version="3.2.23" id="1">
+    <property name="createdBy">Eclipse BIRT Designer Version 4.6.0.v201606072122</property>
+    <property name="units">in</property>
+    <property name="iconFile">/templates/chart_listing.gif</property>
+    <property name="cheatSheet">org.eclipse.birt.report.designer.ui.cheatsheet.chartlisting</property>
+    <property name="bidiLayoutOrientation">ltr</property>
+    <property name="imageDPI">96</property>
+    <data-sources>
+        <oda-data-source extensionID="org.eclipse.birt.report.data.oda.jdbc" name="Data Source" id="246">
+            <list-property name="privateDriverProperties">
+                <ex-property>
+                    <name>metadataBidiFormatStr</name>
+                    <value>ILYNN</value>
+                </ex-property>
+                <ex-property>
+                    <name>disabledMetadataBidiFormatStr</name>
+                </ex-property>
+                <ex-property>
+                    <name>contentBidiFormatStr</name>
+                    <value>ILYNN</value>
+                </ex-property>
+                <ex-property>
+                    <name>disabledContentBidiFormatStr</name>
+                </ex-property>
+            </list-property>
+            <property name="odaDriverClass">oracle.jdbc.driver.OracleDriver</property>
+            <property name="odaURL">jdbc:oracle:thin:@100.100.107.7:1521:ARGODB</property>
+            <property name="odaUser">argo</property>
+            <encrypted-property name="odaPassword" encryptionID="base64">YXJnbw==</encrypted-property>
+        </oda-data-source>
+    </data-sources>
+    <data-sets>
+        <oda-data-set extensionID="org.eclipse.birt.report.data.oda.jdbc.JdbcSelectDataSet" name="Data Set" id="250">
+            <property name="nullsOrdering">nulls lowest</property>
+            <list-property name="columnHints">
+                <structure>
+                    <property name="columnName">SABUN</property>
+                    <property name="analysis">dimension</property>
+                    <text-property name="displayName">SABUN</text-property>
+                    <text-property name="heading">SABUN</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">DEPT_CD</property>
+                    <property name="analysis">dimension</property>
+                    <text-property name="displayName">DEPT_CD</text-property>
+                    <text-property name="heading">DEPT_CD</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">AGENT_NM</property>
+                    <property name="analysis">dimension</property>
+                    <text-property name="displayName">AGENT_NM</text-property>
+                    <text-property name="heading">AGENT_NM</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">JIKCHK</property>
+                    <property name="analysis">dimension</property>
+                    <text-property name="displayName">JIKCHK</text-property>
+                    <text-property name="heading">JIKCHK</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">JIKGUP</property>
+                    <property name="analysis">dimension</property>
+                    <text-property name="displayName">JIKGUP</text-property>
+                    <text-property name="heading">JIKGUP</text-property>
+                </structure>
+            </list-property>
+            <list-property name="parameters"/>
+            <structure name="cachedMetaData">
+                <list-property name="resultSet">
+                    <structure>
+                        <property name="position">1</property>
+                        <property name="name">SABUN</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">2</property>
+                        <property name="name">DEPT_CD</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">3</property>
+                        <property name="name">AGENT_NM</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">4</property>
+                        <property name="name">JIKCHK</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">5</property>
+                        <property name="name">JIKGUP</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                </list-property>
+            </structure>
+            <property name="dataSource">Data Source</property>
+            <list-property name="resultSet">
+                <structure>
+                    <property name="position">1</property>
+                    <property name="name">SABUN</property>
+                    <property name="nativeName">SABUN</property>
+                    <property name="dataType">string</property>
+                    <property name="nativeDataType">12</property>
+                </structure>
+                <structure>
+                    <property name="position">2</property>
+                    <property name="name">DEPT_CD</property>
+                    <property name="nativeName">DEPT_CD</property>
+                    <property name="dataType">string</property>
+                    <property name="nativeDataType">12</property>
+                </structure>
+                <structure>
+                    <property name="position">3</property>
+                    <property name="name">AGENT_NM</property>
+                    <property name="nativeName">AGENT_NM</property>
+                    <property name="dataType">string</property>
+                    <property name="nativeDataType">12</property>
+                </structure>
+                <structure>
+                    <property name="position">4</property>
+                    <property name="name">JIKCHK</property>
+                    <property name="nativeName">JIKCHK</property>
+                    <property name="dataType">string</property>
+                    <property name="nativeDataType">12</property>
+                </structure>
+                <structure>
+                    <property name="position">5</property>
+                    <property name="name">JIKGUP</property>
+                    <property name="nativeName">JIKGUP</property>
+                    <property name="dataType">string</property>
+                    <property name="nativeDataType">12</property>
+                </structure>
+            </list-property>
+            <xml-property name="queryText"><![CDATA[SELECT A.SABUN
+      ,NVL(FN_CM_GET_DEPT_INFO(A.TENANT_ID, A.DEPT_CD),'고객센터/고객상담/수신') AS DEPT_CD
+      ,A.AGENT_NM
+      ,FN_CM_GET_CODE_NM(A.TENANT_ID, 'AGENT_JIKCHK', A.AGENT_JIKCHK) AS JIKCHK 
+      ,FN_CM_GET_CODE_NM(A.TENANT_ID, 'AGENT_JIKGUP', A.AGENT_JIKGUP) AS JIKGUP
+FROM ARGO.TB_CM_USER_MASTER_HISTORY A WHERE A.STD_MONTH = '201706'
+]]></xml-property>
+        </oda-data-set>
+    </data-sets>
+    <page-setup>
+        <simple-master-page name="Simple MasterPage" id="2">
+            <page-footer>
+                <text id="3">
+                    <property name="paddingTop">16pt</property>
+                    <property name="textAlign">center</property>
+                    <property name="contentType">html</property>
+                    <text-property name="content"><![CDATA[<value-of>pageNumber</value-of>]]></text-property>
+                </text>
+            </page-footer>
+        </simple-master-page>
+    </page-setup>
+    <body>
+        <label id="453">
+            <property name="fontSize">24pt</property>
+            <property name="paddingTop">1pt</property>
+            <property name="textAlign">center</property>
+            <text-property name="text">샘플 보고서</text-property>
+        </label>
+        <grid id="486">
+            <property name="marginTop">10pt</property>
+            <property name="marginLeft">400pt</property>
+            <property name="marginBottom">0pt</property>
+            <property name="height">0.9270833333333334in</property>
+            <property name="width">2.2395833333333335in</property>
+            <column id="487">
+                <property name="width">0.8020833333333334in</property>
+            </column>
+            <column id="488">
+                <property name="width">0.7708333333333334in</property>
+            </column>
+            <row id="489">
+                <property name="height">0.3958333333333333in</property>
+                <cell id="490">
+                    <property name="borderBottomStyle">solid</property>
+                    <property name="borderBottomWidth">medium</property>
+                    <property name="borderLeftStyle">solid</property>
+                    <property name="borderLeftWidth">medium</property>
+                    <property name="borderRightStyle">solid</property>
+                    <property name="borderRightWidth">medium</property>
+                    <property name="borderTopStyle">solid</property>
+                    <property name="borderTopWidth">medium</property>
+                    <text id="497">
+                        <property name="fontSize">12pt</property>
+                        <property name="textAlign">center</property>
+                        <property name="contentType">auto</property>
+                        <text-property name="content"><![CDATA[담당자]]></text-property>
+                    </text>
+                </cell>
+                <cell id="491">
+                    <property name="borderBottomStyle">solid</property>
+                    <property name="borderBottomWidth">medium</property>
+                    <property name="borderLeftStyle">solid</property>
+                    <property name="borderLeftWidth">medium</property>
+                    <property name="borderRightStyle">solid</property>
+                    <property name="borderRightWidth">medium</property>
+                    <property name="borderTopStyle">solid</property>
+                    <property name="borderTopWidth">medium</property>
+                    <text id="498">
+                        <property name="fontSize">12pt</property>
+                        <property name="textAlign">center</property>
+                        <property name="contentType">auto</property>
+                        <text-property name="content"><![CDATA[팀장]]></text-property>
+                    </text>
+                </cell>
+            </row>
+            <row id="492">
+                <property name="height">0.53125in</property>
+                <cell id="493">
+                    <property name="borderBottomStyle">solid</property>
+                    <property name="borderBottomWidth">medium</property>
+                    <property name="borderLeftStyle">solid</property>
+                    <property name="borderLeftWidth">medium</property>
+                    <property name="borderRightStyle">solid</property>
+                    <property name="borderRightWidth">medium</property>
+                    <property name="borderTopStyle">solid</property>
+                    <property name="borderTopWidth">medium</property>
+                </cell>
+                <cell id="494">
+                    <property name="borderBottomStyle">solid</property>
+                    <property name="borderBottomWidth">medium</property>
+                    <property name="borderLeftStyle">solid</property>
+                    <property name="borderLeftWidth">medium</property>
+                    <property name="borderRightStyle">solid</property>
+                    <property name="borderRightWidth">medium</property>
+                    <property name="borderTopStyle">solid</property>
+                    <property name="borderTopWidth">medium</property>
+                </cell>
+            </row>
+        </grid>
+        <table id="406">
+            <property name="marginTop">40pt</property>
+            <property name="width">7.947916666666667in</property>
+            <property name="dataSet">Data Set</property>
+            <list-property name="boundDataColumns">
+                <structure>
+                    <property name="name">AGENT_NM</property>
+                    <text-property name="displayName">AGENT_NM</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["AGENT_NM"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="name">DEPT_CD</property>
+                    <text-property name="displayName">DEPT_CD</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["DEPT_CD"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="name">SABUN</property>
+                    <text-property name="displayName">SABUN</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["SABUN"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="name">JIKCHK</property>
+                    <text-property name="displayName">JIKCHK</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["JIKCHK"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="name">JIKGUP</property>
+                    <text-property name="displayName">JIKGUP</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["JIKGUP"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <column id="425">
+                <property name="width">1.59375in</property>
+            </column>
+            <column id="426">
+                <property name="width">1.8229166666666667in</property>
+            </column>
+            <column id="427"/>
+            <column id="428">
+                <property name="width">1.5833333333333333in</property>
+            </column>
+            <column id="429">
+                <property name="width">1.5833333333333333in</property>
+            </column>
+            <header>
+                <row id="407">
+                    <property name="backgroundColor">#8080C0</property>
+                    <cell id="408">
+                        <property name="colSpan">5</property>
+                        <property name="rowSpan">1</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">medium</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">medium</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">medium</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">medium</property>
+                        <text id="452">
+                            <property name="color">#FFFFFF</property>
+                            <property name="contentType">auto</property>
+                            <text-property name="content"><![CDATA[상담사정보]]></text-property>
+                        </text>
+                    </cell>
+                </row>
+                <row id="441">
+                    <property name="backgroundColor">#8080C0</property>
+                    <property name="color">#FFFFFF</property>
+                    <cell id="442">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">medium</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">medium</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">medium</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">medium</property>
+                        <text id="447">
+                            <property name="contentType">auto</property>
+                            <text-property name="content"><![CDATA[상담사명]]></text-property>
+                        </text>
+                    </cell>
+                    <cell id="443">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">medium</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">medium</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">medium</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">medium</property>
+                        <text id="448">
+                            <property name="contentType">auto</property>
+                            <text-property name="content"><![CDATA[소속]]></text-property>
+                        </text>
+                    </cell>
+                    <cell id="444">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">medium</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">medium</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">medium</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">medium</property>
+                        <text id="449">
+                            <property name="contentType">auto</property>
+                            <text-property name="content"><![CDATA[사번]]></text-property>
+                        </text>
+                    </cell>
+                    <cell id="445">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">medium</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">medium</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">medium</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">medium</property>
+                        <text id="450">
+                            <property name="contentType">auto</property>
+                            <text-property name="content"><![CDATA[직책]]></text-property>
+                        </text>
+                    </cell>
+                    <cell id="446">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">medium</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">medium</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">medium</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">medium</property>
+                        <text id="451">
+                            <property name="contentType">auto</property>
+                            <text-property name="content"><![CDATA[직급]]></text-property>
+                        </text>
+                    </cell>
+                </row>
+            </header>
+            <detail>
+                <row id="413">
+                    <cell id="414">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">medium</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">medium</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">medium</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">medium</property>
+                        <data id="436">
+                            <property name="resultSetColumn">AGENT_NM</property>
+                        </data>
+                    </cell>
+                    <cell id="415">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">medium</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">medium</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">medium</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">medium</property>
+                        <data id="437">
+                            <property name="resultSetColumn">DEPT_CD</property>
+                        </data>
+                    </cell>
+                    <cell id="416">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">medium</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">medium</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">medium</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">medium</property>
+                        <data id="438">
+                            <property name="resultSetColumn">SABUN</property>
+                        </data>
+                    </cell>
+                    <cell id="417">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">medium</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">medium</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">medium</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">medium</property>
+                        <data id="439">
+                            <property name="resultSetColumn">JIKCHK</property>
+                        </data>
+                    </cell>
+                    <cell id="418">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">medium</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">medium</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">medium</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">medium</property>
+                        <data id="440">
+                            <property name="resultSetColumn">JIKGUP</property>
+                        </data>
+                    </cell>
+                </row>
+            </detail>
+        </table>
+    </body>
+</report>

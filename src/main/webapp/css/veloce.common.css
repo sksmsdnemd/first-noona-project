@@ -1,0 +1,23 @@
+@charset "utf-8";
+
+/* 입력 Table */
+.veloce_input_table {
+	
+}
+
+.veloce_input_table tr th {
+	background: #fafafa;
+	height: 35px;
+	text-align: left;
+	padding-left: 17px;
+}
+
+.veloce_input_table tr th .point {
+	font-weight: 600;
+	font-size: 15px;
+	color: #ee0a0a;
+	display: inline-block;
+	vertical-align: text-bottom;
+	margin-left: 4px;
+	line-height: 6px;
+}

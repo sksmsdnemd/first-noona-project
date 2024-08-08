@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="ARGOCOMMON"> 
+    <typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+    <select id="ARGOCOMMON.login_BACK" parameterClass="java.util.HashMap" resultClass="egovMap">
+   		/* ID : ARGOCOMMON.login */
+     	SELECT 
+				CASE WHEN DATE_FORMAT(DATE_ADD(SYSDATE(), 
+						INTERVAL -(IFNULL((SELECT CASE VAL_CUR WHEN '' THEN '500' WHEN '0' THEN '500' ELSE VAL_CUR END VAL_CUR 
+									FROM tb_was_config 
+								WHERE SECTION = 'COMPANY' AND KEY_CODE = 'SITE_PWD_CHANGE'), '500')) MONTH
+					), '%Y%m%d') > DATE_FORMAT(DATE_FORMAT(IFNULL(A.USER_PWD_UPT_DATE,DATE_FORMAT(SYSDATE(),'%Y%m%d')),'%Y%m%d'),'%Y%m%d') 
+					THEN 'PWDCHG' 
+					WHEN ((SELECT USER_PWD FROM tb_mng_userinfo WHERE TENANT_ID ='bridgetec' AND USER_ID ='btadmin' ) = A.USER_PWD AND A.INS_ID = 'External') THEN 'PWDCHG'
+					ELSE 'LOGINOK' END  AS RESULT_CD
+     			, A.USER_ID AS AGENT_ID, A.TENANT_ID AS TENANT_ID, A.SALT,A.USER_PWD
+				, CASE WHEN A.PLAYER_KIND = '' THEN '0' WHEN IFNULL(A.PLAYER_KIND,'') = '' THEN '0' ELSE A.PLAYER_KIND END AS PLAYER_KIND
+				, CASE WHEN A.REAL_PLAY_KIND = '' THEN '0' WHEN IFNULL(A.REAL_PLAY_KIND,'') = '' THEN '0' ELSE A.REAL_PLAY_KIND END AS REAL_PLAY_KIND
+     			, A.USER_ID, A.GRANT_ID, A.USER_NAME, DATE_FORMAT(SYSDATE(),'%H:%i:%s') AS LOGIN_TIME, DATE_FORMAT(SYSDATE(),'%Y%m%d') LOGIN_DATE
+     			, A.CONVERT_FLAG, A.BACKUP_FLAG, A.GROUP_ID, (SELECT DEPTH FROM tb_mng_group WHERE TENANT_ID = #tenantId# AND GROUP_ID = A.GROUP_ID) AS DEPTH
+     			, (SELECT GRANT_NAME FROM tb_mng_auth WHERE TENANT_ID = #tenantId# AND GRANT_ID = A.GRANT_ID) AS GRANT_NAME
+     			, A.FORCED_LOGOUT, IFNULL(A.CONTROL_AUTH,'') CONTROL_AUTH, IFNULL(A.MAIN_PAGE,'') MAIN_PAGE
+     			, IFNULL(A.LOGIN_DATE_CHECK_USE,'') LOGIN_DATE_CHECK_USE
+     			, IFNULL(A.LOGIN_DATE_CHECK_FROM,'') LOGIN_DATE_CHECK_FROM
+     			, IFNULL(A.LOGIN_DATE_CHECK_TO,'') LOGIN_DATE_CHECK_TO
+     			, IFNULL(A.LOGIN_ERR_COUNT,0) LOGIN_ERR_COUNT
+     			, IFNULL((SELECT VAL_CUR FROM tb_was_config WHERE SECTION = 'COMPANY' AND KEY_CODE = 'SITE_PWD_FAIL_COUNT'), 0) SITE_PWD_FAIL_COUNT
+    		FROM tb_mng_userinfo A
+    	WHERE A.TENANT_ID = #tenantId#
+    		AND A.USER_ID = #agentId#
+    		AND A.RETIREE_FLAG != 0
+    	<isNotNull prepend="AND" property="agentPw">
+			A.USER_PWD = #agentPw#
+		</isNotNull>
+		</select>
+		
+		
+		<select id="ARGOCOMMON.login" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : ARGOCOMMON.login */
+		SELECT 
+				CASE WHEN DATE_FORMAT(DATE_ADD(SYSDATE(), 
+						INTERVAL -(IFNULL((SELECT CASE VAL_CUR WHEN '' THEN '500' WHEN '0' THEN '500' ELSE VAL_CUR END VAL_CUR 
+									FROM tb_was_config 
+								WHERE SECTION = 'COMPANY' AND KEY_CODE = 'SITE_PWD_CHANGE'), '500')) MONTH
+					), '%Y%m%d') > DATE_FORMAT(DATE_FORMAT(IFNULL(A.USER_PWD_UPT_DATE,DATE_FORMAT(SYSDATE(),'%Y%m%d')),'%Y%m%d'),'%Y%m%d') 
+					THEN 'PWDCHG'
+					WHEN (SELECT VAL_CUR FROM TB_WAS_CONFIG WHERE SECTION = 'COMPANY' AND KEY_CODE = 'INIT_PWD_CHANGE') = '1' 
+						 AND (A.LOGIN_DATE IS NULL OR A.LOGIN_DATE = '')
+						 AND (A.USER_PWD_UPT_DATE IS NULL OR A.USER_PWD_UPT_DATE = '')
+					THEN 'PWDCHG' 
+					WHEN ((SELECT USER_PWD FROM tb_mng_userinfo WHERE TENANT_ID ='bridgetec' AND USER_ID ='btadmin' ) = A.USER_PWD AND A.INS_ID = 'External') THEN 'PWDCHG'
+					ELSE 'LOGINOK' END  AS RESULT_CD
+     			, A.USER_ID AS AGENT_ID, A.TENANT_ID AS TENANT_ID, A.SALT,A.USER_PWD
+				, CASE WHEN A.PLAYER_KIND = '' THEN '0' WHEN IFNULL(A.PLAYER_KIND,'') = '' THEN '0' ELSE A.PLAYER_KIND END AS PLAYER_KIND
+				, CASE WHEN A.REAL_PLAY_KIND = '' THEN '0' WHEN IFNULL(A.REAL_PLAY_KIND,'') = '' THEN '0' ELSE A.REAL_PLAY_KIND END AS REAL_PLAY_KIND
+     			, A.USER_ID, A.GRANT_ID, A.USER_NAME, DATE_FORMAT(SYSDATE(),'%H:%i:%s') AS LOGIN_TIME, DATE_FORMAT(SYSDATE(),'%Y%m%d') LOGIN_DATE
+     			, A.CONVERT_FLAG, A.BACKUP_FLAG, A.GROUP_ID
+                , C.DEPTH
+                , B.GRANT_NAME, B.AUTH_RANK
+     			, A.FORCED_LOGOUT, IFNULL(A.CONTROL_AUTH,'') CONTROL_AUTH, IFNULL(A.MAIN_PAGE,'') MAIN_PAGE
+     			, IFNULL(A.LOGIN_DATE_CHECK_USE,'') LOGIN_DATE_CHECK_USE
+     			, IFNULL(A.LOGIN_DATE_CHECK_FROM,'') LOGIN_DATE_CHECK_FROM
+     			, IFNULL(A.LOGIN_DATE_CHECK_TO,'') LOGIN_DATE_CHECK_TO
+     			, IFNULL(A.LOGIN_ERR_COUNT,0) LOGIN_ERR_COUNT
+     			, IFNULL((SELECT VAL_CUR FROM tb_was_config WHERE SECTION = 'COMPANY' AND KEY_CODE = 'SITE_PWD_FAIL_COUNT'), 0) SITE_PWD_FAIL_COUNT
+     			, IFNULL((SELECT VAL_CUR FROM TB_WAS_CONFIG WHERE SECTION = 'COMPANY' AND KEY_CODE = 'NOUSE_ACC_LOCK'), 0) AS NOUSE_ACC_LOCK
+     			, IFNULL(DATE_FORMAT(A.LOGIN_DATE, '%Y%m%d'), '') AS LAST_LOGIN_DATE
+    		FROM tb_mng_userinfo A
+    		LEFT OUTER JOIN tb_mng_auth B
+            ON A.GRANT_ID = B.GRANT_ID
+            AND A.TENANT_ID = B.TENANT_ID
+            LEFT OUTER JOIN tb_mng_group C
+            ON A.GROUP_ID = C.GROUP_ID
+            AND A.TENANT_ID= C.TENANT_ID
+            WHERE A.TENANT_ID = #tenantId#
+    		AND A.USER_ID = #agentId#
+			AND A.RETIREE_FLAG != 0
+    	<isNotEmpty prepend="AND" property="agentPw">
+			A.USER_PWD = #agentPw#
+		</isNotEmpty>
+	</select> 
+
+	<!-- 예전 로그인 query -->
+	<select id="ARGOCOMMON.login_" parameterClass="java.util.HashMap" resultClass="egovMap">
+   		/* ID : ARGOCOMMON.login */
+     	SELECT 
+				CASE WHEN DATE_FORMAT(DATE_ADD(SYSDATE(), 
+						INTERVAL -(IFNULL((SELECT CASE VAL_CUR WHEN '' THEN '500' WHEN '0' THEN '500' ELSE VAL_CUR END VAL_CUR 
+									FROM tb_was_config 
+				
+								WHERE SECTION = 'COMPANY' AND KEY_CODE = 'SITE_PWD_CHANGE'), '500')) MONTH
+					), '%Y%m%d') > DATE_FORMAT(DATE_FORMAT(IFNULL(A.USER_PWD_UPT_DATE,'19900101'),'%Y%m%d'),'%Y%m%d') 
+					THEN 'PWDCHG' ELSE 'LOGINOK' END  AS RESULT_CD
+     			, A.USER_ID AS AGENT_ID, A.TENANT_ID AS TENANT_ID, A.SALT,A.USER_PWD
+				, CASE WHEN A.PLAYER_KIND = '' THEN '0' WHEN IFNULL(A.PLAYER_KIND,'') = '' THEN '0' ELSE A.PLAYER_KIND END AS PLAYER_KIND
+     			, A.USER_ID, A.GRANT_ID, A.USER_NAME, DATE_FORMAT(SYSDATE(),'%H:%i:%s') AS LOGIN_TIME, DATE_FORMAT(SYSDATE(),'%Y%m%d') LOGIN_DATE
+     			, A.CONVERT_FLAG, A.GROUP_ID, (SELECT DEPTH FROM tb_mng_group WHERE TENANT_ID = #tenantId# AND GROUP_ID = A.GROUP_ID) AS DEPTH
+     			, (SELECT GRANT_NAME FROM tb_mng_auth WHERE TENANT_ID = #tenantId# AND GRANT_ID = A.GRANT_ID) AS GRANT_NAME
+     			, A.FORCED_LOGOUT, IFNULL(A.CONTROL_AUTH, NULL) CONTROL_AUTH, IFNULL(A.MAIN_PAGE,'') MAIN_PAGE
+     			, IFNULL(A.LOGIN_DATE_CHECK_USE,'') LOGIN_DATE_CHECK_USE
+     			, IFNULL(A.LOGIN_DATE_CHECK_FROM,'') LOGIN_DATE_CHECK_FROM
+     			, IFNULL(A.LOGIN_DATE_CHECK_TO,'') LOGIN_DATE_CHECK_TO
+     			, IFNULL(A.LOGIN_ERR_COUNT,0) LOGIN_ERR_COUNT
+     			, IFNULL((SELECT VAL_CUR FROM tb_was_config WHERE SECTION = 'COMPANY' AND KEY_CODE = 'SITE_PWD_FAIL_COUNT'), 0) SITE_PWD_FAIL_COUNT
+    		FROM tb_mng_userinfo A
+    	WHERE A.TENANT_ID = #tenantId#
+    		AND A.USER_ID = #agentId#
+    	<isNotEmpty prepend="AND" property="agentPw">
+			A.USER_PWD = #agentPw#
+		</isNotEmpty>
+	</select>
+   
+	<!-- <select id="ARGOCOMMON.loginPwdChange" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : ARGOCOMMON.loginPwdChange */
+     	SELECT 
+     			CASE WHEN  DATEADD(MONTH,-3,CONVERT(VARCHAR(10), GETDATE(),121)) > CONVERT(DATE,A.USER_PWD_UPT_DATE)
+				THEN 'PWDCHG' ELSE 'LOGINOK' END  AS RESULT_CD
+     			, A.USER_ID AS AGENT_ID
+     			,A.TENANT_ID AS TENANT_ID
+     			,A.SALT,A.USER_PWD
+				,CASE WHEN A.PLAYER_KIND = '' THEN '0' WHEN NVL(A.PLAYER_KIND,'') = '' THEN '0' ELSE A.PLAYER_KIND END AS PLAYER_KIND
+     			,A.USER_ID, A.GRANT_ID, A.USER_NAME, CONVERT(CHAR(8), GETDATE(), 8) AS LOGIN_TIME
+     			,A.CONVERT_FLAG, A.GROUP_ID, (SELECT DEPTH FROM TB_MNG_GROUP WHERE TENANT_ID = #tenantId# AND GROUP_ID = A.GROUP_ID) AS DEPTH
+     			,(SELECT GRANT_NAME FROM TB_MNG_AUTH WHERE TENANT_ID = #tenantId# AND GRANT_ID = A.GRANT_ID) AS GRANT_NAME
+     			,A.FORCED_LOGOUT 
+    		FROM TB_MNG_USERINFO A
+    	WHERE A.TENANT_ID = #tenantId#
+    		AND A.USER_ID = #agentId#
+    	<isNotEmpty prepend="AND" property="agentPw">
+			A.USER_PWD = #agentPw#
+		</isNotEmpty>
+	</select> -->
+   
+	<!-- <select id="ARGOCOMMON.getActionLogList" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : ARGOCOMMON.getActionLogList */
+		select 
+				tenant_id, log_date, user_id, log_key, action_class
+				, action_code, work_ip, work_menu, work_log, user_name, action_code_name 
+		from(
+			select * from (
+				select
+					Row_Number() over (order by tenant_id , log_date) RowNum2, TB_IN.* 
+				from (
+					select 
+						Row_Number() over (order by A.tenant_id desc, log_date desc) RowNum1,
+						a.tenant_id, a.log_date, a.user_id, a.log_key, a.action_class
+						, a.action_code, a.work_ip, a.work_menu, a.work_log, b.user_name, c.code_name action_code_name
+					FROM tb_mng_actionlog a join tb_mng_userinfo b
+						on a.tenant_id = b.tenant_id
+							and a.user_id	= b.user_id
+						join tb_mng_basecode c
+						on a.action_class = c.class_id
+							and a.action_code = c.code_id
+					<dynamic prepend="WHERE">
+						<isNotEmpty prepend="AND" property="tenantId">
+							a.tenant_id Like #tenantId#
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findActionCode">
+							a.action_code = #findActionCode#
+						</isNotEmpty>
+						수정 2014-10-06 검색조건 필드 수정
+						<isNotEmpty prepend="AND" property="findText">
+							<isEqual property="findKey" compareValue="a.user_id">
+								a.user_id Like '%'+ #findText# +'%'
+							</isEqual>
+							<isEqual property="findKey" compareValue="b.user_name">
+								b.user_name Like '%'+ #findText# +'%'
+							</isEqual>
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findWorkMenu">
+							a.work_menu LIKE '%'+ #findWorkMenu# +'%'
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findWorkLog">
+							a.work_log LIKE '%'+ #findWorkLog# +'%'
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findELogDate">
+						<![CDATA[
+							CONVERT(varchar(19),a.log_date ,20 ) >=	#findSLogDate#
+							and CONVERT(varchar(19),a.log_date ,20 ) <=	#findELogDate#
+							]]>
+						</isNotEmpty>
+					</dynamic>
+				) TB_IN
+			) TB_OUT 
+		) tbl2
+		order by tenant_id desc, log_date desc
+	</select> -->
+	
+	<select id="ARGOCOMMON.getIntroUserInfo" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : ARGOCOMMON.getIntroUserInfo */
+		SELECT AGENT_STATUS, COUNT(*) CNT
+			FROM (
+				SELECT CASE WHEN IFNULL(NULLIF(AGENT_STATUS,''),'') IS NULL THEN '00' WHEN IFNULL(NULLIF(AGENT_STATUS,''),'') = '' THEN '00' ELSE AGENT_STATUS END AGENT_STATUS
+					FROM tb_mng_userinfo
+				WHERE TENANT_ID = #tenantId#
+				  AND RETIREE_FLAG = '1'
+			) T
+		GROUP BY AGENT_STATUS
+	</select>
+	
+	<!-- <select id="ARGOCOMMON.getIntroExtInfo_20220221" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : ARGOCOMMON.getIntroExtInfo_20220221 */
+		select dn_status, count(*) cnt
+			from (
+				select case IFNULL(NULLIF(dn_status,''),'') when '01' then dn_status when '10' then dn_status else '00' end dn_status
+					from tb_mng_usertelno
+				where tenant_id = #tenantId#) t
+		group by dn_status
+	</select> -->
+	<select id="ARGOCOMMON.getIntroExtInfo" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : ARGOCOMMON.getIntroExtInfo */
+		SELECT t.DN_STATUS, COUNT(*) AS CNT
+		  FROM (
+			SELECT CASE WHEN t1.DN_STATUS = '01' AND t2.AGENT_STATUS = '01' THEN DN_STATUS
+						WHEN t1.DN_STATUS = '10' AND t2.AGENT_STATUS = '01' THEN DN_STATUS
+						ELSE '00'
+				   END AS DN_STATUS
+			  FROM TB_MNG_USERTELNO t1
+			  LEFT OUTER JOIN TB_MNG_USERINFO t2
+				ON t1.TENANT_ID = t2.TENANT_ID
+			   AND t1.USER_ID = t2.USER_ID
+			 WHERE t1.TENANT_ID = #tenantId#
+		  ) t
+		 GROUP BY t.DN_STATUS
+	</select>
+	
+	<select id="ARGOCOMMON.getIntroRecCntList" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : ARGOCOMMON.getIntroRecCntList */
+		select CONCAT('당일(', rec_date, ')') as rec_date, IFNULL(NULLIF(sum_cnt_m1,''),0) sum_cnt_m1, IFNULL(NULLIF(time_avg_m1,''),0) time_avg_m1
+			from (
+				select DATE_FORMAT(SYSDATE(),'%Y%m%d') rec_date from dual
+				) t_d
+				left outer join (
+					select DATE_FORMAT(SYSDATE(),'%Y%m%d') rdate_m1, count(1) sum_cnt_m1, avg(end_time) time_avg_m1
+						from tb_rec_file
+					where tenant_id = #tenantId#
+						and rec_time <![CDATA[ >= ]]> DATE_FORMAT(SYSDATE(),'%Y%m%d')
+						and rec_time <![CDATA[ <  ]]> CONCAT(DATE_FORMAT(SYSDATE(),'%Y%m%d'), '99')
+						and  SEARCH_VISIBLE = 1
+					group by DATE_FORMAT(DATE_FORMAT(substr(rec_time,1,8),'YYYYMMDD'),'d'), DATE_FORMAT(SYSDATE(),'%Y%m%d')
+				) tm1 
+				on  rec_date = rdate_m1
+		union
+		select CONCAT('전일(', rec_date, ')') as rec_date, IFNULL(sum_cnt_m1,0) sum_cnt_m1, IFNULL(time_avg_m1,0) time_avg_m1
+			from (
+				select DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -1 DAY),'%Y%m%d') rec_date from dual
+				) td1
+				left outer join (
+					select DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -1 DAY),'%Y%m%d') rdate_d1, sum(rec_count) sum_cnt_m1, avg(end_time_avg) time_avg_m1
+						from tb_rec_file_day
+					where tenant_id = #tenantId#
+						and rec_time <![CDATA[ >= ]]> DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -1 DAY),'%Y%m%d')
+						and rec_time <![CDATA[ < ]]> CONCAT(DATE_FORMAT(SYSDATE()-1,'%Y%m%d'), '99')
+					group by DATE_FORMAT(DATE_FORMAT(substr(rec_time,1,8),'%Y%m%d'),'d'), DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -1 DAY),'%Y%m%d')
+				) tm2 
+				on 	rec_date = rdate_d1
+		union all
+		select CONCAT('전주(', rec_date, ')') as rec_date, IFNULL(sum_cnt_m1,0) sum_cnt_m1, IFNULL(time_avg_m1,0) time_avg_m1
+			from (
+				select DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -7 DAY),'%Y%m%d') rec_date from dual
+				) td1
+				left outer join (
+					select DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -7 DAY),'%Y%m%d') rdate_d1, sum(rec_count) sum_cnt_m1, avg(end_time_avg) time_avg_m1
+						from tb_rec_file_day
+					where tenant_id = #tenantId#
+						and rec_time <![CDATA[ >= ]]> DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -7 DAY),'%Y%m%d')
+						and rec_time <![CDATA[ < ]]> CONCAT(DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -7 DAY),'%Y%m%d'), '99')
+					group by DATE_FORMAT(DATE_FORMAT(substr(rec_time,1,8),'%Y%m%d'),'d'), DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -7 DAY),'%Y%m%d')
+				) tm2 
+				on 	rec_date = rdate_d1
+
+		union all
+		select CONCAT('전달(', rec_date, ')') as rec_date, IFNULL(sum_cnt_m1,0) sum_cnt_m1, IFNULL(time_avg_m1,0) time_avg_m1
+			from 
+				(
+				select DATE_FORMAT(DATE_ADD(SYSDATE(),INTERVAL -1 MONTH),'%Y%m%d') rec_date from dual
+				) td1
+				left outer join (
+					select DATE_FORMAT(DATE_ADD(SYSDATE(),INTERVAL -1 MONTH),'%Y%m%d') rdate_d1, sum(rec_count) sum_cnt_m1, avg(end_time_avg) time_avg_m1
+						from tb_rec_file_day
+					where tenant_id = #tenantId#
+						and rec_time <![CDATA[ >= ]]> DATE_FORMAT(DATE_ADD(SYSDATE(),INTERVAL -1 MONTH),'%Y%m%d')
+						and rec_time <![CDATA[ < ]]> CONCAT(DATE_FORMAT(DATE_ADD(SYSDATE(),INTERVAL -1 MONTH),'%Y%m%d'), '99')
+					group by DATE_FORMAT(DATE_FORMAT(substr(rec_time,1,8),'%Y%m%d'),'d'), DATE_FORMAT(DATE_ADD(SYSDATE(),INTERVAL -1 MONTH),'%Y%m%d')
+				) tm2 
+				on 	rec_date = rdate_d1
+	</select>
+	
+	<select id="ARGOCOMMON.getIntroRecentList" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : ARGOCOMMON.getIntroRecentList */
+		SELECT REC_TIME, SUM(REC_COUNT) REC_COUNT, AVG(REC_COUNT) REC_AVG
+			FROM ( 
+				SELECT substr(REC_TIME,1,8) REC_TIME, USER_ID, SUM(REC_COUNT) REC_COUNT
+					FROM tb_rec_file_day 
+				WHERE REC_TIME > DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -14 DAY),'%Y%m%d')
+					AND TENANT_ID = #tenantId#
+				GROUP BY substr(REC_TIME,1,8), USER_ID
+				) T_S
+		GROUP BY REC_TIME
+		ORDER BY REC_TIME
+	</select>
+	
+	<select id="ARGOCOMMON.logoutCheck" parameterClass="java.util.HashMap" resultClass="String">
+		/* ID : ARGOCOMMON.logoutCheck */
+     	SELECT 
+     			RTRIM(CAST(forced_logout AS CHAR(10))) as forced_logout
+    		FROM tb_mng_userinfo
+    	WHERE TENANT_ID = #logoutTenantId#
+    		AND USER_ID = #logoutAgentId#
+   </select>
+   
+   <select id="ARGOCOMMON.grantForm" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID :ARGOCOMMON.grantForm */
+     	select A.AUTH_KIND from tb_mng_menuauth A, tb_mng_menu B
+		WHERE A.tenant_id ='$TID$' and A.grant_id='$GID$' and
+		A.DEPTH1_ID=B.DEPTH1_ID
+		AND A.DEPTH2_ID = B.DEPTH2_ID
+		AND A.DEPTH3_ID = B.DEPTH3_ID
+		AND B.SRC_DO='$URL$'
+   </select>
+
+</sqlMap>

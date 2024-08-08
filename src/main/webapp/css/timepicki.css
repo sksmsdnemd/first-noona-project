@@ -1,0 +1,87 @@
+
+/* 
+Created on: 17 Sep, 2014, 4:29:37 PM
+Author: senthil
+*/
+
+.ti_tx,
+.mi_tx,
+.mer_tx {
+	width: 100%;
+	text-align: center;
+	margin: 0;
+}
+
+.time,
+.mins,
+.meridian {
+	width: 60px;
+	float: left;
+	margin: 0px 7px;
+	font-size: 20px;
+	color: #2d2e2e;
+	font-family: arial;
+	font-weight: 700;	
+}
+
+.meridian{ display:none;}
+
+.prev,
+.next {
+	cursor: pointer;
+	width: 42px;
+	height: 18px;
+	border: 1px solid #ccc;
+	margin: auto;
+	
+}
+.prev{background: url(../images/icon_upArrow.png) no-repeat 50% 50% !important;}
+.next{background: url(../images/icon_downArrow.png) no-repeat 50% 50% !important;}
+
+.prev:hover,
+.next:hover {
+	background-color: #ccc;
+}
+
+.time_pick {
+	position: relative;
+	display:inline-block;
+}
+
+.timepicker_wrap {
+	padding: 10px 0;
+	z-index: 998;
+	display: none;
+	background: #fff;
+	border: 1px solid #c5c5c5;
+	float: left;
+	position: absolute;
+	top: 27px !important;
+	left: 0;
+	width:148px;
+}
+
+.arrow_top {
+	position: absolute;
+	top: -10px;
+	left: 20px;
+	background: url(../images/top_arr.png) no-repeat;
+	width: 18px;
+	height: 10px;
+	z-index: 999;
+}
+input.timepicki-input {
+	background: none repeat scroll 0 0 #FFFFFF;
+    	border: 1px solid #CCCCCC;  	
+    	float: none;
+    	margin: 4px 0;
+    	text-align: center;
+    	width: 44px;
+		padding:0 !important;
+}
+a.reset_time {
+	float: left;
+	margin-top: 5px;
+	color: #000;
+}
+.time_divide{font-size:18px;font-weight:600;position:absolute;left: 72px;top: 38px;color: #9C9C9C;}

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMapConfig PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-config-2.dtd">
+<sqlMapConfig>
+
+	<!-- COMMON  START -->
+    <sqlMap resource="sqlmap/maria/COM/COMMON.xml" />
+    <sqlMap resource="sqlmap/maria/COM/CodeList.xml" />
+	<!-- COMMON  END -->
+	
+	<!-- management  START -->
+	<sqlMap resource="sqlmap/maria/management/BaseCodeSqlMap.xml" />
+	<sqlMap resource="sqlmap/maria/management/MenuSqlMap.xml" />    
+	<sqlMap resource="sqlmap/maria/management/ActionLogSqlMap.xml" />    
+	<sqlMap resource="sqlmap/maria/management/CallTestSqlMap.xml" />
+    <!-- management  END -->
+    
+    <!-- USERMAN  START -->
+    <sqlMap resource="sqlmap/maria/USERMAN/userManSqlMap.xml" />
+    <sqlMap resource="sqlmap/maria/USERMAN/userTelSqlMap.xml" />
+    <!-- USERMAN  END -->
+    
+    <!-- recording  START -->
+    <sqlMap resource="sqlmap/maria/recording/RecSearchSqlMap.xml" />
+    <sqlMap resource="sqlmap/maria/recording/RecFileSqlMap.xml" />
+    <!-- recording  END -->
+    
+    <!-- system  START -->
+    <sqlMap resource="sqlmap/maria/system/SysGroupSqlMap.xml" />
+    <sqlMap resource="sqlmap/maria/system/SysInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/maria/system/IpInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/maria/system/ProcInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/maria/system/ResMonSqlMap.xml" />
+    <sqlMap resource="sqlmap/maria/system/ResMonDefSqlMap.xml" />
+    <sqlMap resource="sqlmap/maria/system/BkLabelSqlMap.xml" />
+    <sqlMap resource="sqlmap/maria/system/BkInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/maria/system/SysCheckingSqlMap.xml" />
+    <sqlMap resource="sqlmap/maria/system/StatSqlMap.xml" />
+    <!-- system  END -->
+    
+    <!-- alarm  START -->
+    <sqlMap resource="sqlmap/maria/alarm/ErrCodeSqlMap.xml" />
+    <!-- alarm  END -->
+    
+    <!-- GROUPBASE  START -->
+    <sqlMap resource="sqlmap/maria/GROUPBASE/GroupSqlMap.xml" />
+    <!-- GROUPBASE  END -->
+    
+    <!-- recManagement -->
+    <sqlMap resource="sqlmap/maria/recManagement/RecSampleCallSqlMap.xml" />
+    <sqlMap resource="sqlmap/maria/recManagement/RecInfoSqlMap.xml" />
+    <!-- recManagement -->
+    
+    <!-- Maintenance -->
+    <sqlMap resource="sqlmap/maria/Maintenance/maintenanceSqlMap.xml" />
+    <sqlMap resource="sqlmap/maria/Maintenance/veloceRestSqlMap.xml" />
+    <!-- Maintenance END -->
+</sqlMapConfig>

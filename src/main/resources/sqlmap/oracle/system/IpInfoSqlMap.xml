@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="ipInfo">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="ipInfo.getIpInfoCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : ipInfo.getIpInfoCount */
+		select count(*) as cnt
+			FROM tb_sys_ipInfo a 
+				join tb_sys_sysinfo b
+					on a.sys_group_id = b.sys_group_id
+					and a.system_id = b.system_id
+				join tb_sys_sysgroup c
+					on a.sys_group_id = c.sys_group_id
+				left outer join tb_mng_basecode d
+					on d.class_id = 'ip_use'
+					and d.code_id = a.ip_use_code
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND"  property="findText">
+				<isEqual property="findKey" compareValue="b.system_name">  	b.system_name  	</isEqual>
+				<isEqual property="findKey" compareValue="a.system_ip">  	a.system_ip 	</isEqual>
+				Like '%' || #findText# || '%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="systemId">
+				a.system_id = #systemId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="ipUseItem">
+				a.ip_use_item like '%' || #ipUseItem# || '%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findSysGroupId">
+				a.sys_group_id = #findSysGroupId#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="ipInfo.getIpInfoList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : ipInfo.getIpInfoList */
+		select 
+				RTRIM(CAST(sys_group_id AS CHAR(10))) as sys_group_id, RTRIM(CAST(system_id AS CHAR(10))) as system_id, system_ip
+				, ip_desc, ins_id, to_char(ins_date, 'YYYY-MM-DD HH24:MI:SS') as ins_date, upt_id
+				, to_char(upt_date, 'YYYY-MM-DD HH24:MI:SS') as upt_date
+		     	, domain_addr, mfu_ip, ip_nat
+				, system_name, sys_group_name, ip_use_class, ip_use_code, ip_use_name, ip_use_item
+			from(
+				select * from (
+					select
+							Row_Number() over (order by sys_group_id desc, system_id desc, system_ip desc) RowNum2, TB_IN.* 
+						from (
+							select 
+									Row_Number() over (order by a.sys_group_id, a.system_id, system_ip) RowNum1
+									, a.sys_group_id, a.system_id, system_ip, ip_desc, a.ins_id, a.ins_date
+									, a.upt_id, a.upt_date, b.system_name, c.sys_group_name
+									, a.ip_use_class, a.ip_use_code , a.domain_addr
+									, d.code_name ip_use_name, a.ip_use_item, a.mfu_ip, a.ip_nat
+								FROM tb_sys_ipInfo a 
+									join tb_sys_sysinfo b
+										on a.sys_group_id = b.sys_group_id
+										and a.system_id = b.system_id
+									join tb_sys_sysgroup c
+										on a.sys_group_id = c.sys_group_id
+									left outer join tb_mng_basecode d
+										on d.class_id	= 'ip_use'
+										and d.code_id = a.ip_use_code
+							<dynamic prepend="WHERE">
+								<isNotEmpty prepend="AND"  property="findText">
+									<isEqual property="findKey" compareValue="b.system_name">  	b.system_name  	</isEqual>
+									<isEqual property="findKey" compareValue="a.system_ip">  	a.system_ip 	</isEqual>
+									Like '%' || #findText# || '%'
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="systemId">
+									a.system_id = #systemId#
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="ipUseItem">
+									a.ip_use_item like '%' || #ipUseItem# || '%'
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findSysGroupId">
+									a.sys_group_id = #findSysGroupId#
+								</isNotEmpty>
+							</dynamic>
+							) TB_IN
+						WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+					) TB_OUT 
+				WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+			) tbl2
+		order by sys_group_id, system_id, system_ip
+	</select>
+
+	<insert id="ipInfo.setIpInfoInsert" parameterClass="java.util.HashMap">
+		/* ID : ipInfo.setIpInfoInsert */
+		insert into tb_sys_ipInfo
+			(
+			sys_group_id, system_id, system_ip, ip_desc, ins_id
+			, ins_date, ip_use_class, ip_use_code, ip_use_item, domain_addr, mfu_ip, ip_nat
+			) 
+		values 
+			(
+			#sysGroupId#, #systemId#, #systemIp#, #ipDesc#, #insId#
+			, sysdate, #ipUseClass#, #ipUseCode#, #ipUseItem#, #domainAddr#, #mfuIp#, #ipNat#
+			)
+	</insert>
+
+	<update id="ipInfo.setIpInfoUpdate" parameterClass="java.util.HashMap">
+		/* ID : ipInfo.setIpInfoUpdate */
+		update tb_sys_ipInfo set 
+			ip_desc	       = #ipDesc#
+			, upt_id	   = #uptId#
+			, upt_date	   = sysdate
+			, ip_use_class = #ipUseClass#
+			, ip_use_code  = #ipUseCode#
+			, ip_use_item  = #ipUseItem#
+			, domain_addr  = #domainAddr#
+			, mfu_ip       = #mfuIp#
+			, ip_nat       = #ipNat#
+		where sys_group_id = #sysGroupId#
+			and system_id  = #systemId#
+			and system_ip  = #systemIp#
+	</update>
+	
+	<delete id="ipInfo.setIpInfoDelete" parameterClass="java.util.HashMap">
+		/* ID : ipInfo.setIpInfoDelete */
+		delete from tb_sys_ipInfo
+		where sys_group_id = #sysGroupId#
+			and system_id  = #systemId#
+		 	and system_ip  = #systemIp#
+	</delete>
+	
+	<select id="ipInfo.getNatRangeList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : ipInfo.getNatRangeList */
+		SELECT TENANT_ID, RANGE_SEQ, IP_CLASS, NAT_IP_RANGE
+		  FROM TB_MNG_NAT_RANGE
+<!-- 		 WHERE TENANT_ID = #tenantId# -->
+		 WHERE TENANT_ID = #findTenantId#
+		 ORDER BY TENANT_ID, RANGE_SEQ
+	</select>
+	
+	<insert id="ipInfo.setNatRangeInsert"  parameterClass="java.util.HashMap">
+		/* ID : ipInfo.setNatRangeInsert */
+		INSERT INTO TB_MNG_NAT_RANGE(TENANT_ID, RANGE_SEQ, IP_CLASS, NAT_IP_RANGE)
+<!-- 		VALUES (#tenantId#, LPAD(#rangeSeq#, 5, '0'), #ipClass#, #natIpRange#) -->
+		VALUES (#findTenantId#, LPAD(#rangeSeq#, 5, '0'), #ipClass#, #natIpRange#)
+	</insert>
+	
+	<delete id="ipInfo.setNatRangeDelete"  parameterClass="java.util.HashMap">
+		/* ID : ipInfo.setNatRangeDelete */
+<!-- 		DELETE FROM TB_MNG_NAT_RANGE WHERE TENANT_ID = #tenantId# -->
+		DELETE FROM TB_MNG_NAT_RANGE WHERE TENANT_ID = #findTenantId#
+	</delete>
+</sqlMap>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="recInfo">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="recInfo.getRecLogCount" parameterClass="java.util.HashMap"	resultClass="egovMap">
+		/* ID : recInfo.getRecLogCount */ 
+		select count(*) cnt
+			FROM tb_rec_reclog tb_reclog
+				left outer join (
+					select user_id, user_name worker_name from tb_mng_userinfo 
+					where tenant_id =  #tenantId#
+						<isNotEmpty property="findWorkerId"> and user_id	like '%' + #findWorkerId#  + '%' </isNotEmpty>
+						<isNotEmpty property="findWorkerNm"> and user_name 	like '%' + #findWorkerNm#  + '%' </isNotEmpty>
+					) tb_user_work 
+					on tb_reclog.worker_id = tb_user_work.user_id	
+				left outer join (
+					select user_id, user_name from tb_mng_userinfo 
+					where tenant_id =  #tenantId#
+						<isNotEmpty property="findUserId">	and user_id 	like '%' + #findUserId#  + '%' </isNotEmpty>
+						<isNotEmpty property="findUserNm">	and user_name 	like '%' + #findUserNm#  + '%' </isNotEmpty>
+					) tb_user on tb_reclog.user_id = tb_user.user_id	
+				left outer join tb_rec_file tb_rec 
+					on tb_reclog.rec_key = tb_rec.rec_key
+		where tb_reclog.tenant_id =  #tenantId#
+			and	<![CDATA[	work_sdate >= convert(datetime, substring(#txtDate1_From#,1,4) + '-' + substring(#txtDate1_From#,5,2) + '-' + substring(#txtDate1_From#,7,2) + ' '
+				 	+ substring(#recFrmTm#,1,2) + ':' + substring(#recFrmTm#,3,2) + ':' + substring(#recFrmTm#,5,2)) ]]> 
+			and <![CDATA[	work_sdate <= convert(datetime, substring(#txtDate1_To#,1,4) + '-' + substring(#txtDate1_To#,5,2) + '-' + substring(#txtDate1_To#,7,2) + ' '
+				 	+ substring(#recEndTm#,1,2) + ':' + substring(#recEndTm#,3,2) + ':' + substring(#recEndTm#,5,2)) ]]> 				
+			<isNotEmpty property="findRealtimeFlag"> and realtime_flag = #findRealtimeFlag# 	</isNotEmpty>
+	</select>
+	
+	<select id="recInfo.getRecLogList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recInfo.getRecLogList */
+		select * 
+			from (
+				select Row_Number() over (order by work_sdate) RowNum2,* 
+					from(
+						select Row_Number() over (order by work_sdate desc) RowNum1
+								, tb_reclog.tenant_id, CONVERT(CHAR(23), work_sdate, 21) as work_sdate , realtime_flag , worker_id, worker_name 
+								, tb_reclog.rec_key, tb_rec.rec_time, tb_reclog.user_id, user_name, tb_reclog.dn_no,worker_ip
+							FROM tb_rec_reclog tb_reclog
+								left outer join (
+									select user_id, user_name worker_name from tb_mng_userinfo 
+									where tenant_id =  #tenantId#
+										<isNotEmpty property="findWorkerId"> and user_id	like '%' + #findWorkerId#  + '%' </isNotEmpty>
+										<isNotEmpty property="findWorkerNm"> and user_name 	like '%' + #findWorkerNm#  + '%' </isNotEmpty>
+									) tb_user_work 
+									on tb_reclog.worker_id = tb_user_work.user_id	
+								left outer join (
+									select user_id, user_name from tb_mng_userinfo 
+									where tenant_id =  #tenantId#
+										<isNotEmpty property="findUserId">	and user_id 	like '%' + #findUserId#  + '%' </isNotEmpty>
+										<isNotEmpty property="findUserNm">	and user_name 	like '%' + #findUserNm#  + '%' </isNotEmpty>
+									) tb_user on tb_reclog.user_id = tb_user.user_id	
+								left outer join tb_rec_file tb_rec 
+									on tb_reclog.rec_key = tb_rec.rec_key
+						where tb_reclog.tenant_id =  #tenantId#
+							and	<![CDATA[	work_sdate >=	convert(datetime, substring(#txtDate1_From#,1,4) + '-' + substring(#txtDate1_From#,5,2) + '-' + substring(#txtDate1_From#,7,2) + ' '
+						 				+ substring(#recFrmTm#,1,2) + ':' + substring(#recFrmTm#,3,2) + ':' + substring(#recFrmTm#,5,2)) ]]> 
+							and <![CDATA[	work_sdate <=	convert(datetime, substring(#txtDate1_To#,1,4) + '-' + substring(#txtDate1_To#,5,2) + '-' + substring(#txtDate1_To#,7,2) + ' '
+						 				+ substring(#recEndTm#,1,2) + ':' + substring(#recEndTm#,3,2) + ':' + substring(#recEndTm#,5,2)) ]]> 	
+							<isNotEmpty property="findRealtimeFlag"> and realtime_flag = #findRealtimeFlag# 	</isNotEmpty>
+						) TB_IN
+				WHERE  <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+			) TB_OUT 
+		WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>	
+		order by work_sdate desc 
+	</select>
+	
+	<insert id="recInfo.setRecLogInsert" parameterClass="java.util.HashMap">
+		/* ID : recInfo.setRecLogInsert */
+		insert into tb_rec_reclog
+			(
+			tenant_id, worker_id, listening_key, work_sdate, worker_ip, user_id, dn_no, user_ip, realtime_flag, rec_key
+			)
+		values 
+			(
+			#tenantId#, #workerId#, #listeningKey#, getdate(), #workerIp#, #userId#, #dnNo#, '', #realtimeFlag#, #recKey#
+			)
+	</insert>
+	
+	<insert id="recInfo.setRecLogRealInsert" parameterClass="java.util.HashMap">
+		/* ID : recInfo.setRecLogRealInsert */
+		insert into tb_rec_reclog
+			(
+			tenant_id, worker_id, listening_key, work_sdate, worker_ip, user_id, dn_no, user_ip, realtime_flag, rec_key
+			)
+		values 
+			(
+			#tenantId#, #workerId#, #listeningKey#, getdate(), #workerIp#, #userId#, #dnNo#, #userIp#, #realtimeFlag#, #recKey#
+			)
+	</insert>
+	
+	<insert id="recInfo.setAppRecLogRealInsert" parameterClass="java.util.HashMap">
+		/* ID : recInfo.setAppRecLogRealInsert */
+		insert into tb_rec_reclog	
+			(tenant_id, worker_id, listening_key, work_sdate, worker_ip, user_id, dn_no, user_ip, realtime_flag, rec_key , rec_reason , rec_reason_text , rec_time )
+		select  
+			#tenantId# , #workerId#, #listeningKey#, getdate(), #loginIp# , user_id , dn_no , phone_ip , #realtimeFlag#, rec_key , #recReason# , #recReasonText# , rec_time 
+		from tb_rec_file
+		where call_id = #callId#
+		and rec_time = (select max(rec_time) from tb_rec_file where call_id = #callId# )
+	</insert>
+	
+	<insert id="recInfo.registerGrandInfo" parameterClass="java.util.HashMap">
+		/* ID :  recInfo.registerGrandInfo*/
+		INSERT INTO TB_REC_GRANT (USER_ID, REC_KEY, START_DATE, END_DATE, INS_DATE, INS_ID, REASON, DOWNLOAD_FLAG)
+		VALUES (#userId#, #recKey#, #startDate#, #endDate#, getdate(), #insId#, #reason#, #downloadFlag#)
+	</insert>
+	
+</sqlMap>

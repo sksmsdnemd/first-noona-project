@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="resMonDef">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+
+	<select id="resMonDef.getResMonDefCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resMonDef.getResMonDefCount */
+		select count(*) as cnt
+			FROM tb_sys_resmon_def a 
+				join tb_mng_basecode b
+					on a.res_class = b.class_id
+					and a.res_code = b.code_id
+					and b.class_id = 'res_class'
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="findText">
+				<isEqual property="findKey" compareValue="a.res_name">  a.res_desc  </isEqual>
+				Like CONCAT('%', #findText#, '%')
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findResCode">
+				a.res_code = #findResCode#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+
+	<select id="resMonDef.getResMonDefList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resMonDef.getResMonDefList */
+		select res_class, res_code, res_name, res_code_name , res_desc
+			from(
+				select * from (
+					select
+							Row_Number() over (order by res_class desc, res_code desc, res_name desc) RowNum2, TB_IN.* 
+						from (
+							select 
+									Row_Number() over (order by res_class, res_code, res_name) RowNum1
+									, res_class, res_code, res_name, res_desc, b.code_name res_code_name
+								FROM tb_sys_resmon_def a 
+									join tb_mng_basecode b
+										on a.res_class = b.class_id
+										and a.res_code = b.code_id
+										and b.class_id = 'res_class'
+							<dynamic prepend="WHERE">
+								<isNotEmpty prepend="AND"  property="findText">
+									<isEqual property="findKey" compareValue="a.res_name">  a.res_desc  </isEqual>
+										Like CONCAT('%', #findText#, '%')
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findResCode">
+									a.res_code = #findResCode#
+								</isNotEmpty>
+							</dynamic>
+							) TB_IN
+						WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+					) TB_OUT 
+				WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+			) tbl2
+		order by res_class, res_code, res_name
+	</select>
+
+	<insert id="resMonDef.setResMonDefInsert" parameterClass="java.util.HashMap">
+		/* ID : resMonDef.setResMonDefInsert */
+		insert into tb_sys_resmon_def
+			(
+			res_class, res_code, res_name, res_desc
+			) 
+		values 
+			(
+			NULLIF(#resClass#, ''), NULLIF(#resCode#, ''), NULLIF(#resName#, ''), NULLIF(#resDesc#, '')
+			)
+	</insert>
+
+	<update id="resMonDef.setResMonDefUpdate" parameterClass="java.util.HashMap">
+		/* ID : resMonDef.setResMonDefUpdate */
+		update tb_sys_resmon_def
+		   set res_desc	 = NULLIF(#resDesc#, '')
+		 where res_class = #resClass#
+		   and res_code  = #resCode#
+		   and res_name  = #resName#
+	</update>
+	
+	<delete id="resMonDef.setResMonDefDelete" parameterClass="java.util.HashMap" >
+		/* ID : resMonDef.setResMonDefDelete */
+		delete from tb_sys_resmon_def
+		where res_class  = #resClass#
+		 	and res_code = #resCode#
+		 	and res_name = #resName#
+	</delete>
+
+</sqlMap>

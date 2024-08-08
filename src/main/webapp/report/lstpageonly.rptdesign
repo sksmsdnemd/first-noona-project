@@ -1,0 +1,598 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<report xmlns="http://www.eclipse.org/birt/2005/design" version="3.2.17" id="1">
+    <property name="createdBy">Eclipse BIRT Designer Version 2.3.2.r232_20090202 Build &lt;2.3.2.v20090218-0730></property>
+    <property name="units">in</property>
+    <method name="beforeFactory"><![CDATA[reportContext.setPersistentGlobalVariable("mypagestatus","notdone" );]]></method>
+    <property name="iconFile">/templates/blank_report.gif</property>
+    <property name="bidiLayoutOrientation">ltr</property>
+    <data-sources>
+        <oda-data-source extensionID="org.eclipse.birt.report.data.oda.jdbc" name="Data Source" id="7">
+            <property name="odaDriverClass">org.eclipse.birt.report.data.oda.sampledb.Driver</property>
+            <property name="odaURL">jdbc:classicmodels:sampledb</property>
+            <property name="odaUser">ClassicModels</property>
+            <property name="OdaConnProfileName"></property>
+        </oda-data-source>
+    </data-sources>
+    <data-sets>
+        <oda-data-set extensionID="org.eclipse.birt.report.data.oda.jdbc.JdbcSelectDataSet" name="Data Set" id="8">
+            <list-property name="computedColumns">
+                <structure>
+                    <property name="name">rowcount</property>
+                    <property name="dataType">integer</property>
+                    <property name="aggregateFunction">COUNT</property>
+                    <list-property name="arguments">
+                        <structure>
+                            <property name="name">Expression</property>
+                            <expression name="value">row["ORDERNUMBER"]</expression>
+                        </structure>
+                    </list-property>
+                </structure>
+                <structure>
+                    <property name="name">runningcount</property>
+                    <property name="dataType">integer</property>
+                    <property name="aggregateFunction">RUNNINGCOUNT</property>
+                    <list-property name="arguments">
+                        <structure>
+                            <property name="name">Expression</property>
+                            <expression name="value">row["ORDERNUMBER"]</expression>
+                        </structure>
+                    </list-property>
+                </structure>
+            </list-property>
+            <list-property name="columnHints">
+                <structure>
+                    <property name="columnName">ORDERNUMBER</property>
+                    <property name="displayName">ORDERNUMBER</property>
+                </structure>
+                <structure>
+                    <property name="columnName">PRODUCTCODE</property>
+                    <property name="displayName">PRODUCTCODE</property>
+                </structure>
+                <structure>
+                    <property name="columnName">QUANTITYORDERED</property>
+                    <property name="displayName">QUANTITYORDERED</property>
+                </structure>
+                <structure>
+                    <property name="columnName">PRICEEACH</property>
+                    <property name="displayName">PRICEEACH</property>
+                </structure>
+                <structure>
+                    <property name="columnName">ORDERLINENUMBER</property>
+                    <property name="displayName">ORDERLINENUMBER</property>
+                </structure>
+            </list-property>
+            <structure name="cachedMetaData">
+                <list-property name="resultSet">
+                    <structure>
+                        <property name="position">1</property>
+                        <property name="name">ORDERNUMBER</property>
+                        <property name="dataType">integer</property>
+                    </structure>
+                    <structure>
+                        <property name="position">2</property>
+                        <property name="name">PRODUCTCODE</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">3</property>
+                        <property name="name">QUANTITYORDERED</property>
+                        <property name="dataType">integer</property>
+                    </structure>
+                    <structure>
+                        <property name="position">4</property>
+                        <property name="name">PRICEEACH</property>
+                        <property name="dataType">float</property>
+                    </structure>
+                    <structure>
+                        <property name="position">5</property>
+                        <property name="name">ORDERLINENUMBER</property>
+                        <property name="dataType">integer</property>
+                    </structure>
+                    <structure>
+                        <property name="position">6</property>
+                        <property name="name">rowcount</property>
+                        <property name="dataType">integer</property>
+                    </structure>
+                    <structure>
+                        <property name="position">7</property>
+                        <property name="name">runningcount</property>
+                        <property name="dataType">integer</property>
+                    </structure>
+                </list-property>
+            </structure>
+            <property name="dataSource">Data Source</property>
+            <list-property name="resultSet">
+                <structure>
+                    <property name="position">1</property>
+                    <property name="name">ORDERNUMBER</property>
+                    <property name="nativeName">ORDERNUMBER</property>
+                    <property name="dataType">integer</property>
+                    <property name="nativeDataType">4</property>
+                </structure>
+                <structure>
+                    <property name="position">2</property>
+                    <property name="name">PRODUCTCODE</property>
+                    <property name="nativeName">PRODUCTCODE</property>
+                    <property name="dataType">string</property>
+                    <property name="nativeDataType">12</property>
+                </structure>
+                <structure>
+                    <property name="position">3</property>
+                    <property name="name">QUANTITYORDERED</property>
+                    <property name="nativeName">QUANTITYORDERED</property>
+                    <property name="dataType">integer</property>
+                    <property name="nativeDataType">4</property>
+                </structure>
+                <structure>
+                    <property name="position">4</property>
+                    <property name="name">PRICEEACH</property>
+                    <property name="nativeName">PRICEEACH</property>
+                    <property name="dataType">float</property>
+                    <property name="nativeDataType">8</property>
+                </structure>
+                <structure>
+                    <property name="position">5</property>
+                    <property name="name">ORDERLINENUMBER</property>
+                    <property name="nativeName">ORDERLINENUMBER</property>
+                    <property name="dataType">integer</property>
+                    <property name="nativeDataType">5</property>
+                </structure>
+            </list-property>
+            <property name="queryText">select *
+from orderdetails</property>
+            <xml-property name="designerValues"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<model:DesignValues xmlns:design="http://www.eclipse.org/datatools/connectivity/oda/design" xmlns:model="http://www.eclipse.org/birt/report/model/adapter/odaModel">
+  <Version>1.0</Version>
+  <design:ResultSets derivedMetaData="true">
+    <design:resultSetDefinitions>
+      <design:resultSetColumns>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>ORDERNUMBER</design:name>
+            <design:position>1</design:position>
+            <design:nativeDataTypeCode>4</design:nativeDataTypeCode>
+            <design:precision>10</design:precision>
+            <design:scale>0</design:scale>
+            <design:nullability>Nullable</design:nullability>
+            <design:uiHints>
+              <design:displayName>ORDERNUMBER</design:displayName>
+            </design:uiHints>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>ORDERNUMBER</design:label>
+            <design:formattingHints>
+              <design:displaySize>11</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>PRODUCTCODE</design:name>
+            <design:position>2</design:position>
+            <design:nativeDataTypeCode>12</design:nativeDataTypeCode>
+            <design:precision>15</design:precision>
+            <design:scale>0</design:scale>
+            <design:nullability>Nullable</design:nullability>
+            <design:uiHints>
+              <design:displayName>PRODUCTCODE</design:displayName>
+            </design:uiHints>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>PRODUCTCODE</design:label>
+            <design:formattingHints>
+              <design:displaySize>15</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>QUANTITYORDERED</design:name>
+            <design:position>3</design:position>
+            <design:nativeDataTypeCode>4</design:nativeDataTypeCode>
+            <design:precision>10</design:precision>
+            <design:scale>0</design:scale>
+            <design:nullability>Nullable</design:nullability>
+            <design:uiHints>
+              <design:displayName>QUANTITYORDERED</design:displayName>
+            </design:uiHints>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>QUANTITYORDERED</design:label>
+            <design:formattingHints>
+              <design:displaySize>11</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>PRICEEACH</design:name>
+            <design:position>4</design:position>
+            <design:nativeDataTypeCode>8</design:nativeDataTypeCode>
+            <design:precision>15</design:precision>
+            <design:scale>0</design:scale>
+            <design:nullability>Nullable</design:nullability>
+            <design:uiHints>
+              <design:displayName>PRICEEACH</design:displayName>
+            </design:uiHints>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>PRICEEACH</design:label>
+            <design:formattingHints>
+              <design:displaySize>22</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>ORDERLINENUMBER</design:name>
+            <design:position>5</design:position>
+            <design:nativeDataTypeCode>5</design:nativeDataTypeCode>
+            <design:precision>5</design:precision>
+            <design:scale>0</design:scale>
+            <design:nullability>Nullable</design:nullability>
+            <design:uiHints>
+              <design:displayName>ORDERLINENUMBER</design:displayName>
+            </design:uiHints>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>ORDERLINENUMBER</design:label>
+            <design:formattingHints>
+              <design:displaySize>6</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+      </design:resultSetColumns>
+    </design:resultSetDefinitions>
+  </design:ResultSets>
+</model:DesignValues>]]></xml-property>
+        </oda-data-set>
+    </data-sets>
+    <styles>
+        <style name="report" id="4">
+            <property name="fontFamily">"Verdana"</property>
+            <property name="fontSize">10pt</property>
+        </style>
+        <style name="crosstab" id="5">
+            <property name="borderBottomColor">#CCCCCC</property>
+            <property name="borderBottomStyle">solid</property>
+            <property name="borderBottomWidth">1pt</property>
+            <property name="borderLeftColor">#CCCCCC</property>
+            <property name="borderLeftStyle">solid</property>
+            <property name="borderLeftWidth">1pt</property>
+            <property name="borderRightColor">#CCCCCC</property>
+            <property name="borderRightStyle">solid</property>
+            <property name="borderRightWidth">1pt</property>
+            <property name="borderTopColor">#CCCCCC</property>
+            <property name="borderTopStyle">solid</property>
+            <property name="borderTopWidth">1pt</property>
+        </style>
+        <style name="crosstab-cell" id="6">
+            <property name="borderBottomColor">#CCCCCC</property>
+            <property name="borderBottomStyle">solid</property>
+            <property name="borderBottomWidth">1pt</property>
+            <property name="borderLeftColor">#CCCCCC</property>
+            <property name="borderLeftStyle">solid</property>
+            <property name="borderLeftWidth">1pt</property>
+            <property name="borderRightColor">#CCCCCC</property>
+            <property name="borderRightStyle">solid</property>
+            <property name="borderRightWidth">1pt</property>
+            <property name="borderTopColor">#CCCCCC</property>
+            <property name="borderTopStyle">solid</property>
+            <property name="borderTopWidth">1pt</property>
+        </style>
+    </styles>
+    <page-setup>
+        <simple-master-page name="Simple MasterPage" id="2">
+            <property name="topMargin">0.25in</property>
+            <property name="leftMargin">0.25in</property>
+            <property name="bottomMargin">0.25in</property>
+            <property name="rightMargin">0.25in</property>
+            <property name="showHeaderOnFirst">false</property>
+            <page-header>
+                <grid id="44">
+                    <property name="width">100%</property>
+                    <column id="45"/>
+                    <row id="48">
+                        <cell id="49">
+                            <image id="61">
+                                <property name="height">95px</property>
+                                <property name="width">325px</property>
+                                <method name="onRender"><![CDATA[var ptr = reportContext.getGlobalVariable("tr");
+var pcr = reportContext.getGlobalVariable("cr");
+if( (parseInt( ptr) - parseInt(pcr)) > 30 ){
+this.getStyle().display ="none"
+}
+]]></method>
+                                <property name="source">embed</property>
+                                <property name="imageName">eclipsecon08_logo.jpg</property>
+                            </image>
+                            <grid id="71">
+                                <property name="width">100%</property>
+                                <column id="72"/>
+                                <column id="73"/>
+                                <column id="74"/>
+                                <row id="75">
+                                    <cell id="76">
+                                        <auto-text id="77">
+                                            <property name="type">page-number</property>
+                                        </auto-text>
+                                    </cell>
+                                    <cell id="78">
+                                        <text id="79">
+                                            <property name="contentType">plain</property>
+                                            <text-property name="content"><![CDATA[/]]></text-property>
+                                        </text>
+                                    </cell>
+                                    <cell id="80">
+                                        <auto-text id="81">
+                                            <property name="type">total-page</property>
+                                        </auto-text>
+                                    </cell>
+                                </row>
+                            </grid>
+                        </cell>
+                    </row>
+                    <row id="52">
+                        <cell id="53">
+                            <label id="60">
+                                <property name="textAlign">center</property>
+                                <text-property name="text">Report header</text-property>
+                            </label>
+                        </cell>
+                    </row>
+                    <row id="56">
+                        <cell id="57"/>
+                    </row>
+                </grid>
+            </page-header>
+        </simple-master-page>
+    </page-setup>
+    <body>
+        <table id="83">
+            <property name="width">100%</property>
+            <property name="dataSet">Data Set</property>
+            <list-property name="boundDataColumns">
+                <structure>
+                    <property name="name">ORDERNUMBER</property>
+                    <property name="displayName">ORDERNUMBER</property>
+                    <expression name="expression">dataSetRow["ORDERNUMBER"]</expression>
+                    <property name="dataType">integer</property>
+                </structure>
+                <structure>
+                    <property name="name">PRODUCTCODE</property>
+                    <property name="displayName">PRODUCTCODE</property>
+                    <expression name="expression">dataSetRow["PRODUCTCODE"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="name">QUANTITYORDERED</property>
+                    <property name="displayName">QUANTITYORDERED</property>
+                    <expression name="expression">dataSetRow["QUANTITYORDERED"]</expression>
+                    <property name="dataType">integer</property>
+                </structure>
+                <structure>
+                    <property name="name">PRICEEACH</property>
+                    <property name="displayName">PRICEEACH</property>
+                    <expression name="expression">dataSetRow["PRICEEACH"]</expression>
+                    <property name="dataType">float</property>
+                </structure>
+                <structure>
+                    <property name="name">ORDERLINENUMBER</property>
+                    <property name="displayName">ORDERLINENUMBER</property>
+                    <expression name="expression">dataSetRow["ORDERLINENUMBER"]</expression>
+                    <property name="dataType">integer</property>
+                </structure>
+                <structure>
+                    <property name="name">rowcount</property>
+                    <property name="displayName">rowcount</property>
+                    <expression name="expression">dataSetRow["rowcount"]</expression>
+                    <property name="dataType">integer</property>
+                </structure>
+                <structure>
+                    <property name="name">runningcount</property>
+                    <property name="displayName">runningcount</property>
+                    <expression name="expression">dataSetRow["runningcount"]</expression>
+                    <property name="dataType">integer</property>
+                </structure>
+            </list-property>
+            <property name="pageBreakInterval">30</property>
+            <column id="117"/>
+            <column id="118"/>
+            <column id="119"/>
+            <column id="120"/>
+            <column id="121"/>
+            <header>
+                <row id="84">
+                    <cell id="85">
+                        <label id="86">
+                            <text-property name="text">ORDERNUMBER</text-property>
+                        </label>
+                    </cell>
+                    <cell id="87">
+                        <label id="88">
+                            <text-property name="text">PRODUCTCODE</text-property>
+                        </label>
+                    </cell>
+                    <cell id="89">
+                        <label id="90">
+                            <text-property name="text">QUANTITYORDERED</text-property>
+                        </label>
+                    </cell>
+                    <cell id="91">
+                        <label id="92">
+                            <text-property name="text">PRICEEACH</text-property>
+                        </label>
+                    </cell>
+                    <cell id="93">
+                        <label id="94">
+                            <text-property name="text">ORDERLINENUMBER</text-property>
+                        </label>
+                    </cell>
+                </row>
+            </header>
+            <detail>
+                <row id="97">
+                    <method name="onCreate"><![CDATA[var totalrows = this.getRowData().getColumnValue("rowcount");
+var currrow = this.getRowData().getColumnValue("runningcount");
+reportContext.setGlobalVariable("tr", totalrows);
+reportContext.setGlobalVariable("cr", currrow);
+]]></method>
+                    <cell id="98">
+                        <data id="99">
+                            <property name="resultSetColumn">ORDERNUMBER</property>
+                        </data>
+                    </cell>
+                    <cell id="100">
+                        <data id="101">
+                            <property name="resultSetColumn">PRODUCTCODE</property>
+                        </data>
+                    </cell>
+                    <cell id="102">
+                        <data id="103">
+                            <property name="resultSetColumn">QUANTITYORDERED</property>
+                        </data>
+                    </cell>
+                    <cell id="104">
+                        <data id="105">
+                            <property name="resultSetColumn">PRICEEACH</property>
+                        </data>
+                    </cell>
+                    <cell id="106">
+                        <data id="107">
+                            <property name="resultSetColumn">ORDERLINENUMBER</property>
+                        </data>
+                    </cell>
+                </row>
+            </detail>
+            <footer>
+                <row id="110">
+                    <cell id="111"/>
+                    <cell id="112"/>
+                    <cell id="113"/>
+                    <cell id="114"/>
+                    <cell id="115"/>
+                </row>
+            </footer>
+        </table>
+    </body>
+    <list-property name="images">
+        <structure>
+            <property name="name">eclipsecon08_logo.jpg</property>
+            <property name="data">
+                /9j/4AAQSkZJRgABAgAAZABkAAD/7AARRHVja3kAAQAEAAAAPAAA/+4ADkFkb2JlAGTAAAAAAf/bAIQA
+                BgQEBAUEBgUFBgkGBQYJCwgGBggLDAoKCwoKDBAMDAwMDAwQDA4PEA8ODBMTFBQTExwbGxscHx8fHx8f
+                Hx8fHwEHBwcNDA0YEBAYGhURFRofHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8f
+                Hx8fHx8fHx8f/8AAEQgAXwFFAwERAAIRAQMRAf/EAKAAAQACAwEBAAAAAAAAAAAAAAABAwQFBgIHAQEB
+                AQEBAQEAAAAAAAAAAAAAAQIDBAUGEAABAgUBBAkABwYEBgMAAAABAgMAETEEBSFBwRIG8FFhgdEiMhMH
+                cZFCk9MUJKFSciMVCLGSotLhYoI0FhczsyYRAQACAgIAAwcEAQUAAAAAAAABEQISIQMxQQTwUWHxIjIT
+                cYGhQiNSYnJDFP/aAAwDAQACEQMRAD8A+YFutenXH6igLda9OuFAW616dcKAt1r064UBbrXp1woC2Na9
+                ++FAWxrXp1woC3WvTrhQFutenXCgLda9OuFAW616dcKAt1r064UBbrXp1woC3WvTrhQFutenXCgLda9O
+                uFAW616dcKAt1r064UBbrXp1woC3WvTrhQFutenXCgLda9OuFAW616dcKAt1r064UBbrXp1woC3WvTrh
+                QFutenXCgLda9OuFAW616dcKAt1r064UBbrXp1woC3WvTrhQFutenXCgLda9OuFAW616dcKAt1r064UB
+                brXp1woC3WvTrhQFutenXCgLda9OuFCfbE9u+FCwitY66gRWsNQIrWGoKFaw1Cs5TiULE261T0MQSu2W
+                J6GIKiCCZzjUQBFaxdQIrWGoEVrDUCK1hqBFaw1AitYagRWsNQIrWGoEVrDUCK1hqBFaw1AitYagRWsN
+                QIrWGoEVrDUCK1hqBFaw1AitYagRWsNQIrWGoEVrDUCK1hqBFaw1AitYagRWsNQIrWGoEVrDUCK1hqBF
+                aw1AitYagRWsNQIrWGomWu2GosKK1jpQKSNa98KAprWFApNaxKF9ra8a9AdY5ZI63EctquUiSSTHmy7K
+                Gdd8kvJSVLHto2qI1+qMx3wsQ5TK462typLYKyPtEwn1E+STLnLoKEyFEfQTHLLvz97nOUsQ3Nwk6LPf
+                rGY7848yMpXM5MTk8P8AqG8R6ev1f+puMmwHAtPEk8STQx7o55hpJRWsWgKK1hQFFawoCitYUBRWsKAo
+                rWFAUVrCgKK1hQFFawoCitYUBRWsKAorWFAUVrCgKK1hQFFawoCitYUBRWsKAorWFAUVrCgKK1hQFFaw
+                oCitYUBRWsKAorWFAUVrCgKK1hQFFawoCitYUJ4Ndu+FC8pGuhiWIUkSOh74WPKmgJ8MxEEKmBqImw2W
+                KU37on+2OOco+zfH6bBAS8+Bw/Zn19cfN9RaxDM51v7B1JSyRIDWW0xw67Jl8bzqkFapR6IYlyV2RrEl
+                iWRc8oZxrlBrm5bbYwj1wbRt33B7nugqTIt1lNJ1jnvF15lNPjcZkMtkGMdjWFXV9dK4Le3RLiWqRMhM
+                gUEamaWGQpvI4LLv4nKsqtrlhYbubZyXE2sgHWRIoY7+n9Rr/wAZbxbgpEtsfUtpJSNdDFsCka6GFgUj
+                XQwsCka6GFgUjXQwsCka6GFgUjXQwsCka6GFiCBrWFgUjXQwsCka1hYFI1rCxJSNdDCwKRroYWIKRrWF
+                gUjWsLElI10MLEFI1rCwKRrWFgUjWsLApGtYWBSNawsCka1hYFI1rCwKRrWFiSka6GFgUjXQwsOEToYW
+                LWrd9/i9ltS+GXFLZPrjlszOUR4rDjb/AF/kOfVDZPyR7xWOv9f5Dn1Q2PyR70OY+9CSSyuXaIbG8e92
+                9l8b47F2Vrec48wN8vOXqQ5bY/2lXFyUGinG0+ifb366R4M/U3MxhjtSzMN/nrNWCwNtmsPkG8zy/cqD
+                Dd8wOEtroEuJmZTlL6ax547NpqYrJqcopy/57LZR9m1tWHH7i5UG2WkiZUpWgEa1qLljeG4y3xty1jVo
+                teaedLTFZZxIUbJtv3vb4qBxUxL6SBHKO3KftxuCafO+e+TbzlvKsWTV4xmLa8YF1Z31nq2tpS1I11IC
+                poNCY1hlOXkxlw6nP210n+2LHNFpQdGdJKJay9x2OWs/l/Zq/pcHyHguYb3mzD2uOfdxV7cXCW7fJoTM
+                sKUkjjAmNmkdc4rGZmEiYYnO+B5hs+ec1ZZC6dy99bXJbuMipMlPqSkeciZ2aRnGJnGKhq4fQeRvi3N8
+                xcl/11N2xZpYuVWr6LtXtJQ23Kby3DpwgKGlY9OHrdKxyibatvrT4mwOZaft+WecLPLZphBWrHhHthfD
+                XgcKjPXbwy641PrssZ+rGoLt83eadaedYdQpDzSi262oSUlaTwqSodYIj249kSm0O8/9a4fF2Nq/zjzK
+                xy/cX7YetrEtLuHwg7XEII4Y8k+smZnTHalmWj5u5Vx2GtLPIY3O2ubx18tbbb1sSlaFtgKKXEEnhmFa
+                ax06fU7TMTGsps1WDwuSzuVYxWMaU/eXJk2igAGqlKOxKRqTHbPuxxi5W3aOfH3IjFycbec82zOXSr23
+                Gk2zjlulycuEvzSga6Ex5P8A15+MYcFuV5u5XynK+ZdxWSA91KQ408g8TbrSvS4gmUwZR6envjsi4LY+
+                Fw1xl7ssNK9ttA4nnVahI+jaTsjWfZTeGO0s5605JadLC8hdLWnRTqEgtz/yEnujG+Tcxh72oubdpWRV
+                a49xV0hakoYXKRXxSqDLaY6Rnxy5zHNQ3d1g+XsXwNZi/dN0tIUpm2APCD1khW6OX5cp8HScMY8ZY2W5
+                faZxwymNuTeWB0WSJLRrLzd/YI1j281KZYcXHg9ctcutZpq6Up9TKmSkJAAIPEDX6oZ9tHXhs1qLFwZl
+                vGXM23FPoYc2y4lBMx16GYjX5OLZ15pn32Kxtlf5G0ecdWbNtLragpKePiCPLIg6/wAz9kZjsmYanGIm
+                YeMvi8faWinre7L7nuobDcxMJKVT4pbeNB7pdcXHsmZTLGIhqVK0NY6Ww3IZ5PbCU3F7dOOEDjUyhKUJ
+                JGoPECTLsjlOeTpWPvV8xYMYsMXDL35iyuk8TLhEjQHX6QdIuHZaZ4UvYwuNt8W3kszcOtNXJlbsMgFx
+                Q/ePECO2JPbN1CxhERcqM5hmrO1YyFm8q5x11o24oSUlWvlV9Ri4dl8SmeFcx4L2MLjbfFt5LM3DrTVy
+                ZW7DIBcUP3jxAjtiT2zdQsYREXKjN4VqztWMhZPKuMddaNuKElJVr5VfUYuHZfEpnhXMeC6xwtgMOcvl
+                X3WrRauBptkArUQSJzMxUGJl2zdQuOEVcoy+EsWsS1lsbcLes3FcCkOgBaTMjWQG0SpDDsm6kywirhpS
+                qYNY6xLmlRrWFiZ67d8LFlgEue7Nn3pcPqdDUq9Z1jFsZyzCwkz/AEae+6T4wti/j/Cp5tYPlsky6vf4
+                j9YXCy/j/DP5XYZf5pw9veWyEW717bpdBdqguAGYKjHLumYwmvc1E/F9C+TXvitfyLkG+YbXOOZZPtBx
+                bDjAt+H2klHthR4+GX7Y+d0R2aRrVLcW0fM/Ofx/YfHOY5W5fscnx5VaHmjeKa9tDyFIM+IKBTojYIs9
+                ee0ZZUuWXCv+3hLb3yDZm4t0pW1a3C2VF4LPHwgaIn+6TE9T9jGE8vmOYTd5LmjMXN+x7l25e3BuCu4C
+                VcYdUCDM7JSjpjHEcMzKpOIShQlZp4U0T+bTIT1010jWvw/lm303mFkD+2bHI/LhIGcP8r3gR/8AI7rx
+                zjzV/l/Z0/q5b4ktkj5G5YV+USki+bPuC5CiNFa8E9Y69sfRPCYzywvlRhK/lnmsm1S5+vXqbgIn5U7J
+                6Rz64+mOP5bmeXeYVHt/22ZBIbDAOc1Slz3hVraP8InVH+X9jLwaX4sXdN/IXL67aZc/ONpUUmR9tflc
+                nLZwEx7e/GPxz+iYw8/KBaT8kcxBgzSLxRkNAFkAr1/jnF9LP0R+h5uyyvNXxRz0i0uOaHbzAZ+3YTbu
+                3TCS7brCKHRLmkyTqAR1mPNHX2dfGPOKzUuY58+Ohy5j7LOYzJt5jl3JK4LW+bEiFyJCVgaahJkR1EGU
+                d+nv2mpisoSnQ/AabQ5PmN98OFbOJdKfYID4QpQ4y1P7eg4Ts74x66ZrH9WoaQ3HwcU6W3MOo1/mWu3r
+                mIsfm/2sxSv5M50wHMacI3h2bppvE2n5NS7zgLi0p4fbmpBM9AZxfT9eWEzfmWxuVXFf+LZ1bE/zIQun
+                qkGjLfHfPxh6uv7ZcWhYM6x0hxdByUppXM9oF/8AOUA/vBtUoz2eDfV9zD5sccPMeQ92fEHZCf7oA4f9
+                MoYeCdn3S3/KKuLlbOh7/tkoWQT+97R4u/RMYz8YdOv7ZU8m3r1vy9nbplXC6whK0E7ClKiIZ+J1zUS2
+                q2GOYTieYbBMrhm4YRfMioCXE8U/4K/wxmJrhutqyhzPO6//ANVfjq9r/wClEdOvwce37pafirWOrm9l
+                wSNYtjZ4fBKyCV3d07+UxbJ/n3S9Jy+ymdTHPLKnTHC+fI5q5kZyS2bazQWsdZJ4LdJ0KtAJnq0GkZxi
+                jszvw8G1+RFBNth0on7Hsq9uVKI3SjOHm33eQlY/9ZPKcql4ezPr95M5f6oT9x/Q+RFBNthktz9j2Ve3
+                KlEbpQwk7vIQsH4zdU5VLw9mfX7yZy/1Q/sf9a7C3rGO5UC8+Pexl45w2ltw8TkiTxKnMSGkxt+uJl48
+                LjNY8+Ceardp7lm1uMK8hWFtSONhAPFxEy4lEmZIKtQeucXCeTsj6ePBx6XdDWO8S4JLtaxbRPu67d8L
+                VjMXyWuPiZS9OUvc4tJfwlMZtJi1pyrWv6Nn6nP2+eFpr8Q5VrX9Gz9Tn7fPCzX4q15OTvuNsIbWkgpK
+                eMSI1B9UQ1+L6i58l/G/NqbO656xt1acw2iEtf1bGgFLyRT3ET0+iR7DLSPB+HPCfo+34rTC5+zvxl/4
+                vc2PLmIub3IOlATkr8ABpIUFK4Egg+YCWgEZ17LvKv0XKJmHzzlnm2+5dzFnmsZbW7V9ZL42yQuSgRwr
+                QrzelSSQYZRExVOMRTvsjzb/AG88x5FzPZzFZXE5i6PuZG1tAHGHXZeZSVJMpq2mSZxxxjPHiKlqalw/
+                OvNPJuSytujlPADG4i0YDCU3M1PPL41KLzhSs6kKA1UaR067jx5SYbLMfIWEf+GrPktFosZZjJG9X5P0
+                vtlS1aK4+Pi8/VGdfr2XyaTkPmbH4Dm3DZq9s0flcfcofeLCVKd4Ugz4ApYBOsa7JvGYWIa/njmrHZ7n
+                zPZyztE/k8jdKfYFwkpd4SAPOErIB06443URFQ1T7V8X3vLY/t7vHOYbBxzFLzakuNWKi24kq9rhcTxK
+                1IrKesTCMt4mOJpMvBFjzr8U8oBzJco4+/yHMJQpFrcZOQaY4wQVSB1MjsHeI9U4dmfGUxGPwTZ8susi
+                89eO3dyo3D7zpefWv7a1K4lTl1mPZhFQRD6LcZH4Jy8rt20y2BulHiftLTheZnt4ComX1D6I8v8Amx44
+                klrue+fMRkcDjuVuW7R6x5cxa1PIVcqCrh95XF53JTCR51aT2xerqmMpyy+6UloOS+dsjylzCzmLFIWp
+                sFt9hcwl1pfqQqX0TB2GPR29cZ41LdO0vch8DZi4VknmMziH3j7lxj7QNLZ4zqfbKuKQJ+j6BHlxjux4
+                4lnhyHOmU5Uu7q3Tyxjnsdj7Zn21G4WFvPucRUXXJEyMjKU49HVtH3Tcltdy5zQ/g75boQXrZ4BNwyTK
+                YFCD1iOmUW7YZ6tk/c/HLzhuQL5ji8yrVsJCZnZrxS7lRmJlqdGku8qw1lze4htdqy0pCrZCzxKBQkAl
+                WpnxEExry5Ymebhv73mDk7OFNzlmbqyvkpCXV23CUrlSoV/h3xiLh0nLHLxYua5tsP6R/RMHbuMWRM33
+                nZe45rM0JrKs+zSLEc3KZZxVQxsJzDaWGEy9i8h1T1+gJZUkJKQeFQ85KgduwRZjlMcqiYOUOalYG+Wp
+                5Ljli8JPNJkVAj0qSCQJ7K0iZY2deessbmTMMZTO3V/bpcQy97fClwAKHC2lBmAVCqeuNYcM5zc2wS8d
+                a7I6Wyhbxka9OuJY7O95u5JvLG2srqyvfYtQAhpvhQmcpTMnRPvjjUu854zFOezt5yy621/Rba5YWCff
+                L5BBGnDLzr7Y1jfm55Tj5NixzHhcjhWMXnkvtrsv+1vGAFHhpwqB7NKRJip4ajKJipY3MfMtndY+3w2K
+                acaxloeLjdl7ji9dVS/iJhEJnnxUeDJt+Y8LkcKxi88l9tdlpa3jACjwU4VA9mlIVU8LGUTFSxuYuZbO
+                5x9vh8U041jLQ8XG7L3HF66ql/ETCITPO4qPBl2/MmByGBZxGdbfaNpL8vdW4BMgJDiB+qmsSY5WMomK
+                lVkeZMTbYFWDwaHiw8v3Lq6uJBSjMUA/hEWI5Jyiqhz4eIBrHWJckl4616dcWxPvGe3fCxhl2tenXHOw
+                Lta9OuFieMqJlM9NsLEqUgE8SiewbzFse0uJOkpCDeLu+VXcdkrFVjcpH5lCSkg1W31jtTHPLF11cbzL
+                hH8TfLbUP5SjNC9hBoY82UU8ueFS0ighVRGWHiSRQRVQpIOpjE5LEPDi0hMtkcssm6a8tm5uAw1pPVxY
+                +ynafCMYYTnlSvpWN54urTkJ/ktFu0Mc7dpvfzB4vdStKUJCRrw8P8sbI+jPTG0ZR5RTGTnXbg8SpEyj
+                tCxCtTtaxbVPvkT1MQpKric58UEpBdRrMK+v/hFtXv8AMNiei/8AMPCIlJVcMmc0r/zD/bFKQXrXWbbn
+                +cf7YWchdstZtO/eJ/2RDl696w1m0996n8OLZykvY3WbL/3qfw4HKfexYnNh/wC+R+FC05SbjFazt7j7
+                9H4ULOUm4xGs7e4+/R+DCysvb5n5jDif6a5+/R+DCysvb5pNziNf01z9+j8GFlZe3zDc4jX9Nc9v89H4
+                MLKy9vmgv4fX9Nc/fo/BhZWXt8z38Pr+mufv0fgwsrL2+YX8Pr+mufv0fgwsrL2+Z7+H1/TXP36PwYWV
+                l7fML+H1/TXP36PwYWVl7fM9/D6/prn79H4MLKy9vmF/D6/prn79H4MLKy9vm8PPY0tqDLD6HNJKW6la
+                a7UhtH+MLItQXBrXp1wtoLta9OuFh7vm274WMcqrXv3xgOIAk6n6d8LEqcJnqZdXjCxBVWvfvhYsbUSq
+                QnONNRLZWl4u2cStlZS6gghwVBg7Y5OvbzmJzln+TzKQ059m4A0n1/8AL/hGMsbaywtyWa5Ru7JanLVQ
+                u7WqVtmZl9EcMsMoeXLrpz65oJSoFJFQdDHnnJKUOPpG2Oc5Kq/LXtx6U+03tcWJfUKmNYdGWfwhqmdb
+                2rFq2UNAzOq1mqj1mPodfXGEVCSuKpTr0640gVVr374AVVr374AVVr374AVVr374AVVr374AVVr374AV
+                Vr374AVVr374AVVr374AVVr374AVVr374AVVr374AVVr374AVVr374AVVr374AVVr374AVVr374AVVr3
+                74AVVr374AVVr374AVVr374AVVr374AVVr374AVVr374AVVr374AVVr374AVVr374Bxeb7W+Axi7Wuyu
+                +IgXa12V3wAu1rsrvgHuFRIHESZSHjAXKfDU0pJK/tK6uyLYlFzKdYttxLNTe8KAJmZ1MV0jNcjJOIB4
+                VqT9BlEb3VXF027P3Ehf8QnCeWZr3MVTrKJ8CAn6ABEjGI8mZlS7cTnWLbnMqlO1rs6GM2yF2tdld8AL
+                ta7K74AXa12V3wAu1rsrvgBdrXZXfAC7Wuyu+AF2tdld8ALta7K74AXa12V3wAu1rsrvgBdrXZXfAC7W
+                uyu+AF2tdld8ALta7K74AXa12V3wAu1rsrvgBdrXZXfAC7Wuyu+AF2tdld8ALta7K74AXa12V3wAu1rs
+                rvgBdrXZXfAC7Wuyu+AF2tdld8ALta7K74AXa12V3wAu1rsrvgHu+b7W+AxC56q7K74yBc9Vdld8AKyZ
+                gcWzoYC0u+0FBJPuGqursi2Ki56q7K74lj0HDM1lpXfFiR7VcklR12dDF2W0m5OtenXC1sVcnXU9++Fl
+                vC3zrXp1xLS3lTh81dld8SxBc9Vdld8EC56q7K74AXPVXZXfAC56q7K74AXPVXZXfAC56q7K74AXPVXZ
+                XfAC56q7K74AXPVXZXfAC56q7K74AXPVXZXfAC56q7K74AXPVXZXfAC56q7K74AXPVXZXfAC56q7K74A
+                XPVXZXfAC56q7K74AXPVXZXfAC56q7K74AXPVXZXfAC56q7K74AXPVXZXfAC56q7K74AXPVXZXfAC56q
+                7K74AXPVXZXfAC56q7K74AXPVXZXfAT7nm+1vpBVRQ7rOXb5h4w1lAod1nLt8w8YayJCHwTKu3UeMKkQ
+                UO6zl2+YeMNZAod1nLt8w8YayHA9rTt8w8YayBQ7rOXb5h4w1kCh3Wcu3zDxhrIFDus5dvmHjDWQKHdZ
+                y7fMPGGsgUO6zl2+YeMNZAod1nLt8w8YayBQ7rOXb5h4w1kCh3Wcu3zDxhrIFDus5dvmHjDWQKHdZy7f
+                MPGGsgUO6zl2+YeMNZAod1nLt8w8YayBQ7rOXb5h4w1kCh3Wcu3zDxhrIFDus5dvmHjDWQKHdZy7fMPG
+                GsgUO6zl2+YeMNZAod1nLt8w8YayBQ7rOXb5h4w1kCh3Wcu3zDxhrIFDus5dvmHjDWQKHdZy7fMPGGsg
+                UO6zl2+YeMNZAod1nLt8w8YayBQ7rOXb5h4w1kCh3Wcu3zDxhrIFDus5dvmHjDWQKHdZy7fMPGGsgUO6
+                zl2+YeMNZAod1nLt8w8YayBQ7rOXb5h4w1kCh3Wcu3zDxhrIFDus5dvmHjDWQKHdZy7fMPGGshwPT7f4
+                h4w1kf/Z
+            </property>
+        </structure>
+    </list-property>
+</report>

@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="Group">
+    <typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap"/>
+
+
+    <select id="Group.getMaxGroupId" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : Group.getMaxGroupId */
+		select nvl(max(group_id),0) + 1 group_id
+			FROM tb_mng_group
+		where tenant_id = #tenantId#
+	</select>
+
+
+	<select id="Group.getGroupList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select AA.GROUP_ID
+			 , AA.PARENT_ID
+			 , AA.GROUP_NAME
+			 , AA.TOP_PARENT_ID
+			 , AA.DEPTH
+			 , AA.VALUE_TITLE_ID
+			 , AA.GROUP_MNG_ID
+			 , AA.INS_ID
+			 , TO_CHAR(AA.INS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS INS_DATE
+			 , AA.UPT_ID
+			 , TO_CHAR(AA.UPT_DATE, 'YYYY-MM-DD HH24:MI:SS') AS UPT_DATE
+			 , AA.GROUP_DESC
+			 , BB.GROUP_NAME                                 AS PARENT_NAME
+			 , level                                         as group_level
+		from tb_mng_group aa
+				 left outer join tb_mng_group bb
+								 on aa.PARENT_ID = bb.GROUP_ID
+									 and bb.TENANT_ID =#findTenantId#
+			start with aa.PARENT_ID = '0' and aa.TENANT_ID =#findTenantId#
+		connect by prior aa.GROUP_ID = aa.PARENT_ID and aa.TENANT_ID =#findTenantId#
+		order siblings by aa.GROUP_ID
+	</select>
+
+	<select id="Group.getChildGroupList" resultClass="java.util.HashMap">
+		/* ID : Group.getChildGroupList */
+		SELECT
+			  PARENT_ID 	AS "parentId"
+			, GROUP_ID 		AS "groupId"
+			, GROUP_NAME 	AS "groupName"
+		FROM TB_MNG_GROUP
+		WHERE 1=1
+		AND TENANT_ID = #tenantId#
+		START WITH PARENT_ID = #groupId#
+		CONNECT BY  PRIOR GROUP_ID = PARENT_ID
+		ORDER SIBLINGS BY PARENT_ID, GROUP_ID
+	</select>
+
+	<insert id="Group.setGroupInsert" parameterClass="java.util.HashMap">
+		/* ID : Group.setGroupInsert */
+		insert into tb_mng_group (
+			tenant_id, group_id, top_parent_id, parent_id, depth, group_name, value_title_id, group_mng_id, group_desc, ins_id, ins_date
+		 )VALUES(
+				#tenantId#, #groupId#, #topParentId#, #parentId#
+				, ''
+				, #groupName#, #valueTitleId#, #groupMngId#, #groupDesc#, #insId#, sysdate
+				)
+
+	</insert>
+
+    <update id="Group.setGroupChangeUpdate" parameterClass="java.util.HashMap">
+		/* ID : Group.setGroupChangeUpdate */   	
+		update tb_mng_group set 
+			depth        = #destDepth#
+			, upt_id     = #adminId#
+			, upt_date   = sysdate
+		where tenant_id  = #tenantId#
+			and group_id = #srcGroupId#
+	</update>
+
+    <update id="Group.setGroupChangeUpdate2" parameterClass="java.util.HashMap">
+		/* ID : Group.setGroupChangeUpdate2 */
+		update tb_mng_group set 
+			depth        = #srcDepth#
+			, upt_id     = #adminId#
+			, upt_date   = sysdate
+		where tenant_id  = #tenantId#
+			and group_id = #destGroupId#
+	</update>
+
+    <update id="Group.setGroupUpdate" parameterClass="java.util.HashMap">
+		/* ID : Group.setGroupUpdate */
+		begin
+
+		update tb_mng_group set
+		      group_id 		= #groupId#
+			, group_name    = #groupName#
+			, value_title_id = #valueTitleId#
+			, group_mng_id   = #groupMngId#
+			, group_desc     = #groupDesc#
+			, upt_id	     = #uptId#
+			, upt_date	     = sysdate
+		where tenant_id      = #tenantId#
+			and group_id     = #orgGroupId# ;
+
+	UPDATE TB_MNG_GROUP SET
+		PARENT_ID = #groupId#
+	where parent_id = #orgGroupId# ;
+
+	end;
+	</update>
+
+    <delete id="Group.setGroupDelete" parameterClass="java.util.HashMap">
+		/* ID : Group.setGroupDelete */   	
+		delete 
+			from tb_mng_group
+		where tenant_id  = #tenantId#
+			and group_id = #groupId#
+	</delete>
+
+
+    <select id="Group.getGroupIdCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : Group.getGroupIdCnt */
+		SELECT COUNT(GROUP_ID) AS CNT FROM TB_MNG_GROUP
+		WHERE TENANT_ID = #tenantId#
+		AND UPPER(GROUP_ID) = UPPER(#findGroupId#)
+	</select>
+
+
+    <update id="Group.setParentIdUpdate" parameterClass="java.util.HashMap">
+		UPDATE TB_MNG_GROUP SET
+		PARENT_ID = #parentId#
+		WHERE GROUP_ID = #groupId#
+		AND TENANT_ID = #tenantId#
+	</update>
+
+    <delete id="Group.deleteGroupList" parameterClass="java.util.HashMap">
+		  DELETE FROM TB_MNG_GROUP
+		  WHERE GROUP_ID = #findGroupId#
+			AND TENANT_ID = #findTenantId#
+	</delete>
+
+</sqlMap>

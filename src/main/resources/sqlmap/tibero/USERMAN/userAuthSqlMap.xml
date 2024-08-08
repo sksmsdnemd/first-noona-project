@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="userAuth">
+
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+
+	<select id="userAuth.getUserAuthList" resultClass="egovMap">
+		/** userAuth.getUserAuthList */
+		SELECT
+			  ua.TENANT_ID                AS "tenantId"
+			, ua.USER_ID                  AS "userId"
+			, ui.USER_NAME                AS "userName"
+			, ua.CONTROL_GROUP            AS "controlGroup"
+			, ua.USER_ID                  AS "userId"
+			, ua.REC_LISTENING_YN         AS "recListeningYn"
+			, ua.REC_DOWNLOAD_YN          AS "recDownloadYn"
+			, ua.REC_APRV_YN              AS "recAprvYn"
+			, ua.QA_YN                    AS "qaYn"
+			, ua.INS_ID 				  AS "insId"
+			, TO_CHAR(ua.INS_DATE, 'YYYY-MM-DD HH24:MI:SS')	AS "insDate"
+			, ua.UPT_ID                   AS "uptId"
+			, TO_CHAR(ua.UPT_DATE, 'YYYY-MM-DD HH24:MI:SS')	AS "uptDate"
+		FROM TB_MNG_USER_AUTH ua
+			JOIN TB_MNG_USERINFO ui ON ui.TENANT_ID = ua.TENANT_ID AND ui.USER_ID = ua.USER_ID
+		WHERE 1=1
+
+		<isNotEmpty property="tenantId">
+			AND ua.TENANT_ID = #tenantId#
+		</isNotEmpty>
+		<isNotEmpty property="controlGroup">
+			AND ua.CONTROL_GROUP = #controlGroup#
+		</isNotEmpty>
+		<isNotEmpty property="likeControlGroup">
+			AND ua.CONTROL_GROUP LIKE '%' || #likeControlGroup# || '%'
+		</isNotEmpty>
+		<isNotEmpty property="userId">
+			AND ua.USER_ID = #userId#
+		</isNotEmpty>
+		<isNotEmpty property="recListeningYn">
+			AND ua.REC_LISTENING_YN = #recListeningYn#
+		</isNotEmpty>
+		<isNotEmpty property="recDownloadYn">
+			AND ua.REC_DOWNLOAD_YN = #recDownloadYn#
+		</isNotEmpty>
+		<isNotEmpty property="recAprvYn">
+			AND ua.REC_APRV_YN = #recAprvYn#
+		</isNotEmpty>
+		<isNotEmpty property="qaYn">
+			AND ua.QA_YN = #qaYn#
+		</isNotEmpty>
+	</select>
+
+
+	<select id="userAuth.getUserControlGroupList" resultClass="egovMap">
+		/** userAuth.getUserControlGroupList */
+		WITH UCG AS (
+			SELECT
+				  ROW_NUMBER() OVER(ORDER BY g.TENANT_ID) AS ROW_NUM
+				, g.GROUP_ID
+			FROM TB_MNG_GROUP 	g
+				INNER JOIN (
+					SELECT
+						  i.TENANT_ID
+						, i.USER_ID
+						, NVL(a.CONTROL_GROUP, i.GROUP_ID) AS CONTROL_GROUP
+					FROM TB_MNG_USERINFO i
+						INNER 	JOIN TB_MNG_USER_AUTH a ON a.TENANT_ID = i.TENANT_ID AND a.USER_ID = i.USER_ID
+					WHERE 1 = 1
+					AND i.TENANT_ID = #tenantId#
+					AND i.USER_ID = #userId#
+				) u ON u.TENANT_ID = g.TENANT_ID
+			WHERE 1 = 1
+			AND INSTR(',' || u.CONTROL_GROUP || ',', ',' || g.GROUP_ID || ',') > 0
+		)
+		SELECT
+			  g.TENANT_ID
+			, g.PARENT_ID
+			, g.GROUP_ID AS CODE
+			, replace(lpad('-|', level * 2, '-|') || GROUP_NAME, '-|', <![CDATA['&nbsp;&nbsp;']]>) AS CODE_NM
+		FROM TB_MNG_GROUP g
+		WHERE 1 = 1
+		AND g.TENANT_ID = #tenantId#
+		START WITH g.GROUP_ID IN (SELECT GROUP_ID FROM UCG)
+		CONNECT BY PRIOR g.GROUP_ID = g.PARENT_ID
+		ORDER SIBLINGS BY g.PARENT_ID, g.GROUP_ID
+	</select>
+
+
+	<insert id="userAuth.setUserAuthInsert">
+		/** userAuth.setUserAuthInsert */
+		INSERT INTO TB_MNG_USER_AUTH (
+			  TENANT_ID
+			, USER_ID
+			, CONTROL_GROUP
+			, REC_LISTENING_YN
+			, REC_DOWNLOAD_YN
+			, REC_APRV_YN
+			, QA_YN
+			, INS_ID
+			, INS_DATE
+			, UPT_ID
+			, UPT_DATE
+		)
+		VALUES(
+			  #tenantId#
+			, #userId#
+			, #controlGroup#
+			, #recListeningYn#
+			, #recDownloadYn#
+			, #recAprvYn#
+			, #qaYn#
+			, #insId#
+			, SYSDATE
+			, #insId#
+			, SYSDATE
+		)
+	</insert>
+
+	<update id="userAuth.setUserAuthUpsert">
+		/** userAuth.setUserAuthUpsert */
+		MERGE INTO TB_MNG_USER_AUTH A
+		USING DUAL ON (A.TENANT_ID = #tenantId# AND A.USER_ID = #userId#)
+		WHEN MATCHED THEN
+			UPDATE SET
+				  A.CONTROL_GROUP 		= #controlGroup#
+				, A.REC_LISTENING_YN 	= #recListeningYn#
+				, A.REC_DOWNLOAD_YN 	= #recDownloadYn#
+				, A.REC_APRV_YN 		= #recAprvYn#
+				, A.QA_YN 				= #qaYn#
+				, A.UPT_ID 				= #uptId#
+				, A.UPT_DATE 			= SYSDATE
+		WHEN NOT MATCHED THEN
+			INSERT (
+				  A.TENANT_ID
+				, A.USER_ID
+				, A.CONTROL_GROUP
+				, A.REC_LISTENING_YN
+				, A.REC_DOWNLOAD_YN
+				, A.REC_APRV_YN
+				, A.QA_YN
+				, A.INS_ID
+				, A.INS_DATE
+				, A.UPT_ID
+				, A.UPT_DATE
+			)
+			VALUES(
+				 #tenantId#
+				, #userId#
+				, #controlGroup#
+				, #recListeningYn#
+				, #recDownloadYn#
+				, #recAprvYn#
+				, #qaYn#
+				, #uptId#
+				, SYSDATE
+				, #uptId#
+				, SYSDATE
+			)
+	</update>
+
+	<update id="userAuth.setUserAuthUpdate">
+		/** userAuth.setUserAuthUpdate */
+		UPDATE TB_MNG_USER_AUTH SET
+			  CONTROL_GROUP 	= #controlGroup#
+			, REC_LISTENING_YN 	= #recListeningYn#
+			, REC_DOWNLOAD_YN 	= #recDownloadYn#
+			, REC_APRV_YN 		= #recAprvYn#
+			, QA_YN 			= #qaYn#
+			, UPT_ID 			= #uptId#
+			, UPT_DATE 			= SYSDATE
+		WHERE 1=1
+			AND TENANT_ID 	= #tenantId#
+			AND USER_ID 	= #userId#
+	</update>
+
+	<select id="auth.getAuthList" resultClass="egovMap">
+		/** auth.getAuthList */
+		SELECT
+			  TENANT_ID                AS "tenantId"
+			, GRANT_ID                 AS "grantId"
+			, GRANT_NAME               AS "grantName"
+			, INS_ID                   AS "insId"
+			, INS_DATE                 AS "insDate"
+			, UPT_ID                   AS "uptId"
+			, UPT_DATE                 AS "uptDate"
+			, OAM_GRANT                AS "oamGrant"
+			, AUTH_RANK                AS "authRank"
+			, EX_GRANT                 AS "exGrant"
+		FROM TB_MNG_AUTH
+		WHERE 1=1
+		<isNotEmpty property="low">
+			AND AUTH_RANK <![CDATA[ >= ]]> #low#
+		</isNotEmpty>
+		<isNotEmpty property="recDownloadYn">
+			AND TENANT_ID = #tenantId#
+		</isNotEmpty>
+	</select>
+	
+	<select id="userAuth.getUserInfoAuthSetList" resultClass="egovMap">
+		/** userAuth.getUserInfoAuthSetList */
+		SELECT A.TENANT_ID, 
+				A.USER_ID, 
+				A.USER_NAME, 
+				B.GROUP_ID, 
+				B.GROUP_NAME
+		FROM TB_MNG_USERINFO A INNER JOIN TB_MNG_GROUP B ON A.TENANT_ID = B.TENANT_ID AND A.GROUP_ID = B.GROUP_ID 	
+		INNER JOIN TB_MNG_AUTH C ON A.TENANT_ID = C.TENANT_ID AND A.GRANT_ID = C.GRANT_ID
+		WHERE 1=1
+		<isNotEmpty property="findTenantId">
+			AND A.TENANT_ID = #findTenantId#
+		</isNotEmpty>
+		<isNotEmpty property="findUserNameText">
+			AND (A.USER_ID LIKE '%' || #findUserNameText# || '%' OR A.USER_NAME LIKE '%' || #findUserNameText# || '%')
+		</isNotEmpty>
+		<isNotEmpty property="findGroupId">
+			AND	A.GROUP_ID IN (
+				SELECT GROUP_ID
+					FROM TB_MNG_GROUP
+				START WITH (TENANT_ID = #findTenantId# AND GROUP_ID = #findGroupId#)
+				CONNECT BY PARENT_ID = PRIOR GROUP_ID
+				AND TENANT_ID = #findTenantId#
+			)
+		</isNotEmpty>
+		AND INSTR(#controlAuth#, B.GROUP_ID) > 0
+		<isNotEmpty property="authRank">
+			AND C.AUTH_RANK >= #authRank#
+		</isNotEmpty>
+		AND A.RETIREE_FLAG != 0
+		ORDER BY B.GROUP_NAME, A.USER_NAME
+	</select>
+	
+</sqlMap>

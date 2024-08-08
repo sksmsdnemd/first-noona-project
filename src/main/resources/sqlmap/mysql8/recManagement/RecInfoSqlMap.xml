@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="recInfo">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="recInfo.getRecLogCount" parameterClass="java.util.HashMap"	resultClass="egovMap">
+		/* ID : recInfo.getRecLogCount */ 
+		SELECT COUNT(*) CNT
+		  FROM TB_REC_RECLOG tb_reclog
+		  LEFT OUTER JOIN (
+				SELECT USER_ID, USER_NAME WORKER_NAME 
+				  FROM TB_MNG_USERINFO 
+				 WHERE TENANT_ID = #tenantId#
+				<isNotEmpty property="findWorkerId">   AND USER_ID   LIKE CONCAT('%', #findWorkerId#, '%') </isNotEmpty>
+				<isNotEmpty property="findWorkerNm">   AND USER_NAME LIKE CONCAT('%', #findWorkerNm#, '%') </isNotEmpty>
+		  ) tb_user_work 
+			ON tb_reclog.WORKER_ID = tb_user_work.USER_ID	
+		  LEFT OUTER JOIN (
+				SELECT USER_ID, USER_NAME 
+				  FROM TB_MNG_USERINFO 
+				 WHERE TENANT_ID = #tenantId#
+				<isNotEmpty property="findUserId">   AND USER_ID   LIKE CONCAT('%', #findUserId#, '%') </isNotEmpty>
+				<isNotEmpty property="findUserNm">   AND USER_NAME LIKE CONCAT('%', #findUserNm#, '%') </isNotEmpty>
+		  ) tb_user 
+			ON tb_reclog.USER_ID = tb_user.USER_ID
+		  LEFT OUTER JOIN TB_REC_FILE tb_rec 
+			ON tb_reclog.REC_KEY = tb_rec.REC_KEY
+		 WHERE tb_reclog.TENANT_ID = #tenantId#
+		   AND CAST(DATE_FORMAT(WORK_SDATE, '%Y%m%d%H%i%s') AS UNSIGNED) <![CDATA[ >= ]]> CAST(CONCAT(#txtDate1_From#, #recFrmTm#) AS UNSIGNED) 
+		   AND CAST(DATE_FORMAT(WORK_SDATE, '%Y%m%d%H%i%s') AS UNSIGNED) <![CDATA[ <= ]]> CAST(CONCAT(#txtDate1_To#, #recEndTm#) AS UNSIGNED) 			
+		<isNotEmpty property="findRealtimeFlag">   AND REALTIME_FLAG = #findRealtimeFlag# </isNotEmpty>
+	</select>
+	
+	<select id="recInfo.getRecLogList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recInfo.getRecLogList */
+		SELECT * 
+		  FROM (
+			SELECT ROW_NUMBER() OVER (ORDER BY WORK_SDATE) AS RowNum2, TB_IN.* 
+			  FROM (
+				SELECT ROW_NUMBER() OVER (ORDER BY WORK_SDATE DESC) AS RowNum1
+					 , tb_reclog.TENANT_ID, DATE_FORMAT(WORK_SDATE, '%Y-%m-%d %H:%i:%s') AS WORK_SDATE
+					 , REALTIME_FLAG, WORKER_ID, WORKER_NAME, tb_reclog.REC_KEY, tb_rec.REC_TIME, IFNULL(tb_rec.END_TIME, 0) AS END_TIME
+					 , tb_reclog.USER_ID, USER_NAME, tb_reclog.DN_NO, WORKER_IP
+				  FROM TB_REC_RECLOG tb_reclog
+				  LEFT OUTER JOIN (
+					SELECT USER_ID, USER_NAME WORKER_NAME 
+					  FROM TB_MNG_USERINFO 
+					 WHERE TENANT_ID = #tenantId#
+					<isNotEmpty property="findWorkerId">   AND USER_ID   LIKE CONCAT('%', #findWorkerId#, '%') </isNotEmpty>
+					<isNotEmpty property="findWorkerNm">   AND USER_NAME LIKE CONCAT('%', #findWorkerNm#, '%') </isNotEmpty>
+				  ) tb_user_work 
+					ON tb_reclog.WORKER_ID = tb_user_work.USER_ID
+				  LEFT OUTER JOIN (
+					SELECT USER_ID, USER_NAME 
+					  FROM TB_MNG_USERINFO 
+					 WHERE TENANT_ID = #tenantId#
+					<isNotEmpty property="findUserId">   AND USER_ID   LIKE CONCAT('%', #findUserId#, '%') </isNotEmpty>
+					<isNotEmpty property="findUserNm">   AND USER_NAME LIKE CONCAT('%', #findUserNm#, '%') </isNotEmpty>
+				  ) tb_user
+					ON tb_reclog.USER_ID = tb_user.USER_ID
+				  LEFT OUTER JOIN TB_REC_FILE tb_rec 
+					ON tb_reclog.REC_KEY = tb_rec.REC_KEY
+				 WHERE tb_reclog.TENANT_ID =  #tenantId#
+				   AND CAST(DATE_FORMAT(WORK_SDATE, '%Y%m%d%H%i%s') AS UNSIGNED) <![CDATA[ >= ]]> CAST(CONCAT(#txtDate1_From#, #recFrmTm#) AS UNSIGNED) 
+				   AND CAST(DATE_FORMAT(WORK_SDATE, '%Y%m%d%H%i%s') AS UNSIGNED) <![CDATA[<= ]]> CAST(CONCAT(#txtDate1_To#, #recEndTm#) AS UNSIGNED) 			
+				<isNotEmpty property="findRealtimeFlag">   AND REALTIME_FLAG = #findRealtimeFlag# </isNotEmpty>
+			  ) TB_IN
+			 WHERE  <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+		  ) TB_OUT
+		 WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+		 ORDER BY WORK_SDATE DESC
+	</select>
+	
+	<insert id="recInfo.setRecLogInsert" parameterClass="java.util.HashMap">
+		/* ID : recInfo.setRecLogInsert */
+		INSERT INTO TB_REC_RECLOG (
+			TENANT_ID, WORKER_ID, LISTENING_KEY, WORK_SDATE, WORKER_IP
+			, USER_ID, DN_NO, USER_IP, REALTIME_FLAG, REC_KEY
+		) VALUES (
+			NULLIF(#tenantId#, ''), NULLIF(#workerId#, ''), NULLIF(#listeningKey#, ''), SYSDATE(), NULLIF(#workerIp#, '')
+			, NULLIF(#userId#, ''), NULLIF(#dnNo#, ''), NULL, NULLIF(#realtimeFlag#, ''), NULLIF(#recKey#, '')
+		)
+	</insert>
+	
+	<insert id="recInfo.setRecLogRealInsert" parameterClass="java.util.HashMap">
+		/* ID : recInfo.setRecLogRealInsert */
+		INSERT INTO TB_REC_RECLOG (
+			TENANT_ID, WORKER_ID, LISTENING_KEY, WORK_SDATE, WORKER_IP
+			, USER_ID, DN_NO, USER_IP, REALTIME_FLAG, REC_KEY
+		) VALUES (
+			NULLIF(#tenantId#, ''), NULLIF(#workerId#, ''), NULLIF(#listeningKey#, ''), SYSDATE(), NULLIF(#workerIp#, '')
+			, NULLIF(#userId#, ''), NULLIF(#dnNo#, ''), NULLIF(#userIp#, ''), NULLIF(#realtimeFlag#, ''), NULLIF(#recKey#, '')
+		)
+	</insert>
+	
+	<insert id="recInfo.setAppRecLogRealInsert" parameterClass="java.util.HashMap">
+		/* ID : recInfo.setAppRecLogRealInsert */
+		insert into tb_rec_reclog	
+			(tenant_id, worker_id, listening_key, work_sdate, worker_ip, user_id, dn_no, user_ip, realtime_flag, rec_key , rec_reason , rec_reason_text , rec_time )
+		select  
+			#tenantId# , #workerId#, #listeningKey#, sysdate(), #loginIp# , user_id , dn_no , phone_ip , #realtimeFlag#, rec_key , #recReason# , #recReasonText# , rec_time 
+		from tb_rec_file
+		where call_id = #callId#
+		and rec_time = (select max(rec_time) from tb_rec_file where call_id = #callId# )
+	</insert>
+	
+	<insert id="recInfo.registerGrandInfo" parameterClass="java.util.HashMap">
+		/* ID : recInfo.registerGrandInfo */
+		INSERT INTO TB_REC_GRANT (
+			USER_ID, REC_KEY, START_DATE, END_DATE
+			, INS_DATE, INS_ID, REASON
+		) VALUES (
+			NULLIF(#userId#, ''), NULLIF(#recKey#, ''), NULLIF(#startDate#, ''), NULLIF(#endDate#, '')
+			, SYSDATE(), NULLIF(#insId#, ''), NULLIF(#reason#, '')
+		)
+	</insert>
+	
+</sqlMap>

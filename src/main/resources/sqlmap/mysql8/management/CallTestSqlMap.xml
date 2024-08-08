@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="callTest">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="callTest.getDnListCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : callTest.getDnListCnt */
+		SELECT COUNT(*) AS CNT
+		  FROM TB_MNG_USERTELNO t1
+		  LEFT OUTER JOIN TB_MNG_USERINFO t2
+			ON t1.TENANT_ID = t2.TENANT_ID
+		   AND t1.USER_ID = t2.USER_ID
+		  LEFT OUTER JOIN (SELECT * FROM TB_MNG_BASECODE WHERE CLASS_ID = 'dn_status') t3
+			ON t1.DN_STATUS = t3.CODE_ID
+		  LEFT OUTER JOIN TB_SYS_SYSINFO t4
+			ON t1.SYSTEM_ID = t4.SYSTEM_ID
+		  LEFT OUTER JOIN TB_SYS_PROCINFO t5
+			ON t1.SYSTEM_ID = t5.SYSTEM_ID
+		   AND t1.PROCESS_ID = t5.PROCESS_ID
+		 WHERE 1 = 1
+		   <isNotEmpty property="findTenantId">
+		   AND t1.TENANT_ID = #findTenantId#
+		   </isNotEmpty>
+		   <isNotEmpty property="findDnNo">
+		   AND t1.DN_NO LIKE CONCAT(CONCAT('%' , #findDnNo#) , '%')
+		   </isNotEmpty>
+		 ORDER BY t1.TENANT_ID, CAST(t1.DN_NO AS UNSIGNED)
+	</select>
+	
+	<select id="callTest.getDnList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : callTest.getDnList */
+		SELECT TENANT_ID
+			 , DN_NO
+			 , USER_ID
+			 , USER_NAME
+			 , AGENT_STATUS
+			 , AGENT_STATUS_NAME
+			 , PHONE_IP
+			 , DN_STATUS
+			 , CODE_NAME
+			 , SYSTEM_ID
+			 , SYSTEM_NAME
+			 , PROCESS_ID
+			 , PROCESS_NAME
+			 , USE_FLAG
+			 , USE_FLAG_NAME
+		  FROM (
+			SELECT ROW_NUMBER() OVER (ORDER BY TENANT_ID DESC, CAST(DN_NO AS UNSIGNED) DESC) AS rownum2
+				 , tb_in.*
+			  FROM (
+				SELECT ROW_NUMBER() OVER (ORDER BY t1.TENANT_ID, CAST(t1.DN_NO AS UNSIGNED)) AS rownum1
+					 , t1.TENANT_ID
+					 , t1.DN_NO
+					 , t1.USER_ID
+					 , t2.USER_NAME
+					 , t2.AGENT_STATUS
+					 , CASE WHEN t2.AGENT_STATUS = '01' THEN '로그인' ELSE '로그아웃' END AS AGENT_STATUS_NAME
+					 , t1.PHONE_IP
+					 , t1.DN_STATUS
+					 , t3.CODE_NAME
+					 , t1.SYSTEM_ID
+					 , t4.SYSTEM_NAME
+					 , t1.PROCESS_ID
+					 , t5.PROCESS_NAME
+					 , t1.USE_FLAG
+					 , CASE WHEN t1.USE_FLAG = '0' THEN 'O' ELSE 'X' END AS USE_FLAG_NAME
+				  FROM TB_MNG_USERTELNO t1
+				  LEFT OUTER JOIN TB_MNG_USERINFO t2
+					ON t1.TENANT_ID = t2.TENANT_ID
+				   AND t1.USER_ID = t2.USER_ID
+				  LEFT OUTER JOIN (SELECT * FROM TB_MNG_BASECODE WHERE CLASS_ID = 'dn_status') t3
+					ON t1.DN_STATUS = t3.CODE_ID
+				  LEFT OUTER JOIN TB_SYS_SYSINFO t4
+					ON t1.SYSTEM_ID = t4.SYSTEM_ID
+				  LEFT OUTER JOIN TB_SYS_PROCINFO t5
+					ON t1.SYSTEM_ID = t5.SYSTEM_ID
+				   AND t1.PROCESS_ID = t5.PROCESS_ID
+				 WHERE 1 = 1
+				   <isNotEmpty property="findTenantId">
+				   AND t1.TENANT_ID = #findTenantId#
+				   </isNotEmpty>
+				   <isNotEmpty property="findDnNo">
+				   AND t1.DN_NO LIKE CONCAT(CONCAT('%' , #findDnNo# ), '%')
+				   </isNotEmpty>
+			  ) tb_in
+			 WHERE <![CDATA[ rownum1 <= #iEPageNo# ]]>
+		  )tn_in2
+		 WHERE <![CDATA[ rownum2 <= #iSPageNo# ]]>
+		 ORDER BY TENANT_ID, CAST(DN_NO AS UNSIGNED)
+	</select>
+	
+	<select id="callTest.getDnListAll" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : callTest.getDnListAll */
+		SELECT ROW_NUMBER() OVER (ORDER BY t1.TENANT_ID, CAST(t1.DN_NO AS UNSIGNED)) AS rownum1
+			 , t1.TENANT_ID
+			 , t1.DN_NO
+			 , t1.USER_ID
+			 , t2.USER_NAME
+			 , t2.AGENT_STATUS
+			 , CASE WHEN t2.AGENT_STATUS = '01' THEN '로그인' ELSE '로그아웃' END AS AGENT_STATUS_NAME
+			 , t1.PHONE_IP
+			 , t1.DN_STATUS
+			 , t3.CODE_NAME
+			 , t1.SYSTEM_ID
+			 , t4.SYSTEM_NAME
+			 , t1.PROCESS_ID
+			 , t5.PROCESS_NAME
+			 , t1.USE_FLAG
+			 , CASE WHEN t1.USE_FLAG = '0' THEN 'O' ELSE 'X' END AS USE_FLAG_NAME
+		  FROM TB_MNG_USERTELNO t1
+		  LEFT OUTER JOIN TB_MNG_USERINFO t2
+			ON t1.TENANT_ID = t2.TENANT_ID
+		   AND t1.USER_ID = t2.USER_ID
+		  LEFT OUTER JOIN (SELECT * FROM TB_MNG_BASECODE WHERE CLASS_ID = 'dn_status') t3
+			ON t1.DN_STATUS = t3.CODE_ID
+		  LEFT OUTER JOIN TB_SYS_SYSINFO t4
+			ON t1.SYSTEM_ID = t4.SYSTEM_ID
+		  LEFT OUTER JOIN TB_SYS_PROCINFO t5
+			ON t1.SYSTEM_ID = t5.SYSTEM_ID
+		   AND t1.PROCESS_ID = t5.PROCESS_ID
+		 WHERE 1 = 1
+		   <isNotEmpty property="findTenantId">
+		   AND t1.TENANT_ID = #findTenantId#
+		   </isNotEmpty>
+		   <isNotEmpty property="findDnNo">
+		   AND t1.DN_NO LIKE CONCAT(CONCAT('%' , #findDnNo# ), '%')
+		   </isNotEmpty>
+		 ORDER BY t1.TENANT_ID, CAST(t1.DN_NO AS UNSIGNED)
+	</select>
+</sqlMap>

@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="Group"> 
+    <typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+   
+    <!-- <select id="Group.getParentID" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select parent_id FROM tb_mng_group
+		where tenant_id = #tenantId#
+			and group_id=#groupId#
+	</select> -->
+	
+	<select id="Group.getMaxGroupId" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : Group.getMaxGroupId */
+		SELECT IFNULL(MAX(GROUP_ID),0) + 1 AS GROUP_ID
+		  FROM TB_MNG_GROUP
+		 WHERE TENANT_ID = #tenantId#
+	</select>
+	
+	<!-- <select id="Group.getSubDepth" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select chr(ascii(depth2)+1) as depth 
+			from (
+				select top 1  right(depth,1) as depth2
+					from tb_mng_group
+					where tenant_id = #tenantId#
+						and top_parent_id = #topParentId# 
+						and depth like #depth# +'%' 
+						and len(depth) = len(''+#depth#+'')+1
+					order by depth desc)tb
+	</select> -->
+   
+	<select id="Group.getGroupList" parameterClass="java.util.HashMap" resultClass="egovMap" >
+   		/* ID : Group.getGroupList */
+		SELECT t1.GROUP_ID
+			 , t1.PARENT_ID
+			 , t1.GROUP_NAME
+			 , t1.TOP_PARENT_ID
+			 , t1.DEPTH
+			 , t1.VALUE_TITLE_ID
+			 , t1.GROUP_MNG_ID
+			 , t1.INS_ID
+			 , DATE_FORMAT(t1.INS_DATE, '%Y-%m-%d %H:%i:%s') AS INS_DATE
+			 , t1.UPT_ID
+			 , DATE_FORMAT(t1.UPT_DATE, '%Y-%m-%d %H:%i:%s') AS UPT_DATE
+			 , t1.GROUP_DESC
+			 , t1.PARENT_NAME
+			 , t1.GROUP_LEVEL
+		  FROM (
+			SELECT a.*
+				 , b.GROUP_NAME AS PARENT_NAME
+			     , CONCAT_WS('>', j.GROUP_NAME, i.GROUP_NAME, h.GROUP_NAME, g.GROUP_NAME, f.GROUP_NAME, e.GROUP_NAME, d.GROUP_NAME, c.GROUP_NAME, b.GROUP_NAME, a.GROUP_NAME) AS NAME_PATH
+			     , CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID) AS ID_PATH
+			     , (LENGTH(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID))
+			       - LENGTH(REPLACE(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>', ''))
+			       + 1) AS GROUP_LEVEL
+			     , CONCAT(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>') AS ID_PATH_STR
+			  FROM TB_MNG_GROUP a
+			  LEFT OUTER JOIN TB_MNG_GROUP b ON a.PARENT_ID = b.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP c ON b.PARENT_ID = c.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP d ON c.PARENT_ID = d.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP e ON d.PARENT_ID = e.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP f ON e.PARENT_ID = f.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP g ON f.PARENT_ID = g.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP h ON g.PARENT_ID = h.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP i ON h.PARENT_ID = i.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP j ON i.PARENT_ID = j.GROUP_ID
+			 WHERE a.TENANT_ID = #findTenantId#
+		  ) t1
+		 ORDER BY t1.ID_PATH
+	</select>
+	
+	<!-- <select id="Group.getGroupList2" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		select tenant_id as code , tenant_name as code_nm , exception_find
+		from tb_mng_company
+		where com_status = 0
+		order by tenant_name
+	</select> -->
+	
+	<insert id="Group.setGroupInsert" parameterClass="java.util.HashMap">
+		/* ID : Group.setGroupInsert */
+		INSERT INTO TB_MNG_GROUP (
+			TENANT_ID, GROUP_ID, TOP_PARENT_ID, PARENT_ID, DEPTH
+			, GROUP_NAME, VALUE_TITLE_ID, GROUP_MNG_ID, GROUP_DESC, INS_ID, INS_DATE
+		) VALUES (
+			#tenantId#, #groupId#, #topParentId#, #parentId# , ''
+			, #groupName#, #valueTitleId#, #groupMngId#, #groupDesc#, #insId#, SYSDATE()
+		)
+	</insert>
+
+   	<update id="Group.setGroupChangeUpdate" parameterClass="java.util.HashMap">
+		/* ID : Group.setGroupChangeUpdate */   	
+		UPDATE TB_MNG_GROUP
+		   SET DEPTH = NULLIF(#destDepth#, '')
+			 , UPT_ID = NULLIF(#adminId#, '')
+			 , UPT_DATE = NOW()
+		 WHERE TENANT_ID  = #tenantId#
+		   AND GROUP_ID = #srcGroupId#
+	</update>
+	
+	<update id="Group.setGroupChangeUpdate2" parameterClass="java.util.HashMap">
+		/* ID : Group.setGroupChangeUpdate2 */
+		UPDATE TB_MNG_GROUP
+		   SET DEPTH = NULLIF(#srcDepth#, '')
+			 , UPT_ID = NULLIF(#adminId#, '')
+			 , UPT_DATE = NOW()
+		 WHERE TENANT_ID = #tenantId#
+		   AND GROUP_ID = #destGroupId#
+	</update>
+   
+   	<update id="Group.setGroupUpdate" parameterClass="java.util.HashMap">
+		/* ID : Group.setGroupUpdate */   	
+		UPDATE TB_MNG_GROUP
+		   SET GROUP_NAME = NULLIF(#groupName#, '')
+			 , VALUE_TITLE_ID = NULLIF(#valueTitleId#, '')
+			 , GROUP_MNG_ID = NULLIF(#groupMngId#, '')
+			 , GROUP_DESC = NULLIF(#groupDesc#, '')
+			 , UPT_ID = NULLIF(#uptId#, '')
+			 , UPT_DATE = NOW()
+		 WHERE TENANT_ID = #tenantId#
+		   AND GROUP_ID = #groupId#
+	</update>
+	
+	<delete id="Group.setGroupDelete" parameterClass="java.util.HashMap" >
+		/* ID : Group.setGroupDelete */   	
+		DELETE FROM TB_MNG_GROUP
+		 WHERE TENANT_ID = #tenantId#
+		   AND GROUP_ID = #groupId#
+	</delete>
+	
+	<select id="Group.getGroupIdCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : Group.getGroupIdCnt */
+		SELECT COUNT(GROUP_ID) AS CNT
+		  FROM TB_MNG_GROUP
+		 WHERE TENANT_ID = #tenantId#
+		   AND UPPER(GROUP_ID) = UPPER(#findGroupId#)
+	</select>
+	
+	<update id="Group.setParentIdUpdate" parameterClass="java.util.HashMap">
+		UPDATE TB_MNG_GROUP
+		   SET PARENT_ID = #parentId#
+		 WHERE GROUP_ID = #groupId#
+		   AND TENANT_ID = #tenantId#
+	</update>
+	
+	<delete id="Group.deleteGroupList" parameterClass="java.util.HashMap">
+		DELETE FROM TB_MNG_GROUP
+		 WHERE GROUP_ID = #findGroupId#
+		   AND TENANT_ID = #findTenantId#
+	</delete>
+   
+</sqlMap>

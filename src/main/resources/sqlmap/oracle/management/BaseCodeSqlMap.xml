@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="baseCode">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="baseCode.isBaseCodeExist" parameterClass="java.util.HashMap" resultClass="egovMap">
+		SELECT count(*) AS CNT
+		  FROM tb_mng_basecode
+		 WHERE class_id = #classId#
+		   AND code_id = #codeId#
+	</select> 
+
+	<select id="baseCode.getBaseCodeBaseList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : baseCode.getBaseCodeBaseList */
+		select	class_id, code_id, class_name, code_name, code_desc
+			FROM tb_mng_basecode
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="classId">
+				class_id  = #classId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="codeId">
+				code_id  = #codeId#
+			</isNotEmpty>
+		</dynamic>
+		order by class_id, code_id
+	</select>
+	
+	<!-- <select id="baseCode.getBaseCodeCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select count(*)
+		FROM tb_mng_basecode
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="findText">
+				<isEqual property="findKey" compareValue="class_id">
+					class_id Like '%'+ #findText# +'%'
+				</isEqual>
+				<isEqual property="findKey" compareValue="class_name">
+					class_name Like '%'+ #findText# +'%'
+				</isEqual>
+				<isEqual property="findKey" compareValue="code_id">
+					code_id Like '%'+ #findText# +'%'
+				</isEqual>
+				<isEqual property="findKey" compareValue="code_name">
+					code_name Like '%'+ #findText# +'%'
+				</isEqual>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findSClassId">
+			class_id = #findSClassId#
+			</isNotEmpty>
+		</dynamic>
+	</select> -->
+
+	<!-- <select id="baseCode.getBaseCodeList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select class_id, code_id, class_name, code_name, code_desc
+		from(
+			select * from (
+				select
+					Row_Number() over (order by class_id desc, code_id desc ) RowNum2, TB_IN.* 
+				from (
+					select 
+						Row_Number() over (order by class_id , code_id) RowNum1,
+						class_id, code_id, class_name, code_name, code_desc
+					FROM tb_mng_basecode
+					<dynamic prepend="WHERE">
+						<isNotEmpty prepend="AND" property="findText">
+							<isEqual property="findKey" compareValue="class_id">
+								class_id Like '%'+ #findText# +'%'
+							</isEqual>
+							<isEqual property="findKey" compareValue="class_name">
+								class_name Like '%'+ #findText# +'%'
+							</isEqual>
+							<isEqual property="findKey" compareValue="code_id">
+								code_id Like '%'+ #findText# +'%'
+							</isEqual>
+							<isEqual property="findKey" compareValue="code_name">
+								code_name Like '%'+ #findText# +'%'
+							</isEqual>
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findSClassId">
+						class_id = #findSClassId#
+						</isNotEmpty>
+					</dynamic>
+				) TB_IN
+				WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+			) TB_OUT 
+			WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>					
+		) tbl2
+		order by class_id, code_id
+	</select> -->
+	
+	<select id="baseCode.getBaseComboList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : baseCode.getBaseComboList */
+		select	class_id, code_id as code, class_name, code_name as code_nm, code_desc
+			FROM tb_mng_basecode
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="classId">
+				class_id  = #classId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="codeId">
+				code_id  = #codeId#
+			</isNotEmpty>
+		</dynamic>
+		order by class_id, code_id
+	</select>
+
+	<insert id="baseCode.setBaseCodeInsert" parameterClass="java.util.HashMap">
+		insert into tb_mng_basecode(class_id, code_id, class_name, code_name, code_desc) 
+		values (#classId#, #codeId#, #className#, #codeName#, #codeDesc#)
+	</insert>
+
+	<update id="baseCode.setBaseCodeUpdate" parameterClass="java.util.HashMap">
+		update tb_mng_basecode
+		   set class_name = #className#
+			 , code_name = #codeName#
+			 , code_desc = #codeDesc#
+		 where class_id = #classId#
+		   and code_id = #codeId#
+	</update>
+	
+	<delete id="baseCode.setBaseCodeDelete" parameterClass="java.util.HashMap" >
+		delete from tb_mng_basecode where class_id = #classId# and code_id = #codeId#
+	</delete>
+
+	<!-- <select id="baseCode.getSortCodeList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select class_id , class_name
+		FROM tb_mng_basecode
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="findText">
+				<isEqual property="findKey" compareValue="class_id">
+					class_id Like '%'+ #findText# +'%'
+				</isEqual>
+				<isEqual property="findKey" compareValue="class_name">
+					class_name Like '%'+ #findText# +'%'
+				</isEqual>
+				<isEqual property="findKey" compareValue="code_id">
+					code_id Like '%'+ #findText# +'%'
+				</isEqual>
+				<isEqual property="findKey" compareValue="code_name">
+					code_name Like '%'+ #findText# +'%'
+				</isEqual>
+			</isNotEmpty>
+		</dynamic>
+		group by class_id , class_name
+		order by class_name
+	</select> -->
+
+	<!-- <select id="baseCode.getOamTimeCodeList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select 
+		  class_id
+		, max(case code_id when 1 then code_name else '' end) as level_1
+		, max(case code_id when 2 then code_name else '' end) as level_2
+		, max(case code_id when 3 then code_name else '' end) as level_3
+		from TB_MNG_BASECODE
+		where class_id in ('dn_status_01', 'dn_status_10', 'dn_status_15')
+		group by class_id
+		order by class_id
+	</select> -->
+	
+	<!-- <update id="baseCode.setOamTimeCodeUpdate" parameterClass="java.util.HashMap">
+		update TB_MNG_BASECODE set code_name = #code_name#
+		where class_id = #class_id#
+		and code_id = #code_id#
+	</update> -->
+	
+</sqlMap>

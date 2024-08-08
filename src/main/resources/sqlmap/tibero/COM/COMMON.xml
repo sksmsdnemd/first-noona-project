@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="ARGOCOMMON"> 
+    <typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+
+	<select id="ARGOCOMMON.login" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : ARGOCOMMON.login */
+		SELECT 
+				FN_GET_CONTROL_AUTH(A.TENANT_ID, A.USER_ID) AS CONTROL_AUTH
+				,CASE WHEN TO_CHAR(ADD_MONTHS(SYSDATE, 
+						-(NVL((SELECT CASE VAL_CUR WHEN '' THEN '500' WHEN '0' THEN '500' ELSE VAL_CUR END VAL_CUR 
+									FROM TB_WAS_CONFIG 
+								WHERE SECTION = 'COMPANY' AND KEY_CODE = 'SITE_PWD_CHANGE'), '500'))
+					), 'YYYYMMDD') > TO_CHAR(TO_DATE(NVL(A.USER_PWD_UPT_DATE,TO_CHAR(SYSDATE,'YYYYMMDD')),'YYYYMMDD'),'YYYYMMDD') 
+					THEN 'PWDCHG'
+					WHEN (SELECT VAL_CUR FROM TB_WAS_CONFIG WHERE SECTION = 'COMPANY' AND KEY_CODE = 'INIT_PWD_CHANGE') = '1' 
+						 AND (A.LOGIN_DATE IS NULL OR A.LOGIN_DATE = '')
+						 AND (A.USER_PWD_UPT_DATE IS NULL OR A.USER_PWD_UPT_DATE = '')
+                    THEN 'PWDCHG'  
+					WHEN ((SELECT USER_PWD FROM TB_MNG_USERINFO WHERE TENANT_ID ='bridgetec' AND USER_ID ='btadmin' ) = A.USER_PWD AND A.INS_ID = 'External') THEN 'PWDCHG'
+					ELSE 'LOGINOK' END  AS RESULT_CD
+     			, A.USER_ID AS AGENT_ID, A.TENANT_ID AS TENANT_ID, A.SALT,A.USER_PWD
+				, CASE WHEN A.PLAYER_KIND = '' THEN '0' WHEN NVL(A.PLAYER_KIND,'') = '' THEN '0' ELSE A.PLAYER_KIND END AS PLAYER_KIND
+				, CASE WHEN A.REAL_PLAY_KIND = '' THEN '0' WHEN NVL(A.REAL_PLAY_KIND,'') = '' THEN '0' ELSE A.REAL_PLAY_KIND END AS REAL_PLAY_KIND
+     			, A.USER_ID, A.GRANT_ID, A.USER_NAME, TO_CHAR(SYSDATE,'HH24:MI:SS') AS LOGIN_TIME, TO_CHAR(SYSDATE,'YYYYMMDD') LOGIN_DATE
+     			, A.CONVERT_FLAG, A.BACKUP_FLAG, A.GROUP_ID
+                , C.DEPTH
+                , B.GRANT_NAME, B.AUTH_RANK
+     			, A.FORCED_LOGOUT
+     			, NVL(A.MAIN_PAGE,'') MAIN_PAGE
+     			, NVL(A.LOGIN_DATE_CHECK_USE,'') LOGIN_DATE_CHECK_USE
+     			, NVL(A.LOGIN_DATE_CHECK_FROM,'') LOGIN_DATE_CHECK_FROM
+     			, NVL(A.LOGIN_DATE_CHECK_TO,'') LOGIN_DATE_CHECK_TO
+     			, NVL(A.LOGIN_ERR_COUNT,0) LOGIN_ERR_COUNT
+     			, NVL((SELECT VAL_CUR FROM TB_WAS_CONFIG WHERE SECTION = 'COMPANY' AND KEY_CODE = 'SITE_PWD_FAIL_COUNT'), 0) SITE_PWD_FAIL_COUNT
+     			, NVL((SELECT VAL_CUR FROM TB_WAS_CONFIG WHERE SECTION = 'COMPANY' AND KEY_CODE = 'NOUSE_ACC_LOCK'), 0) AS NOUSE_ACC_LOCK
+     			, CASE WHEN A.LOGIN_DATE IS NULL THEN TO_CHAR(SYSDATE, 'YYYYMMDD') ELSE TO_CHAR(A.LOGIN_DATE, 'YYYYMMDD') END AS LAST_LOGIN_DATE 
+     			, NVL(A.USER_DESC, '') AS USER_DESC
+     			, NVL(D.QA_YN, 'N') AS QA_YN
+				, NVL(D.REC_APRV_YN, 'N') AS REC_APRV_YN
+				, NVL(C.GROUP_NAME, '') AS GROUP_NAME
+    		FROM TB_MNG_USERINFO A
+    		LEFT OUTER JOIN TB_MNG_AUTH B
+            ON A.GRANT_ID = B.GRANT_ID
+            AND A.TENANT_ID = B.TENANT_ID
+            LEFT OUTER JOIN TB_MNG_GROUP C
+            ON A.GROUP_ID = C.GROUP_ID
+            AND A.TENANT_ID= C.TENANT_ID
+            LEFT JOIN TB_MNG_USER_AUTH D
+            ON A.TENANT_Id = D.TENANT_ID
+            AND A.USER_ID = D.USER_ID
+            WHERE A.USER_ID = #agentId#
+    	<isNotEmpty prepend="AND" property="tenantId">
+    		A.TENANT_ID = #tenantId#
+    	</isNotEmpty>
+			AND A.RETIREE_FLAG != 0
+    	<isNotEmpty prepend="AND" property="agentPw">
+			A.USER_PWD = #agentPw#
+		</isNotEmpty>
+	</select> 
+
+
+	<select id="ARGOCOMMON.getIntroUserInfo" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : ARGOCOMMON.getIntroUserInfo */
+		SELECT AGENT_STATUS, COUNT(*) CNT
+			FROM (
+				SELECT CASE WHEN NVL(AGENT_STATUS,'') IS NULL THEN '00' WHEN NVL(AGENT_STATUS,'') = '' THEN '00' ELSE AGENT_STATUS END AGENT_STATUS
+					FROM TB_MNG_USERINFO
+				WHERE TENANT_ID = #tenantId#
+				  AND RETIREE_FLAG = '1'
+			) T
+		GROUP BY AGENT_STATUS
+	</select>
+	
+	<select id="ARGOCOMMON.getIntroExtInfo" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : ARGOCOMMON.getIntroExtInfo */
+		select dn_status, count(*) cnt
+			from (
+				select case NVL(dn_status,'') when '01' then dn_status when '10' then dn_status else '00' end dn_status
+					from tb_mng_usertelno
+				where tenant_id = #tenantId#) t
+		group by dn_status
+	</select>
+	
+	<select id="ARGOCOMMON.getIntroRecCntList" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : ARGOCOMMON.getIntroRecCntList */
+		select '당일('||rec_date||')' as rec_date, NVL(sum_cnt_m1,0) sum_cnt_m1, NVL(time_avg_m1,0) time_avg_m1
+			from (
+				select to_char(sysdate,'YYYYMMDD') rec_date from dual
+				) t_d
+				left outer join (
+					select to_char(sysdate,'YYYYMMDD') rdate_m1, count(1) sum_cnt_m1, round(avg(end_time),0) time_avg_m1
+					from <include refid="TB_REC_FILE_MULTI" />
+					where tenant_id = #tenantId#
+						and rec_time <![CDATA[ >= ]]> to_char(sysdate,'YYYYMMDD')
+						and rec_time <![CDATA[ <  ]]> to_char(sysdate,'YYYYMMDD')||'99' 
+						and  SEARCH_VISIBLE = 1
+					group by to_char(to_date(substr(rec_time,0,8),'YYYYMMDD'),'d'), to_char(sysdate,'YYYYMMDD')
+				) tm1 
+				on  rec_date = rdate_m1
+		union
+		select '전일('||rec_date||')' as rec_date, NVL(sum_cnt_m1,0) sum_cnt_m1, NVL(time_avg_m1,0) time_avg_m1
+			from (
+				select to_char(sysdate-1,'YYYYMMDD') rec_date from dual
+				) td1
+				left outer join (
+					select to_char(sysdate-1,'YYYYMMDD') rdate_d1, sum(rec_count) sum_cnt_m1, round(avg(end_time_avg),0) time_avg_m1
+						from TB_REC_FILE_DAY
+					where tenant_id = #tenantId#
+						and rec_time <![CDATA[ >= ]]> to_char(sysdate-1,'YYYYMMDD')
+						and rec_time <![CDATA[ < ]]> to_char(sysdate-1,'YYYYMMDD')||'99'
+					group by to_char(to_date(substr(rec_time,0,8),'YYYYMMDD'),'d'), to_char(sysdate-1,'YYYYMMDD')
+				) tm2 
+				on 	rec_date = rdate_d1
+		union all
+		select '전주('||rec_date||')' as rec_date, NVL(sum_cnt_m1,0) sum_cnt_m1, NVL(time_avg_m1,0) time_avg_m1
+			from (
+				select to_char(sysdate-7,'YYYYMMDD') rec_date from dual
+				) td1
+				left outer join (
+					select to_char(sysdate-7,'YYYYMMDD') rdate_d1, sum(rec_count) sum_cnt_m1, round(avg(end_time_avg),0) time_avg_m1
+						from TB_REC_FILE_DAY
+					where tenant_id = #tenantId#
+						and rec_time <![CDATA[ >= ]]> to_char(sysdate-7,'YYYYMMDD')
+						and rec_time <![CDATA[ < ]]> to_char(sysdate-7,'YYYYMMDD')||'99'
+					group by to_char(to_date(substr(rec_time,0,8),'YYYYMMDD'),'d'), to_char(sysdate-7,'YYYYMMDD')
+				) tm2 
+				on 	rec_date = rdate_d1
+
+		union all
+		select '전월('||rec_date||')' as rec_date, NVL(sum_cnt_m1,0) sum_cnt_m1, NVL(time_avg_m1,0) time_avg_m1
+			from 
+				(
+				select to_char(add_months(sysdate,-1),'YYYYMMDD') rec_date from dual
+				) td1
+				left outer join (
+					select to_char(add_months(sysdate,-1),'YYYYMMDD') rdate_d1, sum(rec_count) sum_cnt_m1, round(avg(end_time_avg),0) time_avg_m1
+						from TB_REC_FILE_DAY
+					where tenant_id = #tenantId#
+						and rec_time <![CDATA[ >= ]]> to_char(add_months(sysdate,-1),'YYYYMMDD')
+						and rec_time <![CDATA[ < ]]> to_char(add_months(sysdate,-1),'YYYYMMDD')||'99'
+					group by to_char(to_date(substr(rec_time,0,8),'YYYYMMDD'),'d'), to_char(add_months('20171014',-1),'YYYYMMDD')
+				) tm2 
+				on 	rec_date = rdate_d1
+	</select>
+	
+	<select id="ARGOCOMMON.getIntroRecentList" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : ARGOCOMMON.getIntroRecentList */
+		SELECT REC_TIME, SUM(REC_COUNT) REC_COUNT, ROUND(AVG(REC_COUNT),0) REC_AVG
+			FROM ( 
+				SELECT substr(REC_TIME,0,8) REC_TIME, USER_ID, SUM(REC_COUNT) REC_COUNT
+					FROM TB_REC_FILE_DAY 
+				WHERE REC_TIME > to_char(sysdate-14,'YYYYMMDD')
+					AND TENANT_ID = #tenantId#
+				GROUP BY substr(REC_TIME,0,8), USER_ID
+				) T_S
+		GROUP BY REC_TIME
+		ORDER BY REC_TIME
+	</select>
+	
+	<select id="ARGOCOMMON.logoutCheck" parameterClass="java.util.HashMap" resultClass="String">
+		/* ID : ARGOCOMMON.logoutCheck */
+     	SELECT 
+     			RTRIM(CAST(forced_logout AS CHAR(10))) as forced_logout
+    		FROM TB_MNG_USERINFO
+    	WHERE TENANT_ID = #logoutTenantId#
+    		AND USER_ID = #logoutAgentId#
+   </select>
+   
+   <select id="ARGOCOMMON.grantForm" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID :ARGOCOMMON.grantForm */
+     	select A.AUTH_KIND from TB_MNG_MENUAUTH A, TB_MNG_MENU B
+		WHERE A.tenant_id =#TID# and A.grant_id=#GID# and
+		A.DEPTH1_ID=B.DEPTH1_ID
+		AND A.DEPTH2_ID = B.DEPTH2_ID
+		AND A.DEPTH3_ID = B.DEPTH3_ID
+		AND B.SRC_DO=#URL#
+   </select>
+   
+   <procedure id="ARGOCOMMON.SP_UC_GET_CMCODE_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_UC_GET_CMCODE_01(#glo_tenantId#,#sort_cd#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+	
+	
+	<select id="ARGOCOMMON.getBaseCodeList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		SELECT CODE_ID AS CODE
+      		 ,CODE_NAME AS CODE_NM
+       FROM TB_MNG_BASECODE A
+       WHERE 1=1
+       AND A.CLASS_ID = #sort_cd#
+       ORDER BY CODE_DESC
+	</select>
+	
+	<procedure id="ARGOCOMMON.SP_UC_GET_ACCESS_DEPT" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_UC_GET_ACCESS_DEPT(#glo_tenantId#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#)}
+	</procedure>
+
+	<!-- 소속 선택 팝업 =================================================================================== -->
+	<procedure id="ARGOCOMMON.SP_UC_GET_DEPT" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_UC_GET_DEPT(#tenantId#,#groupName#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#)}
+	</procedure>
+	
+	
+	<!-- QA 평가계획선택 팝업 =================================================================================== -->
+	<procedure id="ARGOCOMMON.SP_UC_GET_QA_TIMES"
+		parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_UC_GET_QA_TIMES(#glo_tenantId#,#stdMonth#,#glo_groupId#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+
+
+	<!-- 상담사 선택 팝업 =================================================================================== -->
+	<procedure id="ARGOCOMMON.SP_UC_GET_AGENT_QAA" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_UC_GET_AGENT_QAA(#glo_tenantId#,#userInfo#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+	
+	
+	<!-- 평가표 점수 조회 -->
+	<procedure id="ARGOCOMMON.SP_UC_GET_QA_SHEET_SUMMARY"
+		parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_UC_GET_QA_SHEET_SUMMARY(#glo_tenantId#, #sheetkey#, #sheetId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+	
+	<!-- 통화품질평가 상세보기(DETAIL) -->
+	<procedure id="ARGOCOMMON.SP_UC_GET_QA_VALUE_DETAIL" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_UC_GET_QA_VALUE_DETAIL(#glo_tenantId#, #sheetkey#, #sheetId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+
+
+	<!-- 상담사 선택 팝업 =================================================================================== -->
+	<procedure id="ARGOCOMMON.SP_UC_GET_AGENT" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_UC_GET_AGENT(#glo_tenantId#,#dept1Id#,#retireYn#,#userInfo#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#)}
+	</procedure>
+	
+	
+	<!-- <procedure id="ARGOCOMMON.SP_UC_GET_QA_VALUE_INFO" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_UC_GET_QA_VALUE_INFO(#glo_tenantId#, #sheetkey#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure> -->
+	
+	<select id="ARGOCOMMON.SP_UC_GET_QA_VALUE_INFO" parameterClass="java.util.HashMap" resultClass="egovMap">
+		WITH TB_QA_AUDIO_LOG AS(
+			SELECT
+		        A.TENANT_ID,
+		        A.REC_KEY AS RECORD_ID,                                                                       
+		        A.DN_NO,                                                                         
+		        TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS') AS STARTTIME,
+		        TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS') + CAST(A.END_TIME AS NUMBER)/(24*60*60) AS ENDTIME,
+		        TO_CHAR(TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS'), 'YYYYMMDDHH24MISS') AS START_TIME,                                          
+		        TO_CHAR(TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS') + CAST(A.END_TIME AS NUMBER)/(24*60*60), 'YYYYMMDDHH24MISS') AS END_TIME,  
+		        SUBSTR(A.REC_TIME,0,8) AS REC_YMD,                                                         
+		        SUBSTR(A.REC_TIME,9,6) AS REC_TM,                                                          
+		        SUBSTR('000000' || A.END_TIME, -6) AS TALK_TM,                                              
+		        A.END_TIME,
+		        A.USER_ID AS AGENT_ID,                                                                       
+		        (CASE WHEN A.CALL_KIND = '1' THEN 'IN' WHEN A.CALL_KIND = '0' THEN '' ELSE 'OUT' END) AS INOUT_KIND, 
+		        A.REC_KEY
+		   FROM $tableNm$ A INNER JOIN TB_QA_VALUE_RESULT_HEADER B ON A.REC_KEY = B.RECORD_ID
+		   WHERE B.SHEETKEY = #sheetkey#
+		)
+		SELECT 
+			D.TIMES_NM
+			,D.TIMES_ID
+			,E.SHEET_NM
+			,E.SHEET_ID
+			,FN_CM_GET_CODE_NM(#glo_tenantId#, 'QA_EVAL_TYPE', D.QA_EVAL_TYPE) AS QA_EVAL_TYPE
+			,FN_CM_STRING_FORMAT(D.VALUE_FRM_DT,'@@@@-@@-@@') AS VALUE_FRM_DT
+			,FN_CM_STRING_FORMAT(D.VALUE_END_DT,'@@@@-@@-@@') AS VALUE_END_DT
+			,FN_CM_STRING_FORMAT(C.REC_YMD,'@@@@-@@-@@') AS REC_YMD
+			,B.USER_ID AS AGENT_SABUN
+			,TO_CHAR(C.STARTTIME, 'HH24:MI:SS') AS STARTTIME
+			,TO_CHAR(C.ENDTIME, 'HH24:MI:SS') AS ENDTIME
+			,FN_CM_STRING_FORMAT(A.VALUE_YMD, '@@@@-@@-@@') AS VALUE_YMD
+			,FN_CM_GET_DEPT_INFO(A.TENANT_ID, B.GROUP_ID) AS DEPT_INFO
+			,B.USER_NAME AS AGENT_NM
+			,FN_CM_GET_AGENT_SABUN(#glo_tenantId#,A.VALUE_MEMB) AS QAA_SABUN
+			,A.VALUE_MEMB AS QAA_ID
+			,FN_CM_GET_AGENT_NM(#glo_tenantId#,A.VALUE_MEMB) AS QAA_NM
+			,TO_CHAR(ENDTIME, 'HH24MISS') AS ENDTIME
+			,FN_CM_GET_CODE_NM(A.TENANT_ID, 'QA_VALUE_STATUS',  A.QA_VALUE_STATUS) AS QA_VALUE_STATUS_NM
+			,A.QA_VALUE_STATUS
+			,C.RECORD_ID
+			,A.TOTAL_COMMENT
+			,FN_CM_GET_TIME_FORMAT(TALK_TM) AS TALK_TM
+			,A.AGENT_ID
+	    	,A.TOTAL_SCORE 
+		FROM TB_QA_VALUE_RESULT_HEADER A
+		INNER JOIN TB_MNG_USERINFO B ON (A.TENANT_ID = B.TENANT_ID AND A.AGENT_ID = B.USER_ID)
+		LEFT JOIN TB_QA_AUDIO_LOG C ON (A.TENANT_ID = C.TENANT_ID AND A.RECORD_ID = C.RECORD_ID)
+		INNER JOIN TB_QA_VALUE_TIMES D ON (A.TENANT_ID = D.TENANT_ID AND A.TIMES_ID = D.TIMES_ID)
+		INNER JOIN TB_QA_SHEET_HEADER E ON (A.TENANT_ID = E.TENANT_ID AND A.SHEET_ID = E.SHEET_ID)
+		WHERE A.TENANT_ID = #glo_tenantId#
+		AND A.SHEETKEY = #sheetkey#
+	</select>
+	
+	
+	<!-- 월별 기간 조회 -->
+	<procedure id="ARGOCOMMON.SP_UC_GET_TERM" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_UC_GET_TERM(#txtDate1_From#, #txtDate1_To#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+
+	<procedure id="ARGOCOMMON.tenant" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_UC_GET_TENANT(#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#)}
+	</procedure>
+
+	<!-- <procedure id="ARGOCOMMON.SP_UC_GET_RECORD_INFO" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_UC_GET_RECORD_INFO(#recKey#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#)}
+	</procedure> -->
+	
+	
+	<select id="ARGOCOMMON.SP_UC_GET_RECORD_INFO" parameterClass="java.util.HashMap" resultClass="egovMap">
+		SELECT A.TENANT_ID,
+			A.REC_KEY,
+			A.CALL_ID,
+			A.USER_ID AS MANAGER_ID,
+			A.USER_ID,
+			A.DN_NO,
+			TO_CHAR(TO_DATE(SUBSTR(A.REC_TIME,0,8)),'YYYY-MM-DD') || ' ' || TO_CHAR(TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS'),'HH24:MI:SS') AS REC_TIME,
+			TO_CHAR(TO_DATE(SUBSTR(A.REC_TIME,0,8)),'YYYY-MM-DD') || '' || TO_CHAR(TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS'),'HH24:MI:SS') AS REC_LOG_TIME,
+		    A.END_TIME,
+		    (SELECT USER_NAME FROM TB_MNG_USERINFO WHERE USER_ID = A.USER_ID AND ROWNUM = 1) AS USER_NAME,
+		    A.CUST_TEL,
+		    A.CUST_NAME,
+		    '7210' AS PORT,
+		    'BRIDGETEC_VELOCE' AS ENC_KEY,
+		    MEDIA_SCR,
+		    A.PHONE_IP,
+		    A.MFU_IP
+		FROM $tableNm$ A 
+		WHERE A.REC_KEY = #recKey#
+	</select>
+
+	
+	
+	
+	<!-- CM1030 공지사항관리 START =================================================================================== -->   
+ 	<procedure id="CM.SP_CM1030M01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_CM1030M01_01(#glo_tenantId#,#txtDate1_From#,#txtDate1_To#,#subject#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure> 
+	
+	<procedure id="CM.SP_CM1030M01_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_CM1030M01_02(#cudGubun#,#glo_tenantId#,#glo_agentId#,#notiId#,#notiNo#, #notiGubun#,#notiGrade#,#notiTitle#,#notiScope#,#frmDate#,#endDate#,#user1Id#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure> 
+
+	<procedure id="CM.SP_CM1030M01_03" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_CM1030M01_03(#glo_tenantId#,#glo_agentId#,#notiId#,#fileId#) }
+	</procedure> 
+	
+	<procedure id="CM.SP_CM1030M01_04" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_CM1030M01_04(#readHistYn#,#glo_tenantId#,#glo_agentId#,#notiId#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure> 
+	
+	<procedure id="CM.SP_CM1030M01_05" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_CM1030M01_05(#glo_tenantId#,#glo_agentId#,#notiId#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure> 
+	
+	<procedure id="CM.SP_CM1030M01_06" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_CM1030M01_06(#glo_tenantId#,#glo_agentId#,#notiId#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure> 	
+	
+	<procedure id="CM.SP_CM1030M01_07" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_CM1030M01_07(#glo_tenantId#,#glo_agentId#,#notiId#,#filePath#,#fileRealNm#,#fileUserNm#) }
+	</procedure>
+	
+	<procedure id="ARGOCOMMON.SP_UC_GET_SYSDATE" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_UC_GET_SYSDATE(#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#)}
+	</procedure>
+	
+	<select id="ARGOCOMMON.searchGlobalFilePath" parameterClass="java.util.HashMap" resultClass="egovMap">
+		SELECT VAL_DEFAULT AS GLOBAL_FILE_PATH
+		FROM TB_WAS_CONFIG
+		WHERE SECTION = 'INPUT'
+		AND KEY_CODE = 'USE_UPLOAD_DOWNLOAD_PATH'
+		AND ROWNUM = 1
+	</select>
+	
+	<update id="ARGOCOMMON.updateGlobalFilePath" parameterClass="java.util.HashMap">
+		MERGE INTO TB_WAS_CONFIG AS A
+		USING (
+		    SELECT #globalFilePath# AS VAL_DEFAULT
+		           ,'INPUT' AS SECTION
+		           ,'USE_UPLOAD_DOWNLOAD_PATH' AS KEY_CODE
+		    FROM DUAL
+		) AS T1
+		ON (A.SECTION = T1.SECTION AND A.KEY_CODE = T1.KEY_CODE)
+		WHEN MATCHED THEN
+		    UPDATE SET A.VAL_DEFAULT = T1.VAL_DEFAULT
+		WHEN NOT MATCHED THEN
+		    INSERT (SECTION, KEY_CODE, KEY_ORDER, VAL_TYPE, VAL_CUR, VAL_DEFAULT, VAL_LIST, TITLE_LIST, VAL_DESC, UPT_ID, UPT_DATE)
+		    values('INPUT', 'USE_UPLOAD_DOWNLOAD_PATH', '1', 'TEXT', '0', T1.VAL_DEFAULT, NULL, '파일업로드/다운로드경로', '파일업로드/다운로드경로', #glo_agentId#, SYSDATE)
+	</update>
+	
+	<select id="ARGOCOMMON.searchExlCsvCode" parameterClass="java.util.HashMap" resultClass="egovMap">
+		SELECT CASE WHEN (VAL_CUR = 'CSV' OR VAL_CUR = 'EXL') THEN VAL_CUR 
+				ELSE VAL_DEFAULT END AS EXLCSV_CODE
+		FROM TB_WAS_CONFIG
+		WHERE SECTION = 'EXLCSV'
+		AND KEY_CODE = 'EXL_CSV_GUBUN'
+		AND ROWNUM = 1
+	</select> 
+	
+	<select id="ARGOCOMMON.searchTaUrlCode" parameterClass="java.util.HashMap" resultClass="egovMap">
+		SELECT VAL_CUR AS TA_URL
+		FROM TB_WAS_CONFIG
+		WHERE SECTION = 'TA_VIEW_URL'
+		AND KEY_CODE=  'TA_VIEW_URL'
+		AND ROWNUM = 1
+	</select> 
+	
+</sqlMap>

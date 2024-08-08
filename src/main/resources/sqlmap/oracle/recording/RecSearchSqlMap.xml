@@ -1,0 +1,3639 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="recSearch">
+    <typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap"/>
+
+        <select id="recSearch.getControlList" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getControlList */
+        select g.group_id
+        from tb_mng_group g,
+             (
+                 select depth
+                 from tb_mng_group g,
+                      tb_mng_userinfo u
+                 where g.tenant_id = u.tenant_id
+                   and instr(',' || control_auth || ',', ',' || g.depth || ',') > 0
+                   and u.user_id = #userId#
+                   and u.tenant_id = #findTenantId#
+             ) c
+        where g.depth LIKE c.depth || '%'
+          and tenant_id = #findTenantId#
+    </select>
+
+    <select id="recSearch.getRecSearchFiledList" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecSearchFiledList */
+        select substr(col_id, length(col_id), 1) field_Id, col_text field_Name
+        from TB_MNG_COL_TITLE
+        where tenant_id = #findTenantId#
+    </select>
+
+    <select id="recSearch.getRecSearchReasonList" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecSearchReasonList */
+        SELECT code_id field_Id, CONCAT(code_id, CONCAT('_', code_name)) field_Name
+        from TB_MNG_BASECODE
+        WHERE CLASS_NAME = '조회사유코드'
+        ORDER BY FIELD_ID
+    </select>
+
+    <!--
+        <select id="recSearch.getRecSearchListCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+            /* ID : recSearch.getRecSearchListCnt */
+            select count(*) cnt
+                from(
+                    select
+                            distinct TB_REC_FILE.rec_key, TB_REC_FILE.tenant_id, TB_REC_FILE.rec_time
+                            , TB_REC_FILE.dn_no, TB_REC_FILE.user_id, TB_REC_FILE.group_id, TB_REC_FILE.cust_etc9
+                        from (
+                            select
+                                    Row_Number() over (order by
+                                        <isNotEmpty property="findSort">
+                                            <isEqual property="findSort" compareValue="1">	REC_TIME desc, DN_NO desc			</isEqual>
+                                            <isEqual property="findSort" compareValue="2">	TB_IN.END_TIME desc, REC_TIME desc	</isEqual>
+                                            <isEqual property="findSort" compareValue="3">	REC_TIME asc, DN_NO desc			</isEqual>
+                                            <isEqual property="findSort" compareValue="4">	TB_IN.END_TIME asc, REC_TIME desc	</isEqual>
+                                        </isNotEmpty>
+                                        <isEmpty property="findSort">
+                                            REC_TIME desc, DN_NO desc
+                                        </isEmpty>
+                                        ) RowNum2, TB_IN.*
+                                from (
+                                    select
+                                            Row_Number() over (order by
+                                                <isNotEmpty property="findSort">
+                                                    <isEqual property="findSort" compareValue="1">	REC_TIME desc, tb_rec_file.DN_NO desc	</isEqual>
+                                                    <isEqual property="findSort" compareValue="2">	END_TIME desc, REC_TIME desc			</isEqual>
+                                                    <isEqual property="findSort" compareValue="3">	REC_TIME ASC, tb_rec_file.DN_NO desc	</isEqual>
+                                                    <isEqual property="findSort" compareValue="4">	END_TIME ASC, REC_TIME desc				</isEqual>
+                                                </isNotEmpty>
+                                                <isEmpty property="findSort">
+                                                    REC_TIME desc, tb_rec_file.DN_NO desc
+                                                </isEmpty>
+                                                ) RowNum1, TB_REC_FILE.REC_KEY, REC_TIME, tb_rec_file.DN_NO, END_TIME
+                                        FROM tb_rec_file
+                                            <isEmpty  property="findUserNameText">		left outer join TB_MNG_USERINFO		</isEmpty>
+                                            <isNotEmpty  property="findUserNameText">
+                                                join (
+                                                    select tenant_id, group_id, user_id, user_name from tb_mng_userinfo
+                                                     where tenant_id = #findTenantId#
+                                                         <isNotEmpty  property="findGroupId">
+                                                             and group_id in (
+                                                                 select group_id from tb_mng_group
+                                                                 where tenant_id = #findTenantId#
+                                                                     and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+                                                                                 and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+                                                                 )
+                                                         </isNotEmpty>
+                                                         <isEmpty property="findGroupId">
+                                                            <isNotEqual property="grantId" compareValue="GroupManager">
+                                                                <isNotEmpty property="controlAuthGroup">
+                                                                    and group_id in
+                                                                        <iterate property="controlAuthGroup" open="(" close=")" conjunction=",">
+                                                                            #controlAuthGroup[]#
+                                                                        </iterate>
+                                                                </isNotEmpty>
+                                                            </isNotEqual>
+                                                            <isEqual property="grantId" compareValue="GroupManager">
+                                                                and group_id in (
+                                                                    select g.group_id
+                                                                        from tb_mng_group g,
+                                                                            (
+                                                                            select depth from tb_mng_group g, tb_mng_userinfo u
+                                                                            where g.tenant_id = u.tenant_id
+                                                                                and g.group_id = u.group_id
+                                                                                and u.user_id = #userId#
+                                                                                and u.tenant_id = #findTenantId#
+                                                                            ) c
+                                                                    where g.depth LIKE c.depth || '%'
+                                                                        and tenant_id = #findTenantId#
+                                                                    )
+                                                            </isEqual>
+                                                         </isEmpty>
+                                                         and (user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%')
+                                                    )
+                                            </isNotEmpty>
+                                            b on TB_REC_FILE.tenant_id = b.tenant_id and TB_REC_FILE.user_id = b.user_id
+                                    WHERE
+                                    <isEqual property="findTS" compareValue="1">
+                                    < !- - 1 - - >
+                                        <![CDATA[	REC_TIME >=	#txtDate1_From# || #recFrmTm# ]]>
+                                        AND <![CDATA[	REC_TIME <=	#txtDate1_To# || #recEndTm# ]]>
+                                    </isEqual>
+                                    <isNotEqual property="findTS" compareValue="1">
+                                    < !- - 2 - - >
+                                        <![CDATA[	SUBSTR(REC_TIME, 1, 8) >=	#txtDate1_From# ]]>
+                                        AND <![CDATA[	SUBSTR(REC_TIME, 1, 8) <=	#txtDate1_To# ]]>
+                                        AND <![CDATA[	SUBSTR(REC_TIME, 9, 6) >=	#recFrmTm# ]]>
+                                        AND <![CDATA[	SUBSTR(REC_TIME, 9, 6) <=	#recEndTm# ]]>
+                                    </isNotEqual>
+                                        AND	search_visible	= #findSearchVisible#
+                                        AND	TB_REC_FILE.tenant_id = #findTenantId#
+                                        <isNotEmpty property="findUserId">	AND	TB_REC_FILE.user_id = #findUserId#	</isNotEmpty>
+                                        <isNotEmpty property="findGroupId">
+                                            and TB_REC_FILE.group_id in (
+                                                select group_id from tb_mng_group
+                                                where tenant_id = #findTenantId#
+                                                    and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+                                                                  and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+                                                )
+                                        </isNotEmpty>
+                                        <isEmpty property="findGroupId">
+                                            <isEqual property="grantId" compareValue="Agent">
+    < !- - 										and TB_REC_FILE.group_id = #groupId#  - - >
+                                                and TB_REC_FILE.user_id = #userId#
+                                            </isEqual>
+                                             <isNotEqual property="grantId" compareValue="GroupManager">
+                                                <isNotNull prepend=" and TB_REC_FILE.group_id in ">
+                                                    <iterate property="controlAuthGroup" open="(" conjunction="," close=")">
+                                                        #controlAuthGroup[]#
+                                                    </iterate>
+                                                </isNotNull>
+                                            </isNotEqual>
+                                            < !- -
+                                            <isEqual property="grantId" compareValue="GroupManager">
+                                                and TB_REC_FILE.group_id in (
+                                                    select g.group_id
+                                                        from tb_mng_group g,
+                                                            (
+                                                            select depth from tb_mng_group g, tb_mng_userinfo u
+                                                            where g.tenant_id = u.tenant_id
+                                                                and g.group_id = u.group_id
+                                                                and u.user_id = #userId#
+                                                                and u.tenant_id = #findTenantId#
+                                                            ) c
+                                                    where g.depth LIKE c.depth || '%'
+                                                        and tenant_id = #findTenantId#
+                                                    )
+                                            </isEqual>
+                                             - - >
+                                        </isEmpty>
+                                        <isNotEmpty property="findDnText">			AND	TB_REC_FILE.dn_no like '%' || #findDnText# || '%'	</isNotEmpty>
+                                        <isNotEmpty property="findCustNameText">	AND	cust_name like '%' || #findCustNameText# || '%'		</isNotEmpty>
+                                        <isNotEmpty property="findCustTelText">		AND	(cust_tel like '%' || #findCustTelText# || '%' or cust_tel like '%' || #findCustTelEnc# || '%')	</isNotEmpty>
+                                        <isNotEmpty property="findCustNoText">		AND	(cust_no like '%' || #findCustNoText# || '%'  or cust_no like '%' || #findCustNoEnc# || '%')	</isNotEmpty>
+                                        <isNotEmpty property="findCallKind">		AND	call_kind like '%' || #findCallKind# || '%'			</isNotEmpty>
+                                        <isNotEmpty property="findMarkKind">		AND	cust_etc9 = #findMarkKind#							</isNotEmpty>
+                                        <isNotEmpty property="findCallIdText">		AND	call_id between #findCallIdText# and #findCallIdText# || 'ZZ'	</isNotEmpty>
+
+                                        <isNotEmpty property="findTranTelText">		AND	tran_tel = #findTranTelText#							</isNotEmpty>
+
+                                        <isNotEqual property="callFrmTm" compareValue="000000">	<![CDATA[	AND	end_time >= substr(#callFrmTm#,1,2)*3600 + substr(#callFrmTm#,3,2)*60 + substr(#callFrmTm#,5,2)	]]>	</isNotEqual>
+                                        <isNotEqual property="callEndTm" compareValue="000000">	<![CDATA[	AND	end_time <= substr(#callEndTm#,1,2)*3600 + substr(#callEndTm#,3,2)*60 + substr(#callEndTm#,5,2)	]]>	</isNotEqual>
+                                        <isNotEmpty property="findField">
+                                            <isNotEmpty property="findFieldText">	and
+                                                <isEqual property="findField" compareValue="custEtc1">	cust_etc1 like '%' || #findFieldText# || '%'	</isEqual>
+                                                <isEqual property="findField" compareValue="custEtc2">	cust_etc2 like '%' || #findFieldText# || '%'	</isEqual>
+                                                <isEqual property="findField" compareValue="custEtc3">	cust_etc3 like '%' || #findFieldText# || '%'	</isEqual>
+                                                <isEqual property="findField" compareValue="custEtc4">	cust_etc4 like '%' || #findFieldText# || '%'	</isEqual>
+                                                <isEqual property="findField" compareValue="custEtc5">	cust_etc5 like '%' || #findFieldText# || '%'	</isEqual>
+                                                <isEqual property="findField" compareValue="custEtc6">	cust_etc6 like '%' || #findFieldText# || '%'	</isEqual>
+                                                <isEqual property="findField" compareValue="custEtc7">	cust_etc7 like '%' || #findFieldText# || '%'	</isEqual>
+                                                <isEqual property="findField" compareValue="custEtc8">	cust_etc8 like '%' || #findFieldText# || '%'	</isEqual>
+                                            </isNotEmpty>
+                                        </isNotEmpty>
+                                       ) TB_IN
+                            ) TB_OUT , TB_REC_FILE
+                    WHERE TB_OUT.REC_KEY = TB_REC_FILE.REC_KEY
+                    ) F
+                     left join TB_MNG_USERINFO b on F.tenant_id = b.tenant_id and F.user_id = b.user_id
+                    left join tb_mng_group c on F.tenant_id = c.tenant_id and F.group_id = c.group_id
+                    left join tb_rec_file_index g on F.rec_key = g.rec_key
+        </select>
+    -->
+
+    <select id="recSearch.getRecSearchListCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecSearchListCnt */
+        SELECT
+          	count(*) as CNT
+		  FROM (
+			SELECT ROW_NUMBER() OVER (ORDER BY 
+					<isNotEmpty property="findSort">
+						<isEqual property="findSort" compareValue="1">tt1.REC_TIME desc, tt1.DN_NO desc</isEqual>
+						<isEqual property="findSort" compareValue="2">tt1.END_TIME desc, tt1.REC_TIME desc</isEqual>
+						<isEqual property="findSort" compareValue="3">tt1.REC_TIME asc, tt1.DN_NO desc</isEqual>
+						<isEqual property="findSort" compareValue="4">tt1.END_TIME asc, tt1.REC_TIME desc</isEqual>
+					</isNotEmpty>
+					<isEmpty property="findSort">
+						tt1.REC_TIME desc, tt1.DN_NO desc
+					</isEmpty>
+				 ) AS ROW_NUM
+				 , tt1.REC_KEY
+				 , tt1.TENANT_ID
+				 , tt1.REC_TIME
+				 , tt1.DN_NO
+				 , tt1.GROUP_ID
+				 , tt1.USER_ID
+				 , tt1.PHONE_IP
+				 , tt1.END_TIME
+				 , tt1.CALL_KIND
+				 , tt1.CALL_ID
+				 , tt1.CUST_NAME
+				 , tt1.CUST_TEL
+				 , tt1.CUST_NO
+				 , tt1.MEDIA_VOICE
+				 , tt1.MEDIA_SCR
+				 , tt1.MEDIA_MOVIE
+				 , tt1.MEDIA_EMAIL
+				 , tt1.MEDIA_CHAT
+				 , tt1.MEDIA_FAX
+				 , tt1.MEDIA_DOC
+				 , tt1.SEARCH_VISIBLE
+				 , tt1.UPLOAD_CNT_VOICE
+				 , tt1.UPLOAD_CNT_SCR
+				 , tt1.UPLOAD_CNT_MOVIE
+				 , tt1.UPLOAD_CNT_EMAIL
+				 , tt1.UPLOAD_CNT_CHAT
+				 , tt1.UPLOAD_CNT_FAX
+				 , tt1.UPLOAD_CNT_DOC
+				 , tt1.CUST_ETC1
+				 , tt1.CUST_ETC2
+				 , tt1.CUST_ETC3
+				 , tt1.CUST_ETC4
+				 , tt1.CUST_ETC5
+				 , tt1.CUST_ETC6
+				 , tt1.CUST_ETC7
+				 , tt1.CUST_ETC8
+				 , tt1.CUST_ETC9
+				 , tt1.CUST_ETC10
+				 , tt1.HOLD
+				 , tt1.TRAN_TEL
+				 , tt1.CALL_TIME_I AS CALL_TIME
+			  FROM TB_REC_FILE tt1
+			<isNotEmpty property="findUserNameText">
+			  LEFT OUTER JOIN TB_MNG_USERINFO tt2
+				ON tt1.TENANT_ID = tt2.TENANT_ID
+			   AND tt1.USER_ID = tt2.USER_ID
+			</isNotEmpty>
+			 WHERE 1 = 1
+			<isNotEmpty property="controlAuth">
+			   AND tt1.GROUP_ID IN (
+					SELECT GROUP_ID
+					  FROM TB_MNG_GROUP
+					 START WITH (TENANT_ID = #findTenantId#
+					   AND GROUP_ID IN (
+							SELECT g.GROUP_ID
+							  FROM TB_MNG_GROUP g
+							 INNER JOIN TB_MNG_USERINFO u
+								ON g.TENANT_ID = u.TENANT_ID
+							 WHERE u.tenant_id = #findTenantId#
+							   AND u.USER_ID = #userId#
+							   AND INSTR(',' || u.CONTROL_AUTH || ',', ',' || g.GROUP_ID || ',') > 0
+					   )
+					 )
+				   CONNECT BY PARENT_ID = PRIOR GROUP_ID
+					   AND TENANT_ID = #findTenantId#
+			   )
+			</isNotEmpty>
+			<isEmpty property="controlAuth">
+				<isEqual property="grantId" compareValue="Agent">
+			   AND tt1.USER_ID = #userId#
+				</isEqual>
+				<isEqual property="grantId" compareValue="GroupManager">
+			   AND tt1.GROUP_ID IN (
+					SELECT GROUP_ID
+					  FROM TB_MNG_GROUP
+					 START WITH (TENANT_ID = #findTenantId#
+						AND GROUP_ID = (SELECT GROUP_ID FROM TB_MNG_USERINFO WHERE USER_ID = #userId# and TENANT_ID = #findTenantId#)
+					 )
+				   CONNECT BY PARENT_ID = PRIOR GROUP_ID
+					   AND TENANT_ID = #findTenantId#
+			   )
+				</isEqual>
+			</isEmpty>
+			<isNotEmpty property="findTenantId">
+			   AND tt1.TENANT_ID = #findTenantId#
+			</isNotEmpty>
+			<isNotEmpty property="findSearchVisible">
+			   AND tt1.SEARCH_VISIBLE = #findSearchVisible#
+			</isNotEmpty>
+			 <isEqual property="findTS" compareValue="1"><![CDATA[
+			   AND tt1.REC_TIME >= #txtDate1_From# || #recFrmTm# AND tt1.REC_TIME <= #txtDate1_To# || #recEndTm#
+			]]></isEqual>
+			<isNotEqual property="findTS" compareValue="1"><![CDATA[
+			   AND SUBSTR(tt1.REC_TIME, 1, 8) >= #txtDate1_From#
+			   AND SUBSTR(tt1.REC_TIME, 1, 8) <= #txtDate1_To#
+			   AND SUBSTR(tt1.REC_TIME, 9, 6) >= #recFrmTm#
+			   AND SUBSTR(tt1.REC_TIME, 9, 6) <= #recEndTm#
+			]]></isNotEqual>
+			<isNotEmpty property="findUserId">
+			   AND tt1.USER_ID = #findUserId#
+			</isNotEmpty>
+			<isNotEmpty property="findUserNameText">
+			   AND (tt1.USER_ID LIKE '%' || #findUserNameText# || '%' OR tt2.USER_NAME LIKE '%' || #findUserNameText# || '%')
+			</isNotEmpty>
+			<isNotEmpty property="findGroupId">
+<!-- 			   AND tt1.GROUP_ID = #findGroupId# -->
+			   AND tt1.GROUP_ID IN (
+					SELECT GROUP_ID
+	                  FROM TB_MNG_GROUP
+	                 START WITH (TENANT_ID = #findTenantId# AND GROUP_ID = #findGroupId#)
+	                CONNECT BY PARENT_ID = PRIOR GROUP_ID
+                	   AND TENANT_ID = #findTenantId#
+			   )
+			</isNotEmpty>
+			<isNotEmpty property="findDnText">
+			   AND tt1.DN_NO LIKE '%' || #findDnText# || '%'
+			</isNotEmpty>
+			<isNotEmpty property="findCustNameText">
+			   AND tt1.CUST_NAME LIKE '%' || #findCustNameText# || '%'
+			</isNotEmpty>
+			<isNotEmpty property="findCustTelText">
+			   AND (tt1.CUST_TEL LIKE '%' || #findCustTelText# || '%' OR tt1.CUST_TEL LIKE '%' || #findCustTelEnc# || '%')
+			</isNotEmpty>
+			<isNotEmpty property="findCustNoText">
+			   AND (tt1.CUST_NO LIKE '%' || #findCustNoText# || '%' OR tt1.CUST_NO LIKE '%' || #findCustNoEnc# || '%')
+			</isNotEmpty>
+			<isNotEmpty property="findCallKind">
+			   AND tt1.CALL_KIND LIKE '%' || #findCallKind# || '%'
+			</isNotEmpty>
+			<isNotEmpty property="findMarkKind">
+			   AND tt1.CUST_ETC9 = #findMarkKind#
+			</isNotEmpty>
+			<isNotEmpty property="findCallIdText">
+			   AND tt1.CALL_ID BETWEEN #findCallIdText# AND #findCallIdText# || 'ZZ'
+			</isNotEmpty>
+			<isNotEmpty property="findTranTelText">
+			   AND tt1.TRAN_TEL = #findTranTelText#
+			</isNotEmpty>
+			<isNotEqual property="callFrmTm" compareValue="000000"><![CDATA[
+			   AND tt1.END_TIME >= SUBSTR(#callFrmTm#, 1, 2) * 3600 + SUBSTR(#callFrmTm#, 3, 2) * 60 + SUBSTR(#callFrmTm#, 5, 2)
+			]]></isNotEqual>
+			<isNotEqual property="callEndTm" compareValue="000000"><![CDATA[
+			   AND tt1.END_TIME <= SUBSTR(#callEndTm#, 1, 2) * 3600 + SUBSTR(#callEndTm#, 3, 2) * 60 + SUBSTR(#callEndTm#, 5, 2)
+			]]></isNotEqual>
+			<isNotEmpty property="findField">
+				<isNotEmpty property="findFieldText">
+				   AND
+					<isEqual property="findField" compareValue="custEtc2">tt1.CUST_ETC2 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc1">tt1.CUST_ETC1 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc3">tt1.CUST_ETC3 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc4">tt1.CUST_ETC4 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc5">tt1.CUST_ETC5 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc6">tt1.CUST_ETC6 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc7">tt1.CUST_ETC7 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc8">tt1.CUST_ETC8 like '%' || #findFieldText# || '%'</isEqual>
+				</isNotEmpty>
+			</isNotEmpty>
+		  ) t1
+		  LEFT OUTER JOIN TB_MNG_USERINFO t2
+			ON t1.TENANT_ID = t2.TENANT_ID
+		   AND t1.USER_ID = t2.USER_ID
+		  LEFT OUTER JOIN TB_MNG_USERTELNO t3
+			ON t1.TENANT_ID = t3.TENANT_ID
+		   AND t1.DN_NO = t3.DN_NO
+		  LEFT OUTER JOIN TB_MNG_GROUP t4
+			ON t1.TENANT_ID = t4.TENANT_ID
+		   AND t1.GROUP_ID = t4.GROUP_ID
+		  LEFT OUTER JOIN TB_REC_MARKCODE t5
+			ON t1.TENANT_ID = t5.TENANT_ID
+		   AND t1.CUST_ETC9 = t5.MARKING_ID
+		  LEFT OUTER JOIN TB_MNG_ENCKEY t6
+			<![CDATA[
+			ON t1.REC_TIME >= to_char(t6.LIC_TIME,'YYYYMMDDHH24MMSS') 
+			and  t1.REC_TIME <= to_char(nvl(t6.LIC_TIME_END,sysdate+ (INTERVAL '10' YEAR)),'YYYYMMDDHH24MMSS')
+			and t6.GUBUN = '0'
+		   ]]>
+    </select>
+    
+    <select id="recSearch.getRecSearchListExcelImport" parameterClass="java.util.HashMap" resultClass="egovMap">
+		SELECT t1.REC_KEY||'||'||t1.call_id as rec_key
+			 , t6.TENANT_NAME as "태넌트"
+			 , t4.GROUP_NAME as "그룹명"
+			 , SUBSTR(t1.REC_TIME, 1, 8) AS "통화일자"
+			 , SUBSTR(t1.REC_TIME, 9, 6) AS "녹취시간"
+			 , t1.DN_NO "내선번호"
+			 , t1.CALL_ID "콜아이디"
+			 , t1.USER_ID "상담원ID"
+			 , t1.CUST_NAME "고객명"
+			 ,t1.CUST_NO AS "고객번호"
+			 ,t1.CUST_TEL AS "고객전화번호"
+			 ,t1.CUST_ETC1 AS CUST_ETC1
+			 ,t1.CUST_ETC2 AS CUST_ETC2
+			 ,t1.CUST_ETC3 AS CUST_ETC3
+			 ,t1.CUST_ETC4 AS CUST_ETC4
+			 ,t1.CUST_ETC5 AS CUST_ETC5
+			 ,t1.CUST_ETC6 AS CUST_ETC6
+			 ,t1.CUST_ETC7 AS CUST_ETC7
+			 ,t1.CUST_ETC8 AS CUST_ETC8
+			 , t7.enc_key as seed_excel_secret_colum
+		  FROM (
+			SELECT ROW_NUMBER() OVER (ORDER BY 
+					<isNotEmpty property="findSort">
+						<isEqual property="findSort" compareValue="1">tt1.REC_TIME desc, tt1.DN_NO desc</isEqual>
+						<isEqual property="findSort" compareValue="2">tt1.END_TIME desc, tt1.REC_TIME desc</isEqual>
+						<isEqual property="findSort" compareValue="3">tt1.REC_TIME asc, tt1.DN_NO desc</isEqual>
+						<isEqual property="findSort" compareValue="4">tt1.END_TIME asc, tt1.REC_TIME desc</isEqual>
+					</isNotEmpty>
+					<isEmpty property="findSort">
+						tt1.REC_TIME desc, tt1.DN_NO desc
+					</isEmpty>
+				 ) AS ROW_NUM
+				 , tt1.REC_KEY
+				 , tt1.TENANT_ID
+				 , tt1.REC_TIME
+				 , tt1.DN_NO
+				 , tt1.GROUP_ID
+				 , tt1.USER_ID
+				 , tt1.PHONE_IP
+				 , tt1.END_TIME
+				 , tt1.CALL_KIND
+				 , tt1.CALL_ID
+				 , tt1.CUST_NAME
+				 , tt1.CUST_TEL
+				 , tt1.CUST_NO
+				 , tt1.MEDIA_VOICE
+				 , tt1.MEDIA_SCR
+				 , tt1.MEDIA_MOVIE
+				 , tt1.MEDIA_EMAIL
+				 , tt1.MEDIA_CHAT
+				 , tt1.MEDIA_FAX
+				 , tt1.MEDIA_DOC
+				 , tt1.SEARCH_VISIBLE
+				 , tt1.UPLOAD_CNT_VOICE
+				 , tt1.UPLOAD_CNT_SCR
+				 , tt1.UPLOAD_CNT_MOVIE
+				 , tt1.UPLOAD_CNT_EMAIL
+				 , tt1.UPLOAD_CNT_CHAT
+				 , tt1.UPLOAD_CNT_FAX
+				 , tt1.UPLOAD_CNT_DOC
+				 , tt1.CUST_ETC1
+				 , tt1.CUST_ETC2
+				 , tt1.CUST_ETC3
+				 , tt1.CUST_ETC4
+				 , tt1.CUST_ETC5
+				 , tt1.CUST_ETC6
+				 , tt1.CUST_ETC7
+				 , tt1.CUST_ETC8
+				 , tt1.CUST_ETC9
+				 , tt1.CUST_ETC10
+				 , tt1.HOLD
+				 , tt1.TRAN_TEL
+				 , tt1.CALL_TIME_I AS CALL_TIME
+				 , case tt1.media_scr when 1 then tt1.SCR_FILE_NAME else tt1.file_name_i end as FILE_NAME
+			  FROM TB_REC_FILE tt1
+			<isNotEmpty property="findUserNameText">
+			  LEFT OUTER JOIN TB_MNG_USERINFO tt2
+				ON tt1.TENANT_ID = tt2.TENANT_ID
+			   AND tt1.USER_ID = tt2.USER_ID
+			</isNotEmpty>
+			 WHERE 1 = 1
+			<isNotEmpty property="controlAuth">
+			   AND tt1.GROUP_ID IN (
+					SELECT GROUP_ID
+					  FROM TB_MNG_GROUP
+					 START WITH (TENANT_ID = #findTenantId#
+					   AND GROUP_ID IN (
+							SELECT g.GROUP_ID
+							  FROM TB_MNG_GROUP g
+							 INNER JOIN TB_MNG_USERINFO u
+								ON g.TENANT_ID = u.TENANT_ID
+							 WHERE u.tenant_id = #findTenantId#
+							   AND u.USER_ID = #userId#
+							   AND INSTR(',' || u.CONTROL_AUTH || ',', ',' || g.GROUP_ID || ',') > 0
+					   )
+					 )
+				   CONNECT BY PARENT_ID = PRIOR GROUP_ID
+					   AND TENANT_ID = #findTenantId#
+			   )
+			</isNotEmpty>
+			<isEmpty property="controlAuth">
+				<isEqual property="grantId" compareValue="Agent">
+			   AND tt1.USER_ID = #userId#
+				</isEqual>
+				<isEqual property="grantId" compareValue="GroupManager">
+			   AND tt1.GROUP_ID IN (
+					SELECT GROUP_ID
+					  FROM TB_MNG_GROUP
+					 START WITH (TENANT_ID = #findTenantId#
+						AND GROUP_ID = (SELECT GROUP_ID FROM TB_MNG_USERINFO WHERE USER_ID = #userId# and TENANT_ID = #findTenantId#)
+					 )
+				   CONNECT BY PARENT_ID = PRIOR GROUP_ID
+					   AND TENANT_ID = #findTenantId#
+			   )
+				</isEqual>
+			</isEmpty>
+			<isNotEmpty property="findTenantId">
+			   AND tt1.TENANT_ID = #findTenantId#
+			</isNotEmpty>
+			<isNotEmpty property="findSearchVisible">
+			   AND tt1.SEARCH_VISIBLE = #findSearchVisible#
+			</isNotEmpty>
+			 <isEqual property="findTS" compareValue="1"><![CDATA[
+			   AND tt1.REC_TIME >= #txtDate1_From# || #recFrmTm# AND tt1.REC_TIME <= #txtDate1_To# || #recEndTm#
+			]]></isEqual>
+			<isNotEqual property="findTS" compareValue="1"><![CDATA[
+			   AND SUBSTR(tt1.REC_TIME, 1, 8) >= #txtDate1_From#
+			   AND SUBSTR(tt1.REC_TIME, 1, 8) <= #txtDate1_To#
+			   AND SUBSTR(tt1.REC_TIME, 9, 6) >= #recFrmTm#
+			   AND SUBSTR(tt1.REC_TIME, 9, 6) <= #recEndTm#
+			]]></isNotEqual>
+			<isNotEmpty property="findUserId">
+			   AND tt1.USER_ID = #findUserId#
+			</isNotEmpty>
+			<isNotEmpty property="findUserNameText">
+			   AND (tt1.USER_ID LIKE '%' || #findUserNameText# || '%' OR tt2.USER_NAME LIKE '%' || #findUserNameText# || '%')
+			</isNotEmpty>
+			<isNotEmpty property="findGroupId">
+			   AND tt1.GROUP_ID = #findGroupId#
+			</isNotEmpty>
+			<isNotEmpty property="findDnText">
+			   AND tt1.DN_NO LIKE '%' || #findDnText# || '%'
+			</isNotEmpty>
+			<isNotEmpty property="findCustNameText">
+			   AND tt1.CUST_NAME LIKE '%' || #findCustNameText# || '%'
+			</isNotEmpty>
+			<isNotEmpty property="findCustTelText">
+			   AND (tt1.CUST_TEL LIKE '%' || #findCustTelText# || '%' OR tt1.CUST_TEL LIKE '%' || #findCustTelEnc# || '%')
+			</isNotEmpty>
+			<isNotEmpty property="findCustNoText">
+			   AND (tt1.CUST_NO LIKE '%' || #findCustNoText# || '%' OR tt1.CUST_NO LIKE '%' || #findCustNoEnc# || '%')
+			</isNotEmpty>
+			<isNotEmpty property="findCallKind">
+			   AND tt1.CALL_KIND LIKE '%' || #findCallKind# || '%'
+			</isNotEmpty>
+			<isNotEmpty property="findMarkKind">
+			   AND tt1.CUST_ETC9 = #findMarkKind#
+			</isNotEmpty>
+			<isNotEmpty property="findCallIdText">
+			   AND tt1.CALL_ID BETWEEN #findCallIdText# AND #findCallIdText# || 'ZZ'
+			</isNotEmpty>
+			<isNotEmpty property="findTranTelText">
+			   AND tt1.TRAN_TEL = #findTranTelText#
+			</isNotEmpty>
+			<isNotEqual property="callFrmTm" compareValue="000000"><![CDATA[
+			   AND tt1.END_TIME >= SUBSTR(#callFrmTm#, 1, 2) * 3600 + SUBSTR(#callFrmTm#, 3, 2) * 60 + SUBSTR(#callFrmTm#, 5, 2)
+			]]></isNotEqual>
+			<isNotEqual property="callEndTm" compareValue="000000"><![CDATA[
+			   AND tt1.END_TIME <= SUBSTR(#callEndTm#, 1, 2) * 3600 + SUBSTR(#callEndTm#, 3, 2) * 60 + SUBSTR(#callEndTm#, 5, 2)
+			]]></isNotEqual>
+			<isNotEmpty property="findField">
+				<isNotEmpty property="findFieldText">
+				   AND
+					<isEqual property="findField" compareValue="custEtc2">tt1.CUST_ETC2 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc1">tt1.CUST_ETC1 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc3">tt1.CUST_ETC3 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc4">tt1.CUST_ETC4 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc5">tt1.CUST_ETC5 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc6">tt1.CUST_ETC6 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc7">tt1.CUST_ETC7 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc8">tt1.CUST_ETC8 like '%' || #findFieldText# || '%'</isEqual>
+				</isNotEmpty>
+			</isNotEmpty>
+		  ) t1
+		  LEFT OUTER JOIN TB_MNG_USERINFO t2
+			ON t1.TENANT_ID = t2.TENANT_ID
+		   AND t1.USER_ID = t2.USER_ID
+		  LEFT OUTER JOIN TB_MNG_USERTELNO t3
+			ON t1.TENANT_ID = t3.TENANT_ID
+		   AND t1.DN_NO = t3.DN_NO
+		  LEFT OUTER JOIN TB_MNG_GROUP t4
+			ON t1.TENANT_ID = t4.TENANT_ID
+		   AND t1.GROUP_ID = t4.GROUP_ID
+		  LEFT OUTER JOIN TB_REC_MARKCODE t5
+			ON t1.TENANT_ID = t5.TENANT_ID
+		   AND t1.CUST_ETC9 = t5.MARKING_ID
+		  LEFT OUTER JOIN TB_MNG_COMPANY t6
+			ON t1.TENANT_ID = t6.TENANT_ID
+		  LEFT OUTER JOIN TB_MNG_ENCKEY t7
+			<![CDATA[
+			ON t1.REC_TIME >= to_char(t7.LIC_TIME,'YYYYMMDDHH24MISS') 
+			and  t1.REC_TIME <= to_char(nvl(t7.LIC_TIME_END,sysdate+ (INTERVAL '50' YEAR)),'YYYYMMDDHH24MISS')
+			and t7.GUBUN = '0'
+		   ]]>
+		 WHERE t1.ROW_NUM BETWEEN #iSPageNo# AND #iEPageNo#
+		 ORDER BY
+		 <isNotEmpty property="findSort">
+			<isEqual property="findSort" compareValue="1">t1.REC_TIME DESC, t1.DN_NO DESC</isEqual>
+			<isEqual property="findSort" compareValue="2">t1.END_TIME DESC, t1.REC_TIME DESC</isEqual>
+			<isEqual property="findSort" compareValue="3">t1.REC_TIME ASC, t1.DN_NO DESC</isEqual>
+			<isEqual property="findSort" compareValue="4">t1.END_TIME ASC, t1.REC_TIME DESC</isEqual>
+		 </isNotEmpty>
+		 <isEmpty property="findSort">
+			t1.REC_TIME DESC, t1.DN_NO DESC
+		 </isEmpty>
+    </select>
+
+    <select id="recSearch.getRecSearchList" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecSearchList */
+        SELECT t1.REC_KEY
+			 , t1.TENANT_ID
+			 , SUBSTR(t1.REC_TIME, 1, 8) AS REC_DATE
+			 , SUBSTR(t1.REC_TIME, 9, 6) AS REC_TIME
+			 , t1.DN_NO
+			 , t3.DN_NO_REF
+			 , t1.GROUP_ID
+			 , t4.GROUP_NAME
+			 , t1.USER_ID
+			 , t2.USER_NAME
+			 , t1.PHONE_IP
+			 , t1.END_TIME
+			 , CASE t1.CALL_KIND WHEN '1' THEN '수신' WHEN '2' THEN '발신' ELSE '' END AS CALL_KIND
+			 , t1.CALL_ID
+			 , t1.CUST_NAME
+			 , t1.CUST_TEL
+			 , t1.CUST_NO
+			 , t1.MEDIA_VOICE
+			 , t1.MEDIA_SCR
+			 , t1.MEDIA_MOVIE
+			 , t1.MEDIA_EMAIL
+			 , t1.MEDIA_CHAT
+			 , t1.MEDIA_FAX
+			 , t1.MEDIA_DOC
+			 , t1.SEARCH_VISIBLE
+			 , t1.UPLOAD_CNT_VOICE
+			 , t1.UPLOAD_CNT_SCR
+			 , t1.UPLOAD_CNT_MOVIE
+			 , t1.UPLOAD_CNT_EMAIL
+			 , t1.UPLOAD_CNT_CHAT
+			 , t1.UPLOAD_CNT_FAX
+			 , t1.UPLOAD_CNT_DOC
+			 , t1.FILE_NAME
+			 , t1.CUST_ETC1 AS CUST_ETC1
+			 , t1.CUST_ETC2 AS CUST_ETC2
+			 , t1.CUST_ETC3 AS CUST_ETC3
+			 , t1.CUST_ETC4 AS CUST_ETC4
+			 , t1.CUST_ETC5 AS CUST_ETC5
+			 , t1.CUST_ETC6 AS CUST_ETC6
+			 , t1.CUST_ETC7 AS CUST_ETC7
+			 , t1.CUST_ETC8 AS CUST_ETC8
+			 , t1.CUST_ETC9
+			 , t1.CUST_ETC10
+			 , t1.HOLD
+			 , t1.TRAN_TEL
+			 , nvl(t1.CALL_TIME, 0) AS CALL_TIME
+			 , CASE nvl(t1.HOLD,0) WHEN 0 THEN nvl(t1.CALL_TIME,0) ELSE nvl(t1.END_TIME,0) END AS CONVERT_TIME
+			 , t1.MFU_IP
+			 , t5.MARKING_CLASS
+			 , t5.MARKING_COLOR
+			 , t6.enc_key
+		  FROM (
+			SELECT ROW_NUMBER() OVER (ORDER BY 
+					<isNotEmpty property="findSort">
+						<isEqual property="findSort" compareValue="1">tt1.REC_TIME desc, tt1.DN_NO desc</isEqual>
+						<isEqual property="findSort" compareValue="2">tt1.END_TIME desc, tt1.REC_TIME desc</isEqual>
+						<isEqual property="findSort" compareValue="3">tt1.REC_TIME asc, tt1.DN_NO desc</isEqual>
+						<isEqual property="findSort" compareValue="4">tt1.END_TIME asc, tt1.REC_TIME desc</isEqual>
+					</isNotEmpty>
+					<isEmpty property="findSort">
+						tt1.REC_TIME desc, tt1.DN_NO desc
+					</isEmpty>
+				 ) AS ROW_NUM
+				 , tt1.REC_KEY
+				 , tt1.TENANT_ID
+				 , tt1.REC_TIME
+				 , tt1.DN_NO
+				 , tt1.GROUP_ID
+				 , tt1.USER_ID
+				 , tt1.PHONE_IP
+				 , tt1.END_TIME
+				 , tt1.CALL_KIND
+				 , tt1.CALL_ID
+				 , tt1.CUST_NAME
+				 , tt1.CUST_TEL
+				 , tt1.CUST_NO
+				 , tt1.MEDIA_VOICE
+				 , tt1.MEDIA_SCR
+				 , tt1.MEDIA_MOVIE
+				 , tt1.MEDIA_EMAIL
+				 , tt1.MEDIA_CHAT
+				 , tt1.MEDIA_FAX
+				 , tt1.MEDIA_DOC
+				 , tt1.SEARCH_VISIBLE
+				 , tt1.UPLOAD_CNT_VOICE
+				 , tt1.UPLOAD_CNT_SCR
+				 , tt1.UPLOAD_CNT_MOVIE
+				 , tt1.UPLOAD_CNT_EMAIL
+				 , tt1.UPLOAD_CNT_CHAT
+				 , tt1.UPLOAD_CNT_FAX
+				 , tt1.UPLOAD_CNT_DOC
+				 , tt1.CUST_ETC1
+				 , tt1.CUST_ETC2
+				 , tt1.CUST_ETC3
+				 , tt1.CUST_ETC4
+				 , tt1.CUST_ETC5
+				 , tt1.CUST_ETC6
+				 , tt1.CUST_ETC7
+				 , tt1.CUST_ETC8
+				 , tt1.CUST_ETC9
+				 , tt1.CUST_ETC10
+				 , tt1.HOLD
+				 , tt1.TRAN_TEL
+				 , tt1.CALL_TIME_I AS CALL_TIME
+				 , case tt1.media_scr when 1 then tt1.SCR_FILE_NAME else tt1.file_name_i end as FILE_NAME
+				 , tt1.MFU_IP
+			  FROM TB_REC_FILE tt1
+			<isNotEmpty property="findUserNameText">
+			  LEFT OUTER JOIN TB_MNG_USERINFO tt2
+				ON tt1.TENANT_ID = tt2.TENANT_ID
+			   AND tt1.USER_ID = tt2.USER_ID
+			</isNotEmpty>
+			 WHERE 1 = 1
+			<isNotEmpty property="controlAuth">
+			   AND tt1.GROUP_ID IN (
+					SELECT GROUP_ID
+					  FROM TB_MNG_GROUP
+					 START WITH (TENANT_ID = #findTenantId#
+					   AND GROUP_ID IN (
+							SELECT g.GROUP_ID
+							  FROM TB_MNG_GROUP g
+							 INNER JOIN TB_MNG_USERINFO u
+								ON g.TENANT_ID = u.TENANT_ID
+							 WHERE u.tenant_id = #findTenantId#
+							   AND u.USER_ID = #userId#
+							   AND INSTR(',' || u.CONTROL_AUTH || ',', ',' || g.GROUP_ID || ',') > 0
+					   )
+					 )
+				   CONNECT BY PARENT_ID = PRIOR GROUP_ID
+					   AND TENANT_ID = #findTenantId#
+			   )
+			</isNotEmpty>
+			<isEmpty property="controlAuth">
+				<isEqual property="grantId" compareValue="Agent">
+			   AND tt1.USER_ID = #userId#
+				</isEqual>
+				<isEqual property="grantId" compareValue="GroupManager">
+			   AND tt1.GROUP_ID IN (
+					SELECT GROUP_ID
+					  FROM TB_MNG_GROUP
+					 START WITH (TENANT_ID = #findTenantId#
+						AND GROUP_ID = (SELECT GROUP_ID FROM TB_MNG_USERINFO WHERE USER_ID = #userId# and TENANT_ID = #findTenantId#)
+					 )
+				   CONNECT BY PARENT_ID = PRIOR GROUP_ID
+					   AND TENANT_ID = #findTenantId#
+			   )
+				</isEqual>
+			</isEmpty>
+			<isNotEmpty property="findTenantId">
+			   AND tt1.TENANT_ID = #findTenantId#
+			</isNotEmpty>
+			<isNotEmpty property="findSearchVisible">
+			   AND tt1.SEARCH_VISIBLE = #findSearchVisible#
+			</isNotEmpty>
+			 <isEqual property="findTS" compareValue="1"><![CDATA[
+			   AND tt1.REC_TIME >= #txtDate1_From# || #recFrmTm# AND tt1.REC_TIME <= #txtDate1_To# || #recEndTm#
+			]]></isEqual>
+			<isNotEqual property="findTS" compareValue="1"><![CDATA[
+			   AND SUBSTR(tt1.REC_TIME, 1, 8) >= #txtDate1_From#
+			   AND SUBSTR(tt1.REC_TIME, 1, 8) <= #txtDate1_To#
+			   AND SUBSTR(tt1.REC_TIME, 9, 6) >= #recFrmTm#
+			   AND SUBSTR(tt1.REC_TIME, 9, 6) <= #recEndTm#
+			]]></isNotEqual>
+			<isNotEmpty property="findUserId">
+			   AND tt1.USER_ID = #findUserId#
+			</isNotEmpty>
+			<isNotEmpty property="findUserNameText">
+			   AND (tt1.USER_ID LIKE '%' || #findUserNameText# || '%' OR tt2.USER_NAME LIKE '%' || #findUserNameText# || '%')
+			</isNotEmpty>
+			<isNotEmpty property="findGroupId">
+<!-- 			   AND tt1.GROUP_ID = #findGroupId# -->
+			   AND tt1.GROUP_ID IN (
+					SELECT GROUP_ID
+	                  FROM TB_MNG_GROUP
+	                 START WITH (TENANT_ID = #findTenantId# AND GROUP_ID = #findGroupId#)
+	                CONNECT BY PARENT_ID = PRIOR GROUP_ID
+                	   AND TENANT_ID = #findTenantId#
+			   )
+			</isNotEmpty>
+			<isNotEmpty property="findDnText">
+			   AND tt1.DN_NO LIKE '%' || #findDnText# || '%'
+			</isNotEmpty>
+			<isNotEmpty property="findCustNameText">
+			   AND tt1.CUST_NAME LIKE '%' || #findCustNameText# || '%'
+			</isNotEmpty>
+			<isNotEmpty property="findCustTelText">
+			   AND (tt1.CUST_TEL LIKE '%' || #findCustTelText# || '%' OR tt1.CUST_TEL LIKE '%' || #findCustTelEnc# || '%')
+			</isNotEmpty>
+			<isNotEmpty property="findCustNoText">
+			   AND (tt1.CUST_NO LIKE '%' || #findCustNoText# || '%' OR tt1.CUST_NO LIKE '%' || #findCustNoEnc# || '%')
+			</isNotEmpty>
+			<isNotEmpty property="findCallKind">
+			   AND tt1.CALL_KIND LIKE '%' || #findCallKind# || '%'
+			</isNotEmpty>
+			<isNotEmpty property="findMarkKind">
+			   AND tt1.CUST_ETC9 = #findMarkKind#
+			</isNotEmpty>
+			<isNotEmpty property="findCallIdText">
+			   AND tt1.CALL_ID BETWEEN #findCallIdText# AND #findCallIdText# || 'ZZ'
+			</isNotEmpty>
+			<isNotEmpty property="findTranTelText">
+			   AND tt1.TRAN_TEL = #findTranTelText#
+			</isNotEmpty>
+			<isNotEqual property="callFrmTm" compareValue="000000"><![CDATA[
+			   AND tt1.END_TIME >= SUBSTR(#callFrmTm#, 1, 2) * 3600 + SUBSTR(#callFrmTm#, 3, 2) * 60 + SUBSTR(#callFrmTm#, 5, 2)
+			]]></isNotEqual>
+			<isNotEqual property="callEndTm" compareValue="000000"><![CDATA[
+			   AND tt1.END_TIME <= SUBSTR(#callEndTm#, 1, 2) * 3600 + SUBSTR(#callEndTm#, 3, 2) * 60 + SUBSTR(#callEndTm#, 5, 2)
+			]]></isNotEqual>
+			<isNotEmpty property="findField">
+				<isNotEmpty property="findFieldText">
+				   AND
+					<isEqual property="findField" compareValue="custEtc2">tt1.CUST_ETC2 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc1">tt1.CUST_ETC1 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc3">tt1.CUST_ETC3 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc4">tt1.CUST_ETC4 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc5">tt1.CUST_ETC5 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc6">tt1.CUST_ETC6 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc7">tt1.CUST_ETC7 like '%' || #findFieldText# || '%'</isEqual>
+					<isEqual property="findField" compareValue="custEtc8">tt1.CUST_ETC8 like '%' || #findFieldText# || '%'</isEqual>
+				</isNotEmpty>
+			</isNotEmpty>
+		  ) t1
+		  LEFT OUTER JOIN TB_MNG_USERINFO t2
+			ON t1.TENANT_ID = t2.TENANT_ID
+		   AND t1.USER_ID = t2.USER_ID
+		  LEFT OUTER JOIN TB_MNG_USERTELNO t3
+			ON t1.TENANT_ID = t3.TENANT_ID
+		   AND t1.DN_NO = t3.DN_NO
+		  LEFT OUTER JOIN TB_MNG_GROUP t4
+			ON t1.TENANT_ID = t4.TENANT_ID
+		   AND t1.GROUP_ID = t4.GROUP_ID
+		  LEFT OUTER JOIN TB_REC_MARKCODE t5
+			ON t1.TENANT_ID = t5.TENANT_ID
+		   AND t1.CUST_ETC9 = t5.MARKING_ID
+		  LEFT OUTER JOIN TB_MNG_ENCKEY t6
+			<![CDATA[
+			ON t1.REC_TIME >= to_char(t6.LIC_TIME,'YYYYMMDDHH24MMSS') 
+			and  t1.REC_TIME <= to_char(nvl(t6.LIC_TIME_END,sysdate+ (INTERVAL '10' YEAR)),'YYYYMMDDHH24MMSS')
+			and t6.GUBUN = '0'
+		   ]]>
+		 WHERE t1.ROW_NUM BETWEEN #iSPageNo# AND #iEPageNo#
+		 ORDER BY
+		 <isNotEmpty property="findSort">
+			<isEqual property="findSort" compareValue="1">t1.REC_TIME DESC, t1.DN_NO DESC</isEqual>
+			<isEqual property="findSort" compareValue="2">t1.END_TIME DESC, t1.REC_TIME DESC</isEqual>
+			<isEqual property="findSort" compareValue="3">t1.REC_TIME ASC, t1.DN_NO DESC</isEqual>
+			<isEqual property="findSort" compareValue="4">t1.END_TIME ASC, t1.REC_TIME DESC</isEqual>
+		 </isNotEmpty>
+		 <isEmpty property="findSort">
+			t1.REC_TIME DESC, t1.DN_NO DESC
+		 </isEmpty>
+        <!-- select
+        distinct F.rec_key, F.tenant_id, substr(F.rec_time,1,8) rec_date, substr(F.rec_time,9,6) rec_time
+        , F.dn_no, F.user_id, F.phone_ip, nvl(end_time,0) end_time
+        , cust_name ,cust_tel
+        , cust_no
+        , media_voice, media_scr, media_movie, media_email, media_chat, media_fax, media_doc, upload_cnt_voice
+        , upload_cnt_scr, upload_cnt_movie, upload_cnt_email, upload_cnt_chat, upload_cnt_fax
+        , upload_cnt_doc
+        , FN_GETMASKING(#findTenantId#, 'cust_etc1', cust_etc1) AS cust_etc1
+        , FN_GETMASKING(#findTenantId#, 'cust_etc2', cust_etc2) AS cust_etc2
+        , FN_GETMASKING(#findTenantId#, 'cust_etc3', cust_etc3) AS cust_etc3
+        , FN_GETMASKING(#findTenantId#, 'cust_etc4', cust_etc4) AS cust_etc4
+        , FN_GETMASKING(#findTenantId#, 'cust_etc5', cust_etc5) AS cust_etc5
+        , FN_GETMASKING(#findTenantId#, 'cust_etc6', cust_etc6) AS cust_etc6
+        , FN_GETMASKING(#findTenantId#, 'cust_etc7', cust_etc7) AS cust_etc7
+        , FN_GETMASKING(#findTenantId#, 'cust_etc8', cust_etc8) AS cust_etc8
+        , cust_etc9, cust_etc10, search_visible, user_name, F.group_id, group_name
+        , case call_kind when '1' then '수신' when '2' then '발신' else '' end as call_kind
+        , call_id, marking_class, marking_color, hold, nvl(call_time,0) call_time
+        , case nvl(hold,0) when 0 then nvl(call_time,0) else nvl(convert_time,0) end convert_time
+        , tran_tel, dn_no_ref, file_name, mfu_ip
+        from(
+        select
+        distinct TB_REC_FILE.rec_key, TB_REC_FILE.tenant_id, TB_REC_FILE.rec_time, TB_REC_FILE.dn_no
+        , TB_REC_FILE.user_id, TB_REC_FILE.phone_ip, nvl(TB_REC_FILE.end_time,0) end_time, cust_name, cust_tel
+        , cust_no, media_voice, media_scr, media_movie, media_email, media_chat, media_fax, media_doc
+        , upload_cnt_voice, upload_cnt_scr, upload_cnt_movie, upload_cnt_email, upload_cnt_chat, upload_cnt_fax
+        , upload_cnt_doc, cust_etc1, cust_etc2, cust_etc3, cust_etc4, cust_etc5, cust_etc6, cust_etc7, cust_etc8
+        , cust_etc9, cust_etc10 , search_visible, TB_REC_FILE.group_id, call_kind, call_id, hold
+        , tran_tel, TB_OUT.call_time, TB_OUT.convert_time, TB_OUT.file_name, TB_REC_FILE.mfu_ip
+        from (
+        select
+        Row_Number() over (order by
+        <isNotEmpty property="findSort">
+            <isEqual property="findSort" compareValue="1">REC_TIME desc, DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="2">TB_IN.END_TIME desc, REC_TIME desc</isEqual>
+            <isEqual property="findSort" compareValue="3">REC_TIME asc, DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="4">TB_IN.END_TIME asc, REC_TIME desc</isEqual>
+        </isNotEmpty>
+        <isEmpty property="findSort">
+            REC_TIME desc, DN_NO desc
+        </isEmpty>
+        ) RowNum2, TB_IN.*
+        from (
+        select
+        Row_Number() over (order by
+        <isNotEmpty property="findSort">
+            <isEqual property="findSort" compareValue="1">TB_REC_FILE.REC_TIME desc, tb_rec_file.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="2">END_TIME desc, TB_REC_FILE.REC_TIME desc</isEqual>
+            <isEqual property="findSort" compareValue="3">TB_REC_FILE.REC_TIME ASC, tb_rec_file.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="4">END_TIME ASC, TB_REC_FILE.REC_TIME desc</isEqual>
+        </isNotEmpty>
+        <isEmpty property="findSort">
+            TB_REC_FILE.REC_TIME desc, tb_rec_file.DN_NO desc
+        </isEmpty>
+        ) RowNum1, TB_REC_FILE.REC_KEY, TB_REC_FILE.REC_TIME, tb_rec_file.DN_NO, END_TIME, g.call_time, g.convert_time, g.file_name
+        FROM tb_rec_file
+        <isEmpty property="findUserNameText">left outer join TB_MNG_USERINFO</isEmpty>
+        <isNotEmpty property="findUserNameText">
+            join (
+            select tenant_id, group_id, user_id, user_name from tb_mng_userinfo
+            where tenant_id = #findTenantId#
+            <isNotEmpty property="findGroupId">
+                and group_id in (
+                SELECT group_id
+                FROM tb_mng_group
+                START WITH (tenant_id = #findTenantId#
+                AND GROUP_ID = #findGroupId#)
+                CONNECT BY parent_id = PRIOR group_id
+                AND tenant_id = #findTenantId#
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and group_id in (
+                    SELECT group_id
+                    FROM tb_mng_group
+                    START WITH (tenant_id = #findTenantId#
+                    AND (GROUP_ID = (select group_id from TB_MNG_USERINFO where USER_ID = #userId# and tenant_id =
+                    #findTenantId#)
+                    <isNotEmpty property="controlAuth">
+                        OR group_id in (
+                        select g.GROUP_ID
+                        from tb_mng_group g, tb_mng_userinfo u
+                        where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+                        and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+                        and u.user_id = #userId#
+                        and u.tenant_id = #findTenantId#
+                        )
+                    </isNotEmpty>
+                    ))
+                    CONNECT BY parent_id = PRIOR group_id
+                    AND tenant_id = #findTenantId#
+                    )
+                </isEqual>
+                <isEqual property="grantId" compareValue="Manager">
+                    and group_id in (
+                    SELECT group_id
+                    FROM tb_mng_group
+                    START WITH (tenant_id = #findTenantId#
+                    AND (GROUP_ID = (select group_id from TB_MNG_USERINFO where USER_ID = #userId# and tenant_id =
+                    #findTenantId#)
+                    <isNotEmpty property="controlAuth">
+                        OR group_id in (
+                        select g.GROUP_ID
+                        from tb_mng_group g, tb_mng_userinfo u
+                        where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+                        and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+                        and u.user_id = #userId#
+                        and u.tenant_id = #findTenantId#
+                        )
+                    </isNotEmpty>
+                    ))
+                    CONNECT BY parent_id = PRIOR group_id
+                    AND tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+            and (user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%')
+            )
+        </isNotEmpty>
+        b on TB_REC_FILE.tenant_id = b.tenant_id and TB_REC_FILE.user_id = b.user_id
+        left join tb_rec_file_index g on TB_REC_FILE.rec_key = g.rec_key
+        WHERE
+        <isEqual property="findTS" compareValue="1">
+             1 
+            <![CDATA[	TB_REC_FILE.REC_TIME >=	#txtDate1_From# || #recFrmTm# ]]>
+            AND <![CDATA[	TB_REC_FILE.REC_TIME <=	#txtDate1_To# || #recEndTm# ]]>
+        </isEqual>
+        <isNotEqual property="findTS" compareValue="1">
+             2
+            <![CDATA[	SUBSTR(TB_REC_FILE.REC_TIME, 1, 8) >=	#txtDate1_From# ]]>
+            AND <![CDATA[	SUBSTR(TB_REC_FILE.REC_TIME, 1, 8) <=	#txtDate1_To# ]]>
+            AND <![CDATA[	SUBSTR(TB_REC_FILE.REC_TIME, 9, 6) >=	#recFrmTm# ]]>
+            AND <![CDATA[	SUBSTR(TB_REC_FILE.REC_TIME, 9, 6) <=	#recEndTm# ]]>
+        </isNotEqual>
+        <isNotEmpty property="findSearchVisible">AND search_visible = #findSearchVisible#</isNotEmpty>
+        <isNotEmpty property="findTenantId">AND TB_REC_FILE.tenant_id = #findTenantId#</isNotEmpty>
+        <isNotEmpty property="findUserId">AND TB_REC_FILE.user_id = #findUserId#</isNotEmpty>
+        <isNotEmpty property="findGroupId">
+            and TB_REC_FILE.group_id in (
+            SELECT group_id
+            FROM tb_mng_group
+            START WITH (tenant_id = #findTenantId#
+            AND GROUP_ID = #findGroupId#)
+            CONNECT BY parent_id = PRIOR group_id
+            AND tenant_id = #findTenantId#
+            )
+        </isNotEmpty>
+        <isEmpty property="findGroupId">
+        	<isEqual property="grantId" compareValue="Agent">
+				and TB_REC_FILE.user_id = #userId#
+			</isEqual>
+            <isEqual property="grantId" compareValue="GroupManager">
+                and TB_REC_FILE.group_id in (
+                SELECT group_id
+                FROM tb_mng_group
+                START WITH (tenant_id = #findTenantId#
+                AND (GROUP_ID = (select group_id from TB_MNG_USERINFO where USER_ID = #userId# and tenant_id =
+                #findTenantId#)
+                <isNotEmpty property="controlAuth">
+                    OR group_id in (
+                    select g.GROUP_ID
+                    from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+                    and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    )
+                </isNotEmpty>
+                ))
+                CONNECT BY parent_id = PRIOR group_id
+                AND tenant_id = #findTenantId#
+                )
+            </isEqual>
+            <isEqual property="grantId" compareValue="Manager">
+                and TB_REC_FILE.group_id in (
+                SELECT group_id
+                FROM tb_mng_group
+                START WITH (tenant_id = #findTenantId#
+                AND (GROUP_ID = (select group_id from TB_MNG_USERINFO where USER_ID = #userId# and tenant_id =
+                #findTenantId#)
+                <isNotEmpty property="controlAuth">
+                    OR group_id in (
+                    select g.GROUP_ID
+                    from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+                    and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    )
+                </isNotEmpty>
+                ))
+                CONNECT BY parent_id = PRIOR group_id
+                AND tenant_id = #findTenantId#
+                )
+            </isEqual>
+        </isEmpty>
+        <isNotEmpty property="findDnText">AND TB_REC_FILE.dn_no like '%' || #findDnText# || '%'</isNotEmpty>
+        <isNotEmpty property="findCustNameText">AND cust_name like '%' || #findCustNameText# || '%'</isNotEmpty>
+        <isNotEmpty property="findCustTelText">AND (cust_tel like '%' || #findCustTelText# || '%' or cust_tel like '%'
+            || #findCustTelEnc# || '%')
+        </isNotEmpty>
+        <isNotEmpty property="findCustNoText">AND (cust_no like '%' || #findCustNoText# || '%' or cust_no like '%' ||
+            #findCustNoEnc# || '%')
+        </isNotEmpty>
+        <isNotEmpty property="findCallKind">AND call_kind like '%' || #findCallKind# || '%'</isNotEmpty>
+        <isNotEmpty property="findMarkKind">AND cust_etc9 = #findMarkKind#</isNotEmpty>
+        <isNotEmpty property="findCallIdText">AND call_id between #findCallIdText# and #findCallIdText# || 'ZZ'
+        </isNotEmpty>
+
+        <isNotEmpty property="findTranTelText">AND tran_tel = #findTranTelText#</isNotEmpty>
+
+        <isNotEqual property="callFrmTm" compareValue="000000">
+            <![CDATA[	AND	end_time >=  substr(#callFrmTm#,1,2)*3600 + substr(#callFrmTm#,3,2)*60 + substr(#callFrmTm#,5,2)	]]>    </isNotEqual>
+        <isNotEqual property="callEndTm" compareValue="000000">
+            <![CDATA[	AND	end_time <=  substr(#callEndTm#,1,2)*3600 + substr(#callEndTm#,3,2)*60 + substr(#callEndTm#,5,2) 	]]>    </isNotEqual>
+        <isNotEmpty property="findField">
+            <isNotEmpty property="findFieldText">and
+                <isEqual property="findField" compareValue="custEtc1">cust_etc1 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc2">cust_etc2 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc3">cust_etc3 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc4">cust_etc4 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc5">cust_etc5 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc6">cust_etc6 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc7">cust_etc7 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc8">cust_etc8 like '%' || #findFieldText# || '%'
+                </isEqual>
+            </isNotEmpty>
+        </isNotEmpty>
+        ) TB_IN
+        WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+        ) TB_OUT , TB_REC_FILE
+        WHERE <![CDATA[ RowNum2 >= #iSPageNo# ]]>
+        AND TB_OUT.REC_KEY = TB_REC_FILE.REC_KEY
+        ) F
+        left join TB_MNG_USERINFO b on F.tenant_id = b.tenant_id and F.user_id = b.user_id
+        left join TB_MNG_USERTELNO TB_DN on F.tenant_id = TB_DN.tenant_id and F.DN_NO = TB_DN.DN_NO
+        left join tb_mng_group c on F.tenant_id = c.tenant_id and F.group_id = c.group_id
+        left outer join tb_rec_markcode d on F.tenant_id = d.tenant_id and F.cust_etc9 = d.marking_id
+        ORDER BY
+        <isNotEmpty property="findSort">
+            <isEqual property="findSort" compareValue="1">F.REC_TIME desc, F.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="2">END_TIME desc, F.REC_TIME desc</isEqual>
+            <isEqual property="findSort" compareValue="3">F.REC_TIME asc, F.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="4">END_TIME ASC, F.REC_TIME desc</isEqual>
+        </isNotEmpty>
+        <isEmpty property="findSort">
+            REC_DATE desc, REC_TIME desc, F.DN_NO desc
+        </isEmpty> -->
+    </select>
+
+    <select id="recSearch.getRecSearchListCnt_org" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecSearchListCnt */
+        select count(*) cnt
+        from(
+        select
+        distinct TB_REC_FILE.rec_key, TB_REC_FILE.tenant_id, TB_REC_FILE.rec_time, TB_REC_FILE.dn_no
+        , TB_REC_FILE.user_id, TB_REC_FILE.phone_ip, nvl(TB_REC_FILE.end_time,0) end_time, cust_name, cust_tel
+        , cust_no, media_voice, media_scr, media_movie, media_email, media_chat, media_fax, media_doc
+        , upload_cnt_voice, upload_cnt_scr, upload_cnt_movie, upload_cnt_email, upload_cnt_chat, upload_cnt_fax
+        , upload_cnt_doc, cust_etc1, cust_etc2, cust_etc3, cust_etc4, cust_etc5, cust_etc6, cust_etc7, cust_etc8
+        , cust_etc9, cust_etc10 , search_visible, TB_REC_FILE.group_id, call_kind, call_id, hold,
+        tran_tel,call_time,convert_time,file_name
+        from (
+        select
+        Row_Number() over (order by
+        <isNotEmpty property="findSort">
+            <isEqual property="findSort" compareValue="1">REC_TIME desc, DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="2">TB_IN.END_TIME desc, REC_TIME desc</isEqual>
+            <isEqual property="findSort" compareValue="3">REC_TIME asc, DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="4">TB_IN.END_TIME asc, REC_TIME desc</isEqual>
+        </isNotEmpty>
+        <isEmpty property="findSort">
+            REC_TIME desc, DN_NO desc
+        </isEmpty>
+        ) RowNum2, TB_IN.*
+        from (
+        select
+        Row_Number() over (order by
+        <isNotEmpty property="findSort">
+            <isEqual property="findSort" compareValue="1">REC_TIME desc, tb_rec_file.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="2">END_TIME desc, REC_TIME desc</isEqual>
+            <isEqual property="findSort" compareValue="3">REC_TIME ASC, tb_rec_file.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="4">END_TIME ASC, REC_TIME desc</isEqual>
+        </isNotEmpty>
+        <isEmpty property="findSort">
+            REC_TIME desc, tb_rec_file.DN_NO desc
+        </isEmpty>
+        ) RowNum1, TB_REC_FILE.REC_KEY, REC_TIME, tb_rec_file.DN_NO, END_TIME ,call_time,convert_time,file_name
+        FROM tb_rec_file
+        <isEmpty property="findUserNameText">left outer join TB_MNG_USERINFO</isEmpty>
+        <isNotEmpty property="findUserNameText">
+            join (
+            select tenant_id, group_id, user_id, user_name from tb_mng_userinfo
+            where tenant_id = #findTenantId#
+            <isNotEmpty property="findGroupId">
+                and group_id in (
+                select group_id from tb_mng_group
+                where tenant_id = #findTenantId#
+                and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+                and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isNotEqual property="grantId" compareValue="GroupManager">
+                    <isNotEmpty property="controlAuthGroup">
+                        and group_id in
+                        <iterate property="controlAuthGroup" open="(" close=")" conjunction=",">
+                            #controlAuthGroup[]#
+                        </iterate>
+                    </isNotEmpty>
+                </isNotEqual>
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and g.group_id = u.group_id
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+            and (user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%')
+            )
+        </isNotEmpty>
+        b on TB_REC_FILE.tenant_id = b.tenant_id and TB_REC_FILE.user_id = b.user_id
+        left join tb_rec_file_index g on TB_REC_FILE.rec_key = g.rec_key
+        WHERE
+        <isEqual property="findTS" compareValue="1">
+            <!-- 1 -->
+            <![CDATA[	REC_TIME >=	#txtDate1_From# || #recFrmTm# ]]>
+            AND <![CDATA[	REC_TIME <=	#txtDate1_To# || #recEndTm# ]]>
+        </isEqual>
+        <isNotEqual property="findTS" compareValue="1">
+            <!-- 2 -->
+            <![CDATA[	SUBSTR(REC_TIME, 1, 8) >=	#txtDate1_From# ]]>
+            AND <![CDATA[	SUBSTR(REC_TIME, 1, 8) <=	#txtDate1_To# ]]>
+            AND <![CDATA[	SUBSTR(REC_TIME, 9, 6) >=	#recFrmTm# ]]>
+            AND <![CDATA[	SUBSTR(REC_TIME, 9, 6) <=	#recEndTm# ]]>
+        </isNotEqual>
+        <isNotEmpty property="findSearchVisible">AND search_visible = #findSearchVisible#</isNotEmpty>
+        <isNotEmpty property="findTenantId">AND TB_REC_FILE.tenant_id = #findTenantId#</isNotEmpty>
+        <isNotEmpty property="findUserId">AND TB_REC_FILE.user_id = #findUserId#</isNotEmpty>
+        <isNotEmpty property="findGroupId">
+            and TB_REC_FILE.group_id in (
+            select group_id from tb_mng_group
+            where tenant_id = #findTenantId#
+            and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+            and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+            )
+        </isNotEmpty>
+        <isEmpty property="findGroupId">
+            <!-- grantId가 agent 일경우 추가 -->
+            <isEqual property="grantId" compareValue="Agent">
+                <!-- 										and TB_REC_FILE.group_id = #groupId#  -->
+                and TB_REC_FILE.user_id = #userId#
+            </isEqual>
+            <!-- <isNotEqual property="grantId" compareValue="GroupManager"> -->
+            <isNotEmpty property="controlAuthGroup">
+                and TB_REC_FILE.group_id in
+                <iterate property="controlAuthGroup" open="(" close=")" conjunction=",">
+                    #controlAuthGroup[]#
+                </iterate>
+            </isNotEmpty>
+            <!-- </isNotEqual> -->
+            <!--
+            <isEqual property="grantId" compareValue="GroupManager">
+                and TB_REC_FILE.group_id in (
+                    select g.group_id
+                        from tb_mng_group g,
+                            (
+                            select depth from tb_mng_group g, tb_mng_userinfo u
+                            where g.tenant_id = u.tenant_id
+                                and g.group_id = u.group_id
+                                and u.user_id = #userId#
+                                and u.tenant_id = #findTenantId#
+                            ) c
+                    where g.depth LIKE c.depth || '%'
+                        and tenant_id = #findTenantId#
+                    )
+            </isEqual>
+             -->
+        </isEmpty>
+        <isNotEmpty property="findDnText">AND TB_REC_FILE.dn_no like '%' || #findDnText# || '%'</isNotEmpty>
+        <isNotEmpty property="findCustNameText">AND cust_name like '%' || #findCustNameText# || '%'</isNotEmpty>
+        <isNotEmpty property="findCustTelText">AND (cust_tel like '%' || #findCustTelText# || '%' or cust_tel like '%'
+            || #findCustTelEnc# || '%')
+        </isNotEmpty>
+        <isNotEmpty property="findCustNoText">AND (cust_no like '%' || #findCustNoText# || '%' or cust_no like '%' ||
+            #findCustNoEnc# || '%')
+        </isNotEmpty>
+        <isNotEmpty property="findCallKind">AND call_kind like '%' || #findCallKind# || '%'</isNotEmpty>
+        <isNotEmpty property="findMarkKind">AND cust_etc9 = #findMarkKind#</isNotEmpty>
+        <isNotEmpty property="findCallIdText">AND call_id between #findCallIdText# and #findCallIdText# || 'ZZ'
+        </isNotEmpty>
+
+        <isNotEmpty property="findTranTelText">AND tran_tel = #findTranTelText#</isNotEmpty>
+
+        <isNotEqual property="callFrmTm" compareValue="000000">
+            <![CDATA[	AND	end_time >=  substr(#callFrmTm#,1,2)*3600 + substr(#callFrmTm#,3,2)*60 + substr(#callFrmTm#,5,2)	]]>    </isNotEqual>
+        <isNotEqual property="callEndTm" compareValue="000000">
+            <![CDATA[	AND	end_time <=  substr(#callEndTm#,1,2)*3600 + substr(#callEndTm#,3,2)*60 + substr(#callEndTm#,5,2) 	]]>    </isNotEqual>
+        <isNotEmpty property="findField">
+            <isNotEmpty property="findFieldText">and
+                <isEqual property="findField" compareValue="custEtc1">cust_etc1 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc2">cust_etc2 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc3">cust_etc3 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc4">cust_etc4 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc5">cust_etc5 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc6">cust_etc6 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc7">cust_etc7 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc8">cust_etc8 like '%' || #findFieldText# || '%'
+                </isEqual>
+            </isNotEmpty>
+        </isNotEmpty>
+        ) TB_IN
+        ) TB_OUT , TB_REC_FILE
+        WHERE TB_OUT.REC_KEY = TB_REC_FILE.REC_KEY
+        ) F
+        left join TB_MNG_USERINFO b on F.tenant_id = b.tenant_id and F.user_id = b.user_id
+        left join TB_MNG_USERTELNO TB_DN on F.tenant_id = TB_DN.tenant_id and F.DN_NO = TB_DN.DN_NO
+        left join tb_mng_group c on F.tenant_id = c.tenant_id and F.group_id = c.group_id
+        left outer join tb_rec_markcode d on F.tenant_id = d.tenant_id and F.cust_etc9 = d.marking_id
+    </select>
+
+    <select id="recSearch.getRecSearchList_org" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecSearchList_org */
+        select
+        distinct F.rec_key, F.tenant_id, substr(F.rec_time,1,8) rec_date, substr(F.rec_time,9,6) rec_time
+        , F.dn_no, F.user_id, F.phone_ip, nvl(end_time,0) end_time
+        , FN_GETMASKING_CUST('cust_name',cust_name) as cust_name, FN_GETMASKING_CUST('cust_tel',cust_tel) as cust_tel
+        , cust_no
+        , media_voice, media_scr, media_movie, media_email, media_chat, media_fax, media_doc, upload_cnt_voice
+        , upload_cnt_scr, upload_cnt_movie, upload_cnt_email, upload_cnt_chat, upload_cnt_fax
+        , upload_cnt_doc
+        , FN_GETMASKING(#findTenantId#, 'cust_etc1', cust_etc1) AS cust_etc1
+        , FN_GETMASKING(#findTenantId#, 'cust_etc2', cust_etc2) AS cust_etc2
+        , FN_GETMASKING(#findTenantId#, 'cust_etc3', cust_etc3) AS cust_etc3
+        , FN_GETMASKING(#findTenantId#, 'cust_etc4', cust_etc4) AS cust_etc4
+        , FN_GETMASKING(#findTenantId#, 'cust_etc5', cust_etc5) AS cust_etc5
+        , FN_GETMASKING(#findTenantId#, 'cust_etc6', cust_etc6) AS cust_etc6
+        , FN_GETMASKING(#findTenantId#, 'cust_etc7', cust_etc7) AS cust_etc7
+        , FN_GETMASKING(#findTenantId#, 'cust_etc8', cust_etc8) AS cust_etc8
+        , cust_etc9, cust_etc10, search_visible, user_name, F.group_id, group_name
+        , case call_kind when '1' then '수신' when '2' then '발신' else '' end as call_kind
+        , call_id, marking_class, marking_color, hold, nvl(call_time,0) call_time
+        , case nvl(hold,0) when 0 then nvl(call_time,0) else nvl(convert_time,0) end convert_time
+        , tran_tel, dn_no_ref, file_name
+        from(
+        select
+        distinct TB_REC_FILE.rec_key, TB_REC_FILE.tenant_id, TB_REC_FILE.rec_time, TB_REC_FILE.dn_no
+        , TB_REC_FILE.user_id, TB_REC_FILE.phone_ip, nvl(TB_REC_FILE.end_time,0) end_time, cust_name, cust_tel
+        , cust_no, media_voice, media_scr, media_movie, media_email, media_chat, media_fax, media_doc
+        , upload_cnt_voice, upload_cnt_scr, upload_cnt_movie, upload_cnt_email, upload_cnt_chat, upload_cnt_fax
+        , upload_cnt_doc, cust_etc1, cust_etc2, cust_etc3, cust_etc4, cust_etc5, cust_etc6, cust_etc7, cust_etc8
+        , cust_etc9, cust_etc10 , search_visible, TB_REC_FILE.group_id, call_kind, call_id, hold,
+        tran_tel,call_time,convert_time,file_name
+        from (
+        select
+        Row_Number() over (order by
+        <isNotEmpty property="findSort">
+            <isEqual property="findSort" compareValue="1">REC_TIME desc, DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="2">TB_IN.END_TIME desc, REC_TIME desc</isEqual>
+            <isEqual property="findSort" compareValue="3">REC_TIME asc, DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="4">TB_IN.END_TIME asc, REC_TIME desc</isEqual>
+        </isNotEmpty>
+        <isEmpty property="findSort">
+            REC_TIME desc, DN_NO desc
+        </isEmpty>
+        ) RowNum2, TB_IN.*
+        from (
+        select
+        Row_Number() over (order by
+        <isNotEmpty property="findSort">
+            <isEqual property="findSort" compareValue="1">REC_TIME desc, tb_rec_file.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="2">END_TIME desc, REC_TIME desc</isEqual>
+            <isEqual property="findSort" compareValue="3">REC_TIME ASC, tb_rec_file.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="4">END_TIME ASC, REC_TIME desc</isEqual>
+        </isNotEmpty>
+        <isEmpty property="findSort">
+            REC_TIME desc, tb_rec_file.DN_NO desc
+        </isEmpty>
+        ) RowNum1, TB_REC_FILE.REC_KEY, REC_TIME, tb_rec_file.DN_NO, END_TIME ,call_time,convert_time,file_name
+        FROM tb_rec_file
+        <isEmpty property="findUserNameText">left outer join TB_MNG_USERINFO</isEmpty>
+        <isNotEmpty property="findUserNameText">
+            join (
+            select tenant_id, group_id, user_id, user_name from tb_mng_userinfo
+            where tenant_id = #findTenantId#
+            <isNotEmpty property="findGroupId">
+                and group_id in (
+                select group_id from tb_mng_group
+                where tenant_id = #findTenantId#
+                and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+                and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isNotEqual property="grantId" compareValue="GroupManager">
+                    <isNotEmpty property="controlAuthGroup">
+                        and group_id in
+                        <iterate property="controlAuthGroup" open="(" close=")" conjunction=",">
+                            #controlAuthGroup[]#
+                        </iterate>
+                    </isNotEmpty>
+                </isNotEqual>
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and g.group_id = u.group_id
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+            and (user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%')
+            )
+        </isNotEmpty>
+        b on TB_REC_FILE.tenant_id = b.tenant_id and TB_REC_FILE.user_id = b.user_id
+        left join tb_rec_file_index g on TB_REC_FILE.rec_key = g.rec_key
+        WHERE
+        <isEqual property="findTS" compareValue="1">
+            <!-- 1 -->
+            <![CDATA[	REC_TIME >=	#txtDate1_From# || #recFrmTm# ]]>
+            AND <![CDATA[	REC_TIME <=	#txtDate1_To# || #recEndTm# ]]>
+        </isEqual>
+        <isNotEqual property="findTS" compareValue="1">
+            <!-- 2 -->
+            <![CDATA[	SUBSTR(REC_TIME, 1, 8) >=	#txtDate1_From# ]]>
+            AND <![CDATA[	SUBSTR(REC_TIME, 1, 8) <=	#txtDate1_To# ]]>
+            AND <![CDATA[	SUBSTR(REC_TIME, 9, 6) >=	#recFrmTm# ]]>
+            AND <![CDATA[	SUBSTR(REC_TIME, 9, 6) <=	#recEndTm# ]]>
+        </isNotEqual>
+        <isNotEmpty property="findSearchVisible">AND search_visible = #findSearchVisible#</isNotEmpty>
+        <isNotEmpty property="findTenantId">AND TB_REC_FILE.tenant_id = #findTenantId#</isNotEmpty>
+        <isNotEmpty property="findUserId">AND TB_REC_FILE.user_id = #findUserId#</isNotEmpty>
+        <isNotEmpty property="findGroupId">
+            and TB_REC_FILE.group_id in (
+            select group_id from tb_mng_group
+            where tenant_id = #findTenantId#
+            and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+            and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+            )
+        </isNotEmpty>
+        <isEmpty property="findGroupId">
+            <!-- grantId가 agent 일경우 추가 -->
+            <isEqual property="grantId" compareValue="Agent">
+                <!-- 										and TB_REC_FILE.group_id = #groupId#  -->
+                and TB_REC_FILE.user_id = #userId#
+            </isEqual>
+            <!-- <isNotEqual property="grantId" compareValue="GroupManager"> -->
+            <isNotEmpty property="controlAuthGroup">
+                and TB_REC_FILE.group_id in
+                <iterate property="controlAuthGroup" open="(" close=")" conjunction=",">
+                    #controlAuthGroup[]#
+                </iterate>
+            </isNotEmpty>
+            <!-- </isNotEqual> -->
+            <!--
+            <isEqual property="grantId" compareValue="GroupManager">
+                and TB_REC_FILE.group_id in (
+                    select g.group_id
+                        from tb_mng_group g,
+                            (
+                            select depth from tb_mng_group g, tb_mng_userinfo u
+                            where g.tenant_id = u.tenant_id
+                                and g.group_id = u.group_id
+                                and u.user_id = #userId#
+                                and u.tenant_id = #findTenantId#
+                            ) c
+                    where g.depth LIKE c.depth || '%'
+                        and tenant_id = #findTenantId#
+                    )
+            </isEqual>
+             -->
+        </isEmpty>
+        <isNotEmpty property="findDnText">AND TB_REC_FILE.dn_no like '%' || #findDnText# || '%'</isNotEmpty>
+        <isNotEmpty property="findCustNameText">AND cust_name like '%' || #findCustNameText# || '%'</isNotEmpty>
+        <isNotEmpty property="findCustTelText">AND (cust_tel like '%' || #findCustTelText# || '%' or cust_tel like '%'
+            || #findCustTelEnc# || '%')
+        </isNotEmpty>
+        <isNotEmpty property="findCustNoText">AND (cust_no like '%' || #findCustNoText# || '%' or cust_no like '%' ||
+            #findCustNoEnc# || '%')
+        </isNotEmpty>
+        <isNotEmpty property="findCallKind">AND call_kind like '%' || #findCallKind# || '%'</isNotEmpty>
+        <isNotEmpty property="findMarkKind">AND cust_etc9 = #findMarkKind#</isNotEmpty>
+        <isNotEmpty property="findCallIdText">AND call_id between #findCallIdText# and #findCallIdText# || 'ZZ'
+        </isNotEmpty>
+
+        <isNotEmpty property="findTranTelText">AND tran_tel = #findTranTelText#</isNotEmpty>
+
+        <isNotEqual property="callFrmTm" compareValue="000000">
+            <![CDATA[	AND	end_time >=  substr(#callFrmTm#,1,2)*3600 + substr(#callFrmTm#,3,2)*60 + substr(#callFrmTm#,5,2)	]]>    </isNotEqual>
+        <isNotEqual property="callEndTm" compareValue="000000">
+            <![CDATA[	AND	end_time <=  substr(#callEndTm#,1,2)*3600 + substr(#callEndTm#,3,2)*60 + substr(#callEndTm#,5,2) 	]]>    </isNotEqual>
+        <isNotEmpty property="findField">
+            <isNotEmpty property="findFieldText">and
+                <isEqual property="findField" compareValue="custEtc1">cust_etc1 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc2">cust_etc2 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc3">cust_etc3 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc4">cust_etc4 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc5">cust_etc5 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc6">cust_etc6 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc7">cust_etc7 like '%' || #findFieldText# || '%'
+                </isEqual>
+                <isEqual property="findField" compareValue="custEtc8">cust_etc8 like '%' || #findFieldText# || '%'
+                </isEqual>
+            </isNotEmpty>
+        </isNotEmpty>
+        ) TB_IN
+        WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+        ) TB_OUT , TB_REC_FILE
+        WHERE <![CDATA[ RowNum2 >= #iSPageNo# ]]>
+        AND TB_OUT.REC_KEY = TB_REC_FILE.REC_KEY
+        ) F
+        left join TB_MNG_USERINFO b on F.tenant_id = b.tenant_id and F.user_id = b.user_id
+        left join TB_MNG_USERTELNO TB_DN on F.tenant_id = TB_DN.tenant_id and F.DN_NO = TB_DN.DN_NO
+        left join tb_mng_group c on F.tenant_id = c.tenant_id and F.group_id = c.group_id
+        left outer join tb_rec_markcode d on F.tenant_id = d.tenant_id and F.cust_etc9 = d.marking_id
+        ORDER BY
+        <isNotEmpty property="findSort">
+            <isEqual property="findSort" compareValue="1">F.REC_TIME desc, F.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="2">END_TIME desc, F.REC_TIME desc</isEqual>
+            <isEqual property="findSort" compareValue="3">F.REC_TIME asc, F.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="4">END_TIME ASC, F.REC_TIME desc</isEqual>
+        </isNotEmpty>
+        <isEmpty property="findSort">
+            REC_DATE desc, REC_TIME desc, F.DN_NO desc
+        </isEmpty>
+    </select>
+
+    <select id="recSearch.getRecSearchListCnt_Grant" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecSearchListCnt_Grant */
+        select count(*) cnt
+        from(
+        select
+        distinct TB_REC_FILE.rec_key, TB_REC_FILE.tenant_id, TB_REC_FILE.rec_time
+        , TB_REC_FILE.dn_no, TB_REC_FILE.user_id, TB_REC_FILE.group_id
+        from (
+        select
+        Row_Number() over (order by
+        <isNotEmpty property="findSort">
+            <isEqual property="findSort" compareValue="1">REC_TIME desc, DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="2">TB_IN.END_TIME desc, REC_TIME desc</isEqual>
+            <isEqual property="findSort" compareValue="3">REC_TIME asc, DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="4">TB_IN.END_TIME asc, REC_TIME desc</isEqual>
+        </isNotEmpty>
+        <isEmpty property="findSort">
+            REC_TIME desc, DN_NO desc
+        </isEmpty>
+        ) RowNum2, TB_IN.*
+        from (
+        select
+        Row_Number() over (order by
+        <isNotEmpty property="findSort">
+            <isEqual property="findSort" compareValue="1">REC_TIME desc, tb_rec_file.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="2">END_TIME desc, REC_TIME desc</isEqual>
+            <isEqual property="findSort" compareValue="3">REC_TIME ASC, tb_rec_file.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="4">END_TIME ASC, REC_TIME desc</isEqual>
+        </isNotEmpty>
+        <isEmpty property="findSort">
+            REC_TIME desc, tb_rec_file.DN_NO desc
+        </isEmpty>
+        ) RowNum1, TB_REC_FILE.REC_KEY, REC_TIME, tb_rec_file.DN_NO, END_TIME
+        FROM tb_rec_file
+        join TB_REC_GRANT b on TB_REC_FILE.REC_KEY = b.REC_KEY
+        WHERE <![CDATA[TO_CHAR(sysdate,'yyyymmdd') >= TO_CHAR(b.START_DATE,'yyyymmdd')	]]>
+        <![CDATA[AND TO_CHAR(sysdate,'yyyymmdd') <= TO_CHAR(b.END_DATE,'yyyymmdd')	]]>
+        <![CDATA[AND	REC_TIME >=	#txtDate1_From# || #recFrmTm# ]]>
+        AND <![CDATA[	REC_TIME <=	#txtDate1_To# || #recEndTm# ]]>
+        AND search_visible = #findSearchVisible#
+        AND TB_REC_FILE.tenant_id = #findTenantId#
+        <isNotEmpty property="findUserId">AND b.user_id = #findUserId#</isNotEmpty>
+        ) TB_IN
+        ) TB_OUT , TB_REC_FILE
+        WHERE TB_OUT.REC_KEY = TB_REC_FILE.REC_KEY
+        ) F
+        left join TB_MNG_USERINFO b on F.tenant_id = b.tenant_id and F.user_id = b.user_id
+        left join tb_mng_group c on F.tenant_id = c.tenant_id and F.group_id = c.group_id
+    </select>
+
+    <select id="recSearch.getRecSearchList_Grant" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecSearchList_Grant */
+        select
+        distinct F.rec_key, F.tenant_id, substr(F.rec_time,1,8) rec_date, substr(F.rec_time,9,6) rec_time
+        , F.dn_no, F.user_id, F.phone_ip, nvl(end_time,0) end_time, cust_name, cust_tel, cust_no
+        , media_voice, media_scr, media_movie, media_email, media_chat, media_fax, media_doc, upload_cnt_voice
+        , upload_cnt_scr, upload_cnt_movie, upload_cnt_email, upload_cnt_chat, upload_cnt_fax
+        , upload_cnt_doc, cust_etc1, cust_etc2, cust_etc3, cust_etc4, cust_etc5, cust_etc6, cust_etc7
+        , cust_etc8, cust_etc9, cust_etc10, search_visible, user_name, F.group_id, group_name
+        , case call_kind when '1' then '수신' when '2' then '발신' else '' end as call_kind
+        , call_id, marking_class, marking_color, hold, nvl(F.call_time,0) call_time
+        , tran_tel, dn_no_ref
+        , case F.media_scr when 1 then F.SCR_FILE_NAME else F.file_name_i end as FILE_NAME
+        , CASE nvl(F.HOLD,0) WHEN 0 THEN nvl(F.CALL_TIME,0) ELSE nvl(F.END_TIME,0) END AS CONVERT_TIME
+        , t6.enc_key
+        from(
+        select
+        distinct TB_REC_FILE.rec_key, TB_REC_FILE.tenant_id, TB_REC_FILE.rec_time, TB_REC_FILE.dn_no
+        , TB_REC_FILE.user_id, TB_REC_FILE.phone_ip, nvl(TB_REC_FILE.end_time,0) end_time, cust_name, cust_tel
+        , cust_no, media_voice, media_scr, media_movie, media_email, media_chat, media_fax, media_doc
+        , upload_cnt_voice, upload_cnt_scr, upload_cnt_movie, upload_cnt_email, upload_cnt_chat, upload_cnt_fax
+        , upload_cnt_doc, cust_etc1, cust_etc2, cust_etc3, cust_etc4, cust_etc5, cust_etc6, cust_etc7, cust_etc8
+        , cust_etc9, cust_etc10 , search_visible, TB_REC_FILE.group_id, call_kind, call_id, hold, tran_tel,call_time_i AS call_time
+        , FILE_NAME_I 
+        , SCR_FILE_NAME 
+        from (
+        select
+        Row_Number() over (order by
+        <isNotEmpty property="findSort">
+            <isEqual property="findSort" compareValue="1">REC_TIME desc, DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="2">TB_IN.END_TIME desc, REC_TIME desc</isEqual>
+            <isEqual property="findSort" compareValue="3">REC_TIME asc, DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="4">TB_IN.END_TIME asc, REC_TIME desc</isEqual>
+        </isNotEmpty>
+        <isEmpty property="findSort">
+            REC_TIME desc, DN_NO desc
+        </isEmpty>
+        ) RowNum2, TB_IN.*
+        from (
+        select
+        Row_Number() over (order by
+        <isNotEmpty property="findSort">
+            <isEqual property="findSort" compareValue="1">REC_TIME desc, tb_rec_file.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="2">END_TIME desc, REC_TIME desc</isEqual>
+            <isEqual property="findSort" compareValue="3">REC_TIME ASC, tb_rec_file.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="4">END_TIME ASC, REC_TIME desc</isEqual>
+        </isNotEmpty>
+        <isEmpty property="findSort">
+            REC_TIME desc, tb_rec_file.DN_NO desc
+        </isEmpty>
+        ) RowNum1, tb_rec_file.REC_KEY, REC_TIME, tb_rec_file.DN_NO, END_TIME
+        FROM tb_rec_file
+        join TB_REC_GRANT b on TB_REC_FILE.REC_KEY = b.REC_KEY
+        WHERE <![CDATA[TO_CHAR(sysdate,'yyyymmdd') >= TO_CHAR(b.START_DATE,'yyyymmdd')	]]>
+        <![CDATA[AND TO_CHAR(sysdate,'yyyymmdd') <= TO_CHAR(b.END_DATE,'yyyymmdd')	]]>
+        <![CDATA[AND	REC_TIME >=	#txtDate1_From# || #recFrmTm# ]]>
+        AND <![CDATA[	REC_TIME <=	#txtDate1_To# || #recEndTm# ]]>
+        <isNotEmpty property="findSearchVisible">AND search_visible = #findSearchVisible#</isNotEmpty>
+        <isNotEmpty property="findTenantId">AND TB_REC_FILE.tenant_id = #findTenantId#</isNotEmpty>
+        <isNotEmpty property="findUserId">AND b.user_id = #findUserId#</isNotEmpty>
+        ) TB_IN
+        WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+        ) TB_OUT , TB_REC_FILE
+        WHERE <![CDATA[ RowNum2 >= #iSPageNo# ]]>
+        AND TB_OUT.REC_KEY = TB_REC_FILE.REC_KEY
+        ) F
+        left join TB_MNG_USERINFO b on F.tenant_id = b.tenant_id and F.user_id = b.user_id
+        left join TB_MNG_USERTELNO TB_DN on F.tenant_id = TB_DN.tenant_id and F.DN_NO = TB_DN.DN_NO
+        left join tb_mng_group c on F.tenant_id = c.tenant_id and F.group_id = c.group_id
+        left outer join tb_rec_markcode d on F.tenant_id = d.tenant_id and F.cust_etc9 = d.marking_id
+		  LEFT OUTER JOIN TB_MNG_ENCKEY t6
+			<![CDATA[
+			ON F.REC_TIME >= to_char(t6.LIC_TIME,'YYYYMMDDHH24MMSS') 
+			and  t1.REC_TIME <= to_char(nvl(t6.LIC_TIME_END,sysdate+ (INTERVAL '10' YEAR)),'YYYYMMDDHH24MMSS')
+			and t6.GUBUN = '0'
+		   ]]>
+        ORDER BY
+        <isNotEmpty property="findSort">
+            <isEqual property="findSort" compareValue="1">F.REC_TIME desc, F.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="2">END_TIME desc, F.REC_TIME desc</isEqual>
+            <isEqual property="findSort" compareValue="3">F.REC_TIME asc, F.DN_NO desc</isEqual>
+            <isEqual property="findSort" compareValue="4">END_TIME ASC, F.REC_TIME desc</isEqual>
+        </isNotEmpty>
+        <isEmpty property="findSort">
+            REC_DATE desc, REC_TIME desc, F.DN_NO desc
+        </isEmpty>
+    </select>
+
+
+    <select id="recSearch.getRecMonitoringList_org" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecMonitoringList */
+        select
+        tenant_id, dn_no, user_id, user_name
+        , nvl(phone_ip,' ') phone_ip, nvl(user_ip,' ') user_ip, dn_status, dn_status_name, agent_status
+        , nvl(group_id, 0) group_id, group_name
+        , to_char(last_upt_date, 'YYYY-MM-DD HH24:MI:SS') last_upt_date
+        , to_char(elapsed_time) elapsed_time
+        , system_id, process_id, system_name, process_name, use_flag
+        , nvl(round((sysdate - last_upt_date)*24*60),0) as diff_time
+        from(
+        select
+        Row_Number() over (order by dn_no) RowNum1
+        , a.tenant_id , a.dn_no, a.user_id, nvl(user_name,'') user_name, nvl(agent_status,'99') agent_status
+        , a.phone_ip, a.user_ip , dn_status, c.dn_status_name, last_upt_date
+        , nvl(b.group_id,'') group_id, nvl(d.group_name,'') group_name
+        , nvl(round((sysdate - last_upt_date)*24*60*60),0) elapsed_time
+        , nvl(a.system_id,0 ) system_id, nvl(a.process_id,0) process_id
+        , e.system_name, f.process_name, a.dn_no_ref , a.use_flag
+        FROM tb_mng_usertelno a
+        <isEmpty property="findUserNameText">left outer join TB_MNG_USERINFO</isEmpty>
+        <isNotEmpty property="findUserNameText">
+            join (
+            select tenant_id, group_id, user_id, user_name,agent_status from tb_mng_userinfo
+            where tenant_id = #findTenantId#
+            <isNotEmpty property="findGroupId">
+                and group_id in (
+                select group_id from tb_mng_group
+                where tenant_id = #findTenantId#
+                and depth between substr(#findGroupId#, instr(#findGroupId#, '_')+1,10) and substr(#findGroupId#,
+                instr(#findGroupId#, '_')+1,10) || CHR(127)
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isNotEqual property="grantId" compareValue="GroupManager">
+                    <isNotEmpty property="controlAuth">
+                        and group_id in (
+                        select g.group_id
+                        from tb_mng_group g,
+                        (
+                        select depth from tb_mng_group g, tb_mng_userinfo u
+                        where g.tenant_id = u.tenant_id
+                        and instr(','||control_auth||',' ,','||g.depth||',') > 0
+                        and u.user_id = #userId#
+                        and u.tenant_id = #findTenantId#
+                        ) c
+                        where g.depth LIKE c.depth || '%'
+                        and tenant_id = #findTenantId#
+                        )
+                    </isNotEmpty>
+                </isNotEqual>
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and g.group_id = u.group_id
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+            and (user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%')
+            )
+        </isNotEmpty>
+        b
+        on a.tenant_id = b.tenant_id
+        and a.user_id = b.user_id
+        left outer join (
+        select class_id dn_status_class, code_id dn_status_cd, code_name dn_status_name
+        from tb_mng_basecode
+        where class_id = 'dn_status'
+        ) c on a.dn_status = c.dn_status_cd
+        left outer join tb_mng_group d
+        on b.tenant_id = d.tenant_id and b.group_id = d.group_id
+        left outer join tb_sys_sysinfo e
+        on a.system_id = e.system_id
+        left outer join tb_sys_procinfo f
+        on a.system_id = f.system_id
+        and a.process_id = f.process_id
+        <dynamic prepend="WHERE">
+            a.tenant_id = #findTenantId#
+            <!-- 	and a.user_id is not null -->
+            <isNotEmpty property="findGroupId">
+                and b.group_id in (
+                select group_id from tb_mng_group
+                where tenant_id = #findTenantId#
+                and depth between substr(#findGroupId#, instr(#findGroupId#, '_')+1,10) and substr(#findGroupId#,
+                instr(#findGroupId#, '_')+1,10) || CHR(127)
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isNotEqual property="grantId" compareValue="GroupManager">
+                    <isNotEmpty property="controlAuth">
+                        and b.group_id in (
+                        select g.group_id
+                        from tb_mng_group g,
+                        (
+                        select depth from tb_mng_group g, tb_mng_userinfo u
+                        where g.tenant_id = u.tenant_id
+                        and instr(','||control_auth||',',','||g.depth||',') > 0
+                        and u.user_id = #userId#
+                        and u.tenant_id = #findTenantId#
+                        ) c
+                        where g.depth LIKE c.depth || '%'
+                        and tenant_id = #findTenantId#
+                        )
+                    </isNotEmpty>
+                </isNotEqual>
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and b.group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and g.group_id = u.group_id
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+            <isNotEmpty property="findDnText">and dn_no Like '%' || #findDnText# || '%'</isNotEmpty>
+            <isNotEmpty property="findSystemId">and a.system_id = #findSystemId#</isNotEmpty>
+            <isNotEmpty property="findProcessId">and a.process_id = #findProcessId#</isNotEmpty>
+
+            <!-- 대기체크일경우 로그인은 체크,로그아웃은 언체크하여서 비활성화 -->
+            <isNotEmpty property="findStatusWait"><!-- 대기가 체크일때 -->
+                <isNotEmpty property="findStatusRec"><!-- 통화가 체크이면 -->
+                    and ((dn_status = '01' or dn_status = '10')
+                </isNotEmpty>
+                <isEmpty property="findStatusRec"><!-- 통화가 언체크이면 -->
+                    and (dn_status = '01'
+                </isEmpty>
+                and agent_status = '01')<!-- 대기는 로그인이라는 전제가 필요함 -->
+            </isNotEmpty>
+            <isEmpty property="findStatusWait"><!-- 대기가 언체크일때 -->
+                <isNotEmpty property="findStatusRec"><!-- 통화가체크이면 로그아웃과 로그인에 상관없이 -->
+                    and dn_status = '10'
+                </isNotEmpty>
+            </isEmpty>
+            <isNotEmpty property="findLogin"><!-- 로그인이 체크일때 -->
+                and (agent_status = '01'
+                <isNotEmpty property="findLogout"><!-- 로그아웃이 체크일때 -->
+                    or agent_status = '99' or agent_status is null)
+                </isNotEmpty>
+                <isEmpty property="findLogout"><!-- 로그아웃이 ㅓㅇㄴ체크일때 -->
+                    )
+                </isEmpty>
+            </isNotEmpty>
+            <isEmpty property="findLogin"><!-- 로그인이 언체크일때 -->
+                <isNotEmpty property="findLogout"><!-- 로그아웃이 체크일때 -->
+                    and (agent_status = '99' or agent_status is null)
+                </isNotEmpty>
+            </isEmpty>
+
+            <isNotEqual property="callFrmTm" compareValue="000000">
+                <![CDATA[	AND	nvl(round((sysdate - last_upt_date)*24*60*60),0) >=
+							substr(#callFrmTm#,1,2) * 3600 + substr(#callFrmTm#,3,2) * 60 + substr(#callFrmTm#,5,2)		
+						]]>
+            </isNotEqual>
+            <isNotEqual property="callEndTm" compareValue="000000">
+                <![CDATA[	AND	nvl(round((sysdate - last_upt_date)*24*60*60),0) <=
+							substr(#callEndTm#,1,2) * 3600 + substr(#callEndTm#,3,2) * 60 + substr(#callEndTm#,5,2) 		
+						]]>
+            </isNotEqual>
+            <isEqual property="grantId" compareValue="Agent">and a.user_id = #userId#</isEqual>
+        </dynamic>
+        ) tb_mon
+        order by dn_no
+    </select>
+
+    <select id="recSearch.getRecMonitoringList" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecMonitoringList */
+        SELECT t1.TENANT_ID
+             , t1.DN_NO
+             , t1.USER_ID
+             , t2.USER_NAME
+             , NVL(t1.PHONE_IP, ' ') AS PHONE_IP
+             , NVL(t1.USER_IP, ' ') AS USER_IP
+             , t1.DN_STATUS
+             , t6.DN_STATUS_NAME
+             , t2.AGENT_STATUS
+             , NVL(t2.GROUP_ID, 0) AS GROUP_ID
+             , NVL(t3.GROUP_NAME, ' ') AS GROUP_NAME
+             , TO_CHAR(t1.LAST_UPT_DATE, 'YYYY-MM-DD HH24:MI:SS') AS LAST_UPT_DATE
+             , NVL(ROUND((SYSDATE - t1.LAST_UPT_DATE) * 24 * 60 * 60), 0) AS ELAPSED_TIME
+             , t1.SYSTEM_ID
+             , NVL(t4.SYSTEM_NAME, ' ') AS SYSTEM_NAME
+             , t1.PROCESS_ID
+             , NVL(t5.PROCESS_NAME, ' ') AS PROCESS_NAME
+             , t1.USE_FLAG
+             , NVL(TRUNC((SYSDATE - t1.LAST_UPT_DATE) * 24 * 60), 0) AS DIFF_TIME
+             , t1.REC_CUST_TEL
+             , t1.RT_FLAG
+             , t1.RT_USER_NAME
+          FROM TB_MNG_USERTELNO t1
+          LEFT OUTER JOIN TB_MNG_USERINFO t2
+            ON t1.TENANT_ID = t2.TENANT_ID
+           AND t1.USER_ID = t2.USER_ID
+          LEFT OUTER JOIN TB_MNG_GROUP t3
+            ON t2.TENANT_ID = t3.TENANT_ID
+           AND t2.GROUP_ID = t3.GROUP_ID
+          LEFT OUTER JOIN TB_SYS_SYSINFO t4
+            ON t1.SYSTEM_ID = t4.SYSTEM_ID
+          LEFT OUTER JOIN TB_SYS_PROCINFO t5
+            ON t1.PROCESS_ID = t5.PROCESS_ID
+          LEFT OUTER JOIN (
+            SELECT CLASS_ID AS DN_STATUS_CLASS
+                 , CODE_ID AS DN_STATUS_CD
+                 , CODE_NAME AS DN_STATUS_NAME 
+              FROM TB_MNG_BASECODE 
+             WHERE UPPER(CLASS_ID) = 'DN_STATUS'
+          ) t6
+            ON t1.DN_STATUS = t6.DN_STATUS_CD
+         WHERE 1 = 1
+           AND t1.TENANT_ID = #findTenantId#
+		<isNotEmpty property="controlAuth">
+		   AND t2.GROUP_ID IN (
+		   		SELECT GROUP_ID
+				  FROM TB_MNG_GROUP
+				 START WITH (TENANT_ID = #findTenantId#
+				   AND GROUP_ID IN (
+						SELECT g.GROUP_ID
+						  FROM TB_MNG_GROUP g
+						 INNER JOIN TB_MNG_USERINFO u
+							ON g.TENANT_ID = u.TENANT_ID
+						 WHERE u.TENANT_ID = #findTenantId#
+						   AND u.USER_ID = #userId#
+						   AND INSTR(',' || u.CONTROL_AUTH || ',', ',' || g.GROUP_ID || ',') > 0
+				   )
+				 )
+			   CONNECT BY PARENT_ID = PRIOR GROUP_ID
+				   AND TENANT_ID = #findTenantId#
+		   )
+		</isNotEmpty>
+		<isEmpty property="controlAuth">
+			<isEqual property="grantId" compareValue="Agent">
+		   AND t1.USER_ID = #userId#
+			</isEqual>
+			<isEqual property="grantId" compareValue="GroupManager">
+		   AND t2.GROUP_ID IN (
+		   		SELECT GROUP_ID
+				  FROM TB_MNG_GROUP
+				 START WITH (TENANT_ID = #findTenantId#
+					AND GROUP_ID = (SELECT GROUP_ID FROM TB_MNG_USERINFO WHERE USER_ID = #userId# and TENANT_ID = #findTenantId#)
+				 )
+			   CONNECT BY PARENT_ID = PRIOR GROUP_ID
+				   AND TENANT_ID = #findTenantId#
+		   )
+			</isEqual>
+		</isEmpty>
+		<isNotEmpty property="findGroupId">
+		   AND t2.GROUP_ID IN (
+				SELECT GROUP_ID
+                  FROM TB_MNG_GROUP
+                 START WITH (TENANT_ID = #findTenantId# AND GROUP_ID = #findGroupId#)
+                CONNECT BY PARENT_ID = PRIOR GROUP_ID
+               	   AND TENANT_ID = #findTenantId#
+		   )
+		</isNotEmpty>
+		<isNotEmpty property="findUserNameText">
+		   AND (t1.USER_ID LIKE '%' || #findUserNameText# || '%' OR t2.USER_NAME LIKE '%' || #findUserNameText# || '%')
+		</isNotEmpty>
+		<isNotEmpty property="findDnText">
+		   AND t1.DN_NO LIKE '%' || #findDnText# || '%'
+		</isNotEmpty>
+		<isNotEmpty property="findSystemId">
+		   AND t1.SYSTEM_ID = #findSystemId#
+		</isNotEmpty>
+		<isNotEmpty property="findProcessId">
+		   AND t1.PROCESS_ID = #findProcessId#
+		</isNotEmpty>
+		<isNotEqual property="callFrmTm" compareValue="000000">
+		<![CDATA[
+		   AND NVL(ROUND((SYSDATE - t1.LAST_UPT_DATE) * 24 * 60 * 60), 0) >=
+			   SUBSTR(#callFrmTm#, 1, 2) * 3600 + SUBSTR(#callFrmTm#, 3, 2) * 60 + SUBSTR(#callFrmTm#, 5, 2)		
+		]]>
+		</isNotEqual>
+		<isNotEqual property="callEndTm" compareValue="000000">
+		<![CDATA[
+		   AND NVL(ROUND((SYSDATE - t1.LAST_UPT_DATE) * 24 * 60 * 60), 0) <=
+			   SUBSTR(#callEndTm#, 1, 2) * 3600 + SUBSTR(#callEndTm#, 3, 2) * 60 + SUBSTR(#callEndTm#, 5, 2) 		
+		]]>
+		</isNotEqual>
+		<!-- 대기체크일경우 로그인은 체크,로그아웃은 언체크하여서 비활성화 -->
+		<isNotEmpty property="findStatusWait"><!-- 대기가 체크일때 -->
+			<isNotEmpty property="findStatusRec"><!-- 통화가 체크이면 -->
+		   AND ((t1.DN_STATUS = '01' OR t1.DN_STATUS = '10')
+			</isNotEmpty>
+			<isEmpty property="findStatusRec"><!-- 통화가 언체크이면 -->
+				AND (t1.DN_STATUS = '01'
+			</isEmpty>
+				AND t2.AGENT_STATUS = '01')<!-- 대기는 로그인이라는 전제가 필요함 -->		
+		</isNotEmpty>
+		<isEmpty property="findStatusWait"><!-- 대기가 언체크일때 -->
+			<isNotEmpty property="findStatusRec"><!-- 통화가체크이면 로그아웃과 로그인에 상관없이 -->
+				AND t1.DN_STATUS = '10' 
+			</isNotEmpty>
+		</isEmpty>
+		<isNotEmpty property="findLogin"><!-- 로그인이 체크일때 -->
+				AND (t2.AGENT_STATUS = '01'
+				<isNotEmpty property="findLogout"><!-- 로그아웃이 체크일때 -->
+					OR t2.AGENT_STATUS = '99' OR t2.AGENT_STATUS IS NULL)
+				</isNotEmpty>
+				<isEmpty property="findLogout"><!-- 로그아웃이 ㅓㅇㄴ체크일때 -->
+		   )
+				</isEmpty>		
+		</isNotEmpty>
+		<isEmpty property="findLogin"><!-- 로그인이 언체크일때 -->
+			<isNotEmpty property="findLogout"><!-- 로그아웃이 체크일때 -->
+		   AND (t2.AGENT_STATUS = '99' OR t2.AGENT_STATUS IS NULL)
+			</isNotEmpty>		
+		</isEmpty>
+		<isEmpty property="findSort">
+		 ORDER BY TO_NUMBER(t1.DN_NO)
+		</isEmpty>
+		<isNotEmpty property="findSort">
+			<isEqual property="findSort" compareValue="dn">
+		 ORDER BY TO_NUMBER(t1.DN_NO)
+			</isEqual>
+			<isEqual property="findSort" compareValue="id">
+		 ORDER BY t1.USER_ID
+			</isEqual>
+			<isEqual property="findSort" compareValue="nm">
+		 ORDER BY t2.USER_NAME
+			</isEqual>
+			<isEqual property="findSort" compareValue="st">
+		 ORDER BY t1.DN_STATUS
+			</isEqual>
+		</isNotEmpty>
+    </select>
+    
+    <update id="recSearch.setRtUserIdUpdate" parameterClass="java.util.HashMap">
+    	/* ID : recSearch.setRtUserIdUpdate */
+    	update tb_mng_usertelno
+    	   set rt_user_name = #rtUserName#
+    	 where tenant_id = #tenantId#
+		   and dn_no = #dnNo#
+    </update>
+
+    <select id="recSearch.getRecChartDateList" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecChartDateList */
+        select
+        substr(rec_time, 1,4)||'-'||substr(rec_time, 5,2)||'-'||substr(rec_time, 7,2) rec_time
+        , SUM(rec_count) call_cnt, SUM(end_time_sum) call_time, round(AVG(end_time_avg),0) call_avg
+        from TB_REC_FILE_DAY a
+        <isEmpty property="findUserNameText">join TB_MNG_USERINFO</isEmpty>
+        <isNotEmpty property="findUserNameText">
+            join (
+            select tenant_id, group_id, user_id, user_name,agent_status
+            from tb_mng_userinfo
+            where tenant_id = #findTenantId#
+            <isNotEmpty property="findGroupId">
+                and group_id in (
+                select group_id
+                from tb_mng_group
+                where tenant_id = #findTenantId#
+                and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+                and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isNotEqual property="grantId" compareValue="GroupManager">
+                    <isNotEmpty property="controlAuth">
+                        and group_id in (
+                        select g.group_id
+                        from tb_mng_group g,
+                        (
+                        select depth
+                        from tb_mng_group g, tb_mng_userinfo u
+                        where g.tenant_id = u.tenant_id
+                        and instr(','||control_auth||',',','||g.depth||',') > 0
+                        and u.user_id = #userId#
+                        and u.tenant_id = #findTenantId#
+                        ) c
+                        where g.depth LIKE c.depth || '%'
+                        and tenant_id = #findTenantId#
+                        )
+                    </isNotEmpty>
+                </isNotEqual>
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth
+                    from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and g.group_id = u.group_id
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+            and (user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%')
+            )
+        </isNotEmpty>
+        b on a.tenant_id = b.tenant_id and a.user_id = b.user_id
+        <dynamic prepend="WHERE">
+            a.tenant_id = #findTenantId#
+            <isNotEmpty property="findGroupId">
+                and b.group_id in (
+                select group_id from tb_mng_group
+                where tenant_id = #findTenantId#
+                and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+                and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isNotEqual property="grantId" compareValue="GroupManager">
+                    <isNotEmpty property="controlAuth">
+                        and b.group_id in (
+                        select g.group_id
+                        from tb_mng_group g,
+                        (
+                        select depth from tb_mng_group g, tb_mng_userinfo u
+                        where g.tenant_id = u.tenant_id
+                        and instr(','||control_auth||',',','||g.depth||',') > 0
+                        and u.user_id = #userId#
+                        and u.tenant_id = #findTenantId#
+                        ) c
+                        where g.depth LIKE c.depth || '%'
+                        and tenant_id = #findTenantId#
+                        )
+                    </isNotEmpty>
+                </isNotEqual>
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and b.group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and g.group_id = u.group_id
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+            AND    <![CDATA[	REC_TIME >=	#txtDate1_From# 		]]>
+            AND <![CDATA[	REC_TIME <=	#txtDate1_To# || '99' 	]]>
+            <!-- 	AND <![CDATA[   ROWNUM <= 100 						]]> -->
+            <isNotEmpty property="findUserId">AND a.user_id = #findUserId#</isNotEmpty>
+            <isNotEmpty property="findGroupId">
+                and group_id in (
+                select group_id from tb_mng_group
+                where tenant_id = #findTenantId#
+                and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+                and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isNotEqual property="grantId" compareValue="GroupManager">
+                    <isNotEmpty property="controlAuth">
+                        and group_id in (
+                        select g.group_id
+                        from tb_mng_group g,
+                        (
+                        select depth from tb_mng_group g, tb_mng_userinfo u
+                        where g.tenant_id = u.tenant_id
+                        and instr(','||control_auth||',',','||g.depth||',') > 0
+                        and u.user_id = #userId#
+                        and u.tenant_id = #findTenantId#
+                        ) c
+                        where g.depth LIKE c.depth || '%'
+                        and tenant_id = #findTenantId#
+                        )
+                    </isNotEmpty>
+                </isNotEqual>
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and g.group_id = u.group_id
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+        </dynamic>
+        group by substr(rec_time, 1,4)||'-'||substr(rec_time, 5,2)||'-'||substr(rec_time, 7,2)
+        order by rec_time
+    </select>
+
+    <select id="recSearch.getRecChartTimeList" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecChartTimeList */
+        select
+        rec_time, sum(call_cnt) call_cnt, sum(call_time) call_time
+        from (
+        select substr(rec_time,1,8) rec_date, substr(rec_time, 9,2) rec_time, count(1) call_cnt, SUM(end_time) call_time
+        from TB_REC_FILE a
+        <isEmpty property="findUserNameText">join TB_MNG_USERINFO</isEmpty>
+        <isNotEmpty property="findUserNameText">
+            join (
+            select tenant_id, group_id, user_id, user_name,agent_status from tb_mng_userinfo
+            where tenant_id = #findTenantId#
+            <isNotEmpty property="findGroupId">
+                and a.group_id in (
+                select group_id from tb_mng_group
+                where tenant_id = #findTenantId#
+                and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+                and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isNotEqual property="grantId" compareValue="GroupManager">
+                    <isNotEmpty property="controlAuth">
+                        and a.group_id in (
+                        select g.group_id
+                        from tb_mng_group g,
+                        (
+                        select depth from tb_mng_group g, tb_mng_userinfo u
+                        where g.tenant_id = u.tenant_id
+                        and instr(','||control_auth||',',','||g.depth||',') > 0
+                        and u.user_id = #userId#
+                        and u.tenant_id = #findTenantId#
+                        ) c
+                        where g.depth LIKE c.depth || '%'
+                        and tenant_id = #findTenantId#
+                        )
+                    </isNotEmpty>
+                </isNotEqual>
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and a.group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and g.group_id = u.group_id
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+            and (user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%')
+            )
+        </isNotEmpty>
+        b on a.tenant_id = b.tenant_id and a.user_id = b.user_id
+        <dynamic prepend="WHERE">
+            a.tenant_id = #findTenantId#
+            <isNotEmpty property="findGroupId">
+                and b.group_id in (
+                select group_id from tb_mng_group
+                where tenant_id = #findTenantId#
+                and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+                and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isNotEqual property="grantId" compareValue="GroupManager">
+                    <isNotEmpty property="controlAuth">
+                        and b.group_id in (
+                        select g.group_id
+                        from tb_mng_group g,
+                        (
+                        select depth from tb_mng_group g, tb_mng_userinfo u
+                        where g.tenant_id = u.tenant_id
+                        and instr(','||control_auth||',',','||g.depth||',') > 0
+                        and u.user_id = #userId#
+                        and u.tenant_id = #findTenantId#
+                        ) c
+                        where g.depth LIKE c.depth || '%'
+                        and tenant_id = #findTenantId#
+                        )
+                    </isNotEmpty>
+                </isNotEqual>
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and b.group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and g.group_id = u.group_id
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+            AND    <![CDATA[	REC_TIME >=	#txtDate1_From# 		]]>
+            AND <![CDATA[	REC_TIME <=	#txtDate1_To# || '99' 	]]>
+            AND SEARCH_VISIBLE = '1'
+            <isNotEmpty property="findUserId">AND a.user_id = #findUserId#</isNotEmpty>
+            <isNotEmpty property="findGroupId">
+                and a.group_id in (
+                select group_id from tb_mng_group
+                where tenant_id = #findTenantId#
+                and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+                and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isNotEqual property="grantId" compareValue="GroupManager">
+                    <isNotEmpty property="controlAuth">
+                        and a.group_id in (
+                        select g.group_id
+                        from tb_mng_group g,
+                        (
+                        select depth from tb_mng_group g, tb_mng_userinfo u
+                        where g.tenant_id = u.tenant_id
+                        and instr(','||control_auth||',',','||g.depth||',') > 0
+                        and u.user_id = #userId#
+                        and u.tenant_id = #findTenantId#
+                        ) c
+                        where g.depth LIKE c.depth || '%'
+                        and tenant_id = #findTenantId#
+                        )
+                    </isNotEmpty>
+                </isNotEqual>
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and a.group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and g.group_id = u.group_id
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+        </dynamic>
+        group by substr(rec_time,1,8), substr(rec_time, 9,2)
+        ) a
+        group by rec_time
+        order by rec_time
+    </select>
+
+    <select id="recSearch.getRecChartUserList" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecChartUserList */
+        select
+        user_id, user_name, sum(call_cnt) call_cnt, round(avg(call_cnt),0) call_avg
+        , sum(call_time) time_sum, round(avg(call_time),0) time_avg
+        from (
+        select
+        substr(rec_time,1,8) rec_date, a.tenant_id, a.user_id, user_name
+        , SUM(rec_count) call_cnt, SUM(end_time_sum) call_time
+        from TB_REC_FILE_DAY a
+        <isEmpty property="findUserNameText">join TB_MNG_USERINFO</isEmpty>
+        <isNotEmpty property="findUserNameText">
+            join (
+            select tenant_id, group_id, user_id, user_name, agent_status
+            from tb_mng_userinfo
+            where tenant_id = #findTenantId#
+            <isNotEmpty property="findGroupId">
+                and group_id in (
+                select group_id from tb_mng_group
+                where tenant_id = #findTenantId#
+                and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+                and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isNotEqual property="grantId" compareValue="GroupManager">
+                    <isNotEmpty property="controlAuth">
+                        and group_id in (
+                        select g.group_id
+                        from tb_mng_group g,
+                        (
+                        select depth from tb_mng_group g, tb_mng_userinfo u
+                        where g.tenant_id = u.tenant_id
+                        and instr(','||control_auth||',',','||g.depth||',') > 0
+                        and u.user_id = #userId#
+                        and u.tenant_id = #findTenantId#
+                        ) c
+                        where g.depth LIKE c.depth || '%'
+                        and tenant_id = #findTenantId#
+                        )
+                    </isNotEmpty>
+                </isNotEqual>
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and g.group_id = u.group_id
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+            and (user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%')
+            )
+        </isNotEmpty>
+        b on a.tenant_id = b.tenant_id and a.user_id = b.user_id
+        <dynamic prepend="WHERE">
+            a.tenant_id = #findTenantId#
+            <isNotEmpty property="findGroupId">
+                and b.group_id in (
+                select group_id from tb_mng_group
+                where tenant_id = #findTenantId#
+                and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+                and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isNotEqual property="grantId" compareValue="GroupManager">
+                    <isNotEmpty property="controlAuth">
+                        and b.group_id in (
+                        select g.group_id
+                        from tb_mng_group g,
+                        (
+                        select depth from tb_mng_group g, tb_mng_userinfo u
+                        where g.tenant_id = u.tenant_id
+                        and instr(','||control_auth||',',','||g.depth||',') > 0
+                        and u.user_id = #userId#
+                        and u.tenant_id = #findTenantId#
+                        ) c
+                        where g.depth LIKE c.depth || '%'
+                        and tenant_id = #findTenantId#
+                        )
+                    </isNotEmpty>
+                </isNotEqual>
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and b.group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and g.group_id = u.group_id
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+            AND    <![CDATA[	REC_TIME >=	#txtDate1_From# 		]]>
+            AND <![CDATA[	REC_TIME <=	#txtDate1_To# || '99' 	]]>
+            <isNotEmpty property="findUserId">AND a.user_id = #findUserId#</isNotEmpty>
+            <isNotEmpty property="findGroupId">
+                and group_id in (
+                select group_id from tb_mng_group
+                where tenant_id = #findTenantId#
+                and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+                and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+                )
+            </isNotEmpty>
+            <isEmpty property="findGroupId">
+                <isNotEqual property="grantId" compareValue="GroupManager">
+                    <isNotEmpty property="controlAuth">
+                        and group_id in (
+                        select g.group_id
+                        from tb_mng_group g,
+                        (
+                        select depth from tb_mng_group g, tb_mng_userinfo u
+                        where g.tenant_id = u.tenant_id
+                        and instr(','||control_auth||',',','||g.depth||',') > 0
+                        and u.user_id = #userId#
+                        and u.tenant_id = #findTenantId#
+                        ) c
+                        where g.depth LIKE c.depth || '%'
+                        and tenant_id = #findTenantId#
+                        )
+                    </isNotEmpty>
+                </isNotEqual>
+                <isEqual property="grantId" compareValue="GroupManager">
+                    and group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and g.group_id = u.group_id
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                </isEqual>
+            </isEmpty>
+        </dynamic>
+        group by substr(rec_time,1,8), a.tenant_id, a.user_id, user_name
+        ) c
+        group by user_name, user_id
+        order by user_name, user_id
+    </select>
+
+    <select id="recSearch.getRecChartWeekList" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecChartWeekList */
+        select
+        case rday when '1' then '일' when '2' then '월' when '3' then '화' when '4' then '수' when '5' then '목' when '6'
+        then '금' else '토' end rday
+        , nvl(sum_cnt1,0) sum_cnt1, nvl(sum_cnt2,0) sum_cnt2, nvl(sum_cnt3,0) sum_cnt3, nvl(sum_cnt4,0) sum_cnt4
+        , nvl(sum_time1,0) sum_time1, nvl(sum_time2,0) sum_time2, nvl(sum_time3,0) sum_time3, nvl(sum_time4,0) sum_time4
+        from (
+        select code_id rday
+        from TB_MNG_BASECODE
+        where class_id = 'date_sum'
+        ) t_d
+        left outer join (
+        select to_char(to_date(substr(rec_time,1,8),'YYYYMMDD'),'d') rdate, sum(rec_count) sum_cnt4, SUM(end_time_sum)
+        sum_time4
+        from TB_REC_FILE_DAY
+        where tenant_id = #findTenantId#
+        and <![CDATA[	rec_time > to_char(sysdate - to_char(to_date(sysdate),'d')-21,'YYYYMMDD')	]]>
+        and <![CDATA[	rec_time < to_char(sysdate - to_char(to_date(sysdate),'d')-14,'YYYYMMDD')	]]>
+        <isNotEmpty property="findGroupId">
+            and user_id in (
+            select user_id from tb_mng_userinfo u, tb_mng_group g
+            where u.tenant_id = g.tenant_id and u.group_id = g.group_id
+            and u.tenant_id = #findTenantId#
+            and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+            and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+            )
+        </isNotEmpty>
+        <isEmpty property="findGroupId">
+            <isNotEqual property="grantId" compareValue="GroupManager">
+                <isNotEmpty property="controlAuth">
+                    and user_id in (
+                    select user_id from tb_mng_userinfo
+                    where group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and instr(','||control_auth||',',','||g.depth||',') > 0
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                    and tenant_id = #findTenantId#
+                    )
+                </isNotEmpty>
+            </isNotEqual>
+            <isEqual property="grantId" compareValue="GroupManager">
+                and user_id in (
+                select user_id from tb_mng_userinfo
+                where group_id in (
+                select g.group_id
+                from tb_mng_group g,
+                (
+                select depth from tb_mng_group g, tb_mng_userinfo u
+                where g.tenant_id = u.tenant_id
+                and g.group_id = u.group_id
+                and u.user_id = #userId#
+                and u.tenant_id = #findTenantId#
+                ) c
+                where g.depth LIKE c.depth || '%'
+                and tenant_id = #findTenantId#
+                )
+                and tenant_id = #findTenantId#
+                )
+            </isEqual>
+        </isEmpty>
+        <isNotEmpty property="findUserId">AND user_id = #findUserId#</isNotEmpty>
+        <isNotEmpty property="findUserNameText">
+            and user_id in (
+            select user_id from tb_mng_userinfo
+            where tenant_id = #findTenantId#
+            and (user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%')
+            )
+        </isNotEmpty>
+        group by to_char(to_date(substr(rec_time,1,8),'YYYYMMDD'),'d')
+        ) t4 on rday = t4.rdate
+        left outer join (
+        select to_char(to_date(substr(rec_time,1,8),'YYYYMMDD'),'d') rdate, sum(rec_count) sum_cnt3, SUM(end_time_sum)
+        sum_time3
+        from TB_REC_FILE_DAY
+        where tenant_id = #findTenantId#
+        and <![CDATA[	rec_time > to_char(sysdate - to_char(to_date(sysdate),'d')-14,'YYYYMMDD')	]]>
+        and <![CDATA[	rec_time < to_char(sysdate - to_char(to_date(sysdate),'d')-7,'YYYYMMDD')	]]>
+        <isNotEmpty property="findGroupId">
+            and user_id in (
+            select user_id from tb_mng_userinfo u, tb_mng_group g
+            where u.tenant_id = g.tenant_id and u.group_id = g.group_id
+            and u.tenant_id = #findTenantId#
+            and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+            and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+            )
+        </isNotEmpty>
+        <isEmpty property="findGroupId">
+            <isNotEqual property="grantId" compareValue="GroupManager">
+                <isNotEmpty property="controlAuth">
+                    and user_id in (
+                    select user_id from tb_mng_userinfo
+                    where group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and instr(','||control_auth||',',','||g.depth||',') > 0
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                    and tenant_id = #findTenantId#
+                    )
+                </isNotEmpty>
+            </isNotEqual>
+            <isEqual property="grantId" compareValue="GroupManager">
+                and user_id in (
+                select user_id from tb_mng_userinfo
+                where group_id in (
+                select g.group_id
+                from tb_mng_group g,
+                (
+                select depth from tb_mng_group g, tb_mng_userinfo u
+                where g.tenant_id = u.tenant_id
+                and g.group_id = u.group_id
+                and u.user_id = #userId#
+                and u.tenant_id = #findTenantId#
+                ) c
+                where g.depth LIKE c.depth || '%'
+                and tenant_id = #findTenantId#
+                )
+                and tenant_id = #findTenantId#
+                )
+            </isEqual>
+        </isEmpty>
+        <isNotEmpty property="findUserId">AND user_id = #findUserId#</isNotEmpty>
+        <isNotEmpty property="findUserNameText">
+            and user_id in (
+            select user_id from tb_mng_userinfo
+            where tenant_id = #findTenantId#
+            and (user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%')
+            )
+        </isNotEmpty>
+        group by to_char(to_date(substr(rec_time,1,8),'YYYYMMDD'),'d')
+        ) t3 on rday = t3.rdate
+        left outer join (
+        select to_char(to_date(substr(rec_time,1,8),'YYYYMMDD'),'d') rdate, sum(rec_count) sum_cnt2, SUM(end_time_sum)
+        sum_time2
+        from TB_REC_FILE_DAY
+        where tenant_id = #findTenantId#
+        and <![CDATA[	rec_time > to_char(sysdate - to_char(to_date(sysdate),'d')-7,'YYYYMMDD')	]]>
+        and <![CDATA[	rec_time < to_char(sysdate - to_char(to_date(sysdate),'d'),'YYYYMMDD')		]]>
+        <isNotEmpty property="findGroupId">
+            and user_id in (
+            select user_id from tb_mng_userinfo u, tb_mng_group g
+            where u.tenant_id = g.tenant_id and u.group_id = g.group_id
+            and u.tenant_id = #findTenantId#
+            and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+            and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+            )
+        </isNotEmpty>
+        <isEmpty property="findGroupId">
+            <isNotEqual property="grantId" compareValue="GroupManager">
+                <isNotEmpty property="controlAuth">
+                    and user_id in (
+                    select user_id from tb_mng_userinfo
+                    where group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and instr(','||control_auth||',',','||g.depth||',') > 0
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                    and tenant_id = #findTenantId#
+                    )
+                </isNotEmpty>
+            </isNotEqual>
+            <isEqual property="grantId" compareValue="GroupManager">
+                and user_id in (
+                select user_id from tb_mng_userinfo
+                where group_id in (
+                select g.group_id
+                from tb_mng_group g,
+                (
+                select depth from tb_mng_group g, tb_mng_userinfo u
+                where g.tenant_id = u.tenant_id
+                and g.group_id = u.group_id
+                and u.user_id = #userId#
+                and u.tenant_id = #findTenantId#
+                ) c
+                where g.depth LIKE c.depth || '%'
+                and tenant_id = #findTenantId#
+                )
+                and tenant_id = #findTenantId#
+                )
+            </isEqual>
+        </isEmpty>
+        <isNotEmpty property="findUserId">AND user_id = #findUserId#</isNotEmpty>
+        <isNotEmpty property="findUserNameText">
+            and user_id in (
+            select user_id from tb_mng_userinfo
+            where tenant_id = #findTenantId#
+            and (user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%')
+            )
+        </isNotEmpty>
+        group by to_char(to_date(substr(rec_time,1,8),'YYYYMMDD'),'d')
+        ) t2 on rday = t2.rdate
+        left outer join (
+        select to_char(to_date(substr(rec_time,1,8),'YYYYMMDD'),'d') rdate, sum(rec_count) sum_cnt1, SUM(end_time_sum)
+        sum_time1
+        from TB_REC_FILE_DAY
+        where tenant_id = #findTenantId#
+        and <![CDATA[	rec_time > to_char(sysdate - to_char(to_date(sysdate),'d'),'YYYYMMDD')	]]>
+        and <![CDATA[	rec_time < to_char(sysdate,'YYYYMMDD')									]]>
+        <isNotEmpty property="findGroupId">
+            and user_id in (
+            select user_id from tb_mng_userinfo u, tb_mng_group g
+            where u.tenant_id = g.tenant_id and u.group_id = g.group_id
+            and u.tenant_id = #findTenantId#
+            and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+            and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+            )
+        </isNotEmpty>
+        <isEmpty property="findGroupId">
+            <isNotEqual property="grantId" compareValue="GroupManager">
+                <isNotEmpty property="controlAuth">
+                    and user_id in (
+                    select user_id from tb_mng_userinfo
+                    where group_id in (
+                    select g.group_id
+                    from tb_mng_group g,
+                    (
+                    select depth from tb_mng_group g, tb_mng_userinfo u
+                    where g.tenant_id = u.tenant_id
+                    and instr(','||control_auth||',',','||g.depth||',') > 0
+                    and u.user_id = #userId#
+                    and u.tenant_id = #findTenantId#
+                    ) c
+                    where g.depth LIKE c.depth || '%'
+                    and tenant_id = #findTenantId#
+                    )
+                    and tenant_id = #findTenantId#
+                    )
+                </isNotEmpty>
+            </isNotEqual>
+            <isEqual property="grantId" compareValue="GroupManager">
+                and user_id in (
+                select user_id from tb_mng_userinfo
+                where group_id in (
+                select g.group_id
+                from tb_mng_group g,
+                (
+                select depth from tb_mng_group g, tb_mng_userinfo u
+                where g.tenant_id = u.tenant_id
+                and g.group_id = u.group_id
+                and u.user_id = #userId#
+                and u.tenant_id = #findTenantId#
+                ) c
+                where g.depth LIKE c.depth || '%'
+                and tenant_id = #findTenantId#
+                )
+                and tenant_id = #findTenantId#
+                )
+            </isEqual>
+        </isEmpty>
+        <isNotEmpty property="findUserId">AND user_id = #findUserId#</isNotEmpty>
+        <isNotEmpty property="findUserNameText">
+            and user_id in (
+            select user_id from tb_mng_userinfo
+            where tenant_id = #findTenantId#
+            and (user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%')
+            )
+        </isNotEmpty>
+        group by to_char(to_date(substr(rec_time,1,8),'YYYYMMDD'),'d')
+        ) t1 on rday = t1.rdate
+        order by t_d.rday asc
+    </select>
+
+    <!-- <select id="recSearch.getRecChartDiskList" parameterClass="java.util.HashMap"	resultClass="egovMap">
+        select top 100 substring(rec_time, 1,8) rec_time, SUM(end_time_sum) * 800 /1024/1024 disk_mb1, SUM(end_time_sum) * 1600 /1024/1024 disk_mb2
+        from TB_REC_FILE_DAY a
+        <dynamic prepend="WHERE">			a.tenant_id = #findTenantId#
+
+        AND	<![CDATA[	REC_TIME >=	convert(varchar,#txtDate1_From#) ]]>
+        AND <![CDATA[	REC_TIME <=	convert(varchar,#txtDate1_To# + '99') ]]>
+
+        </dynamic>
+
+        group by substring(rec_time, 1,8)
+        order by substring(rec_time, 1,8)
+
+    </select>		 -->
+
+    <select id="recSearch.getRecGrantListCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecGrantList */
+        SELECT COUNT(*) AS CNT
+        FROM TB_REC_GRANT A
+                 INNER JOIN
+             (
+                 SELECT TENANT_ID,
+                        SUBSTR(REC_TIME, 1, 8)                            AS REC_TIME_DATE,
+                        SUBSTR(REC_TIME, 9, 13)                           AS REC_TIME_TIME,
+                        REC_KEY,
+                        GROUP_ID,
+                        DN_NO,
+                        CASE
+                            WHEN CALL_KIND = 1 THEN '수신'
+                            ELSE '발신'
+                            END                                           AS CALL_KIND,
+                        CALL_ID,
+                        USER_ID,
+                        TO_CHAR(TO_DATE(END_TIME, 'sssss'), 'hh24:mi:ss') AS END_TIME
+                 FROM TB_REC_FILE
+             ) B
+             ON A.REC_KEY = B.REC_KEY
+                 INNER JOIN
+             TB_MNG_USERINFO C
+             ON A.USER_ID = C.USER_ID
+                 AND C.TENANT_ID = #findTenantId#
+        WHERE ((#findTenantId# IS NULL AND 1 = 1) OR (#findTenantId# IS NOT NULL AND B.TENANT_ID = #findTenantId#))
+          AND ((#findDnText# IS NULL AND 1 = 1) OR
+               (#findDnText# IS NOT NULL AND B.DN_NO like '%' || #findDnText# || '%'))
+          AND ((#findUserId# IS NULL AND 1 = 1) OR (#findUserId# IS NOT NULL AND A.USER_ID = #findUserId#))
+          AND ((#findCallIdText# IS NULL AND 1 = 1) OR (#findCallIdText# IS NOT NULL AND B.CALL_ID = #findCallIdText#))
+          AND (B.REC_TIME_DATE BETWEEN #txtDate1_From# AND #txtDate1_To#)
+          AND ((#insId# IS NULL AND 1 = 1) OR (#insId# IS NOT NULL AND A.INS_ID = #insId#))
+          AND
+<![CDATA[ 	(B.END_TIME BETWEEN #callFrmTm# AND #callEndTm#)
+        ]]>
+    </select>
+
+    <select id="recSearch.getRecGrantList" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecGrantList */
+        select *
+        from (
+                 select Row_Number() over (order by start_date desc, user_id desc) RowNum2, TB_IN.*
+                 from (
+                          SELECT Row_Number()                           over (order by A.START_date, a.end_date) RowNum1,
+                                 A.REC_KEY                           AS REC_KEY,
+                                 A.DOWNLOAD_FLAG,
+                                 TO_CHAR(A.START_DATE, 'YYYY-MM-DD') AS START_DATE,
+                                 TO_CHAR(A.END_DATE, 'YYYY-MM-DD')   AS END_DATE,
+                                 TO_CHAR(A.INS_DATE, 'YYYY-MM-DD')   AS INS_DATE,
+                                 A.USER_ID                           AS USER_ID,
+                                 C.USER_NAME                         AS USER_NAME,
+                                 SUBSTR(B.REC_TIME_DATE, 1, 4) || '-' || SUBSTR(B.REC_TIME_DATE, 5, 2) || '-' ||
+                                 SUBSTR(B.REC_TIME_DATE, 7, 2)       AS REC_TIME_DATE,
+                                 SUBSTR(B.REC_TIME_TIME, 1, 2) || ':' || SUBSTR(B.REC_TIME_TIME, 3, 2) || ':' ||
+                                 SUBSTR(B.REC_TIME_TIME, 5, 2)       AS REC_TIME_TIME,
+                                 B.DN_NO                             AS DN_NO,
+                                 B.END_TIME                          AS END_TIME,
+                                 B.CALL_KIND,
+                                 B.CALL_ID                           AS CALL_ID,
+                                 B.USER_ID                           AS AGENT_ID
+                          FROM TB_REC_GRANT A
+                                   INNER JOIN
+                               (
+                                   SELECT TENANT_ID,
+                                          SUBSTR(REC_TIME, 1, 8)                            AS REC_TIME_DATE,
+                                          SUBSTR(REC_TIME, 9, 13)                           AS REC_TIME_TIME,
+                                          REC_KEY,
+                                          GROUP_ID,
+                                          DN_NO,
+                                          CASE
+                                              WHEN CALL_KIND = 1 THEN '수신'
+                                              ELSE '발신'
+                                              END                                           AS CALL_KIND,
+                                          CALL_ID,
+                                          USER_ID,
+                                          TO_CHAR(TO_DATE(END_TIME, 'sssss'), 'hh24:mi:ss') AS END_TIME
+                                   FROM TB_REC_FILE
+                               ) B
+                               ON A.REC_KEY = B.REC_KEY
+                                   INNER JOIN
+                               TB_MNG_USERINFO C
+                               ON A.USER_ID = C.USER_ID
+                                   AND C.TENANT_ID = #findTenantId#
+                          WHERE ((#findTenantId# IS NULL AND 1 = 1) OR
+                                 (#findTenantId# IS NOT NULL AND B.TENANT_ID = #findTenantId#))
+                            AND ((#findDnText# IS NULL AND 1 = 1) OR
+                                 (#findDnText# IS NOT NULL AND B.DN_NO like '%' || #findDnText# || '%'))
+                            AND ((#findGroupId# IS NULL AND 1 = 1) OR
+                                 (#findGroupId# IS NOT NULL AND B.GROUP_ID = #findGroupId#))
+                            AND ((#findUserId# IS NULL AND 1 = 1) OR
+                                 (#findUserId# IS NOT NULL AND A.USER_ID = #findUserId#))
+                            AND ((#findCallIdText# IS NULL AND 1 = 1) OR
+                                 (#findCallIdText# IS NOT NULL AND B.CALL_ID = #findCallIdText#))
+                            AND (B.REC_TIME_DATE BETWEEN #txtDate1_From# AND #txtDate1_To#)
+                            AND ((#insId# IS NULL AND 1 = 1) OR (#insId# IS NOT NULL AND A.INS_ID = #insId#))
+                            AND
+	  <![CDATA[ (B.END_TIME BETWEEN #callFrmTm# AND #callEndTm#) ]]>
+			) TB_IN
+                 WHERE RowNum1<![CDATA[ <=]]> #iEPageNo#
+             ) TB_OUT
+        WHERE RowNum2 <![CDATA[<= ]]>#iSPageNo#
+    </select>
+
+    <select id="recSearch.getRecSearchList_API" parameterClass="java.util.HashMap" resultClass="egovMap">
+        /* ID : recSearch.getRecSearchList_API */
+        SELECT DISTINCT F.REC_KEY,
+                        F.TENANT_ID,
+                        SUBSTR(F.REC_TIME, 1, 8) REC_DATE,
+                        SUBSTR(F.REC_TIME, 9, 6) REC_TIME,
+                        F.DN_NO,
+                        F.USER_ID,
+                        F.PHONE_IP,
+                        NVL(END_TIME, 0)         END_TIME,
+                        CUST_NAME,
+                        CUST_TEL,
+                        CUST_NO,
+                        MEDIA_VOICE,
+                        MEDIA_SCR,
+                        MEDIA_MOVIE,
+                        MEDIA_EMAIL,
+                        MEDIA_CHAT,
+                        MEDIA_FAX,
+                        MEDIA_DOC,
+                        UPLOAD_CNT_VOICE,
+                        UPLOAD_CNT_SCR,
+                        UPLOAD_CNT_MOVIE,
+                        UPLOAD_CNT_EMAIL,
+                        UPLOAD_CNT_CHAT,
+                        UPLOAD_CNT_FAX,
+                        UPLOAD_CNT_DOC,
+                        CUST_ETC1,
+                        CUST_ETC2,
+                        CUST_ETC3,
+                        CUST_ETC4,
+                        CUST_ETC5,
+                        CUST_ETC6,
+                        CUST_ETC7,
+                        CUST_ETC8,
+                        CUST_ETC9,
+                        CUST_ETC10,
+                        SEARCH_VISIBLE,
+                        USER_NAME,
+                        F.GROUP_ID,
+                        GROUP_NAME,
+                        CASE CALL_KIND
+                            WHEN '1' THEN '수신'
+                            WHEN '2' THEN '발신'
+                            ELSE ''
+                            END AS               CALL_KIND,
+                        CALL_ID,
+                        MARKING_CLASS,
+                        MARKING_COLOR,
+                        HOLD,
+                        NVL(CALL_TIME_I, 0)      CALL_TIME,
+                        CASE nvl(F.HOLD,0) WHEN 0 THEN nvl(F.CALL_TIME_I,0) ELSE nvl(F.END_TIME,0) END AS CONVERT_TIME,
+                        TRAN_TEL,
+                        DN_NO_REF,
+                        FILE_NAME_I
+                        t6.enc_key
+        FROM TB_REC_FILE F
+                 LEFT JOIN TB_MNG_USERINFO B
+                           ON F.TENANT_ID = B.TENANT_ID
+                               AND F.USER_ID = B.USER_ID
+                 LEFT JOIN TB_MNG_USERTELNO TB_DN
+                           ON F.TENANT_ID = TB_DN.TENANT_ID
+                               AND F.DN_NO = TB_DN.DN_NO
+                 LEFT JOIN TB_MNG_GROUP C
+                           ON F.TENANT_ID = C.TENANT_ID
+                               AND F.GROUP_ID = C.GROUP_ID
+                 LEFT OUTER JOIN TB_REC_MARKCODE D
+                                 ON F.TENANT_ID = D.TENANT_ID
+                                     AND F.CUST_ETC9 = TO_CHAR(D.MARKING_ID)
+                 
+				 LEFT OUTER JOIN TB_MNG_ENCKEY t6
+					<![CDATA[
+					ON F.REC_TIME >= to_char(t6.LIC_TIME,'YYYYMMDDHH24MMSS') 
+					and  t1.REC_TIME <= to_char(nvl(t6.LIC_TIME_END,sysdate+ (INTERVAL '10' YEAR)),'YYYYMMDDHH24MMSS')
+					and t6.GUBUN = '0'
+				   ]]>
+        WHERE SEARCH_VISIBLE = '1'
+       	AND F.TENANT_ID = #s_API_TENANT_ID# 
+       	AND F.REC_TIME BETWEEN CONCAT(#s_API_REC_TIME#,'00') AND CONCAT(#s_API_REC_TIME#, '99')
+       	AND F.CUST_TEL = #s_API_CUST_TEL# 
+        ORDER BY REC_TIME DESC
+    </select>
+    
+    <!-- 복원관련 start -->
+    <select id="recSearch.getRecRestoreSearchListCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+    /* ID : recSearch.getRecRestoreSearchListCnt */
+	    	select
+		        count(*) cnt
+		    from tb_rec_restore_file rf   
+			where search_visible=1
+				<isNotEmpty property="txtDate"> 
+					and TO_DATE(REC_TIME, 'YYYYMMDD HH24:MI:SS') between TO_DATE(#txtDate#||#recFrmTm#, 'YYYYMMDD HH24:MI:SS')
+								   and TO_DATE(#txtDate# ||#recEndTm# , 'YYYYMMDD HH24:MI:SS')
+				</isNotEmpty>	   
+				<isNotEmpty property="findDnName">
+					and  DN_NO like '%' ||  #findDnName# || '%'	
+				</isNotEmpty>
+				<isNotEmpty property="findCallID">
+					and CALL_ID like '%' || #findCallID# || '%'	
+				</isNotEmpty>
+    </select>
+    
+    <select id="recSearch.getRecRestoreSearchList" parameterClass="java.util.HashMap" resultClass="egovMap">
+    /* ID : recSearch.getRecRestoreSearchList */
+	    select 
+		    to_char(to_date(rec_time,'yyyy-mm-dd hh24:mi:ss'),'yyyy-mm-dd') rec_date,
+		    to_char(to_date(rec_time,'yyyy-mm-dd hh24:mi:ss'),'hh24:mi:ss') rec_time,
+		    dn_no,
+		    tenant_id,
+		    user_id,
+			file_name,
+            restore_kind,
+            cust_tel,
+		    RowNum1,
+		    RESTORE_COUNT,
+		    call_id,
+            case when RESTORE_MERGE_KEY is not null then '병합' 
+                 when  restore_status <![CDATA[= 0 ]]> then '복원대기'
+                 when  restore_status <![CDATA[= 1  ]]> or restore_status <![CDATA[=2 ]]> then '변환중'
+                 when  restore_status <![CDATA[= 3  ]]> then '전송중'
+                 when  restore_status <![CDATA[= 9 ]]> then '복원완료'
+                 when  restore_status <![CDATA[= 10]]>  then '병합파일'
+                 else '복원실패' end restore_status_str,
+		   	case when RESTORE_MERGE_KEY is not null then '11'
+                 when  restore_status <![CDATA[= 0 ]]> then '0'
+                 when  restore_status <![CDATA[= 1  ]]> or restore_status <![CDATA[=2 ]]> then '2'
+                 when  restore_status <![CDATA[= 3  ]]> then '3'
+                 when  restore_status <![CDATA[= 9 ]]> then '4'
+                 when  restore_status <![CDATA[= 10]]>  then '10'
+                 else '5' end restore_status_cd,
+		   	rec_key,
+		   	RESTORE_MERGE_KEY
+	    from 
+	    	(
+	    	select
+		        Row_Number() over (order by rf.REC_TIME asc ) as RowNum1,  
+		        rf.*
+		    from tb_rec_restore_file rf   
+			where search_visible=1 
+				<isNotEmpty property="txtDate"> 
+					and TO_DATE(REC_TIME, 'YYYYMMDD HH24:MI:SS') between TO_DATE(#txtDate#||#recFrmTm#, 'YYYYMMDD HH24:MI:SS')
+								   and TO_DATE(#txtDate# ||#recEndTm# , 'YYYYMMDD HH24:MI:SS')
+				</isNotEmpty>	   
+				<isNotEmpty property="findDnName">
+					and  DN_NO like '%' ||  #findDnName# || '%'	
+				</isNotEmpty>
+				<isNotEmpty property="findCallID">
+					and CALL_ID like '%' || #findCallID# || '%'	
+				</isNotEmpty>
+				order by rec_time asc , RESTORE_COUNT desc
+			)
+		where <![CDATA[ RowNum1 > (#iEPageNo# - #iSPageNo# )]]>
+			and <![CDATA[ RowNum1 <= #iEPageNo#  ]]>
+		
+    </select>
+    
+    <select id="recSearch.getRecRestoreUcIdSearchList" parameterClass="java.util.HashMap" resultClass="egovMap">
+    /* ID : recSearch.getRecRestoreUcIdSearchList */
+		select 
+			to_char(to_date(rec_time,'yyyy-mm-dd hh24:mi:ss'),'yyyy-mm-dd') rec_date,
+		    to_char(to_date(rec_time,'yyyy-mm-dd hh24:mi:ss'),'hh24:mi:ss') rec_time,
+		    dn_no,
+		    user_id,
+		    tenant_id,
+			file_name,
+            cust_tel,
+            restore_kind,
+		    restore_status
+		from tb_rec_restore_file 
+		where CALL_ID = #findCallID#   
+		order by REC_TIME asc
+    </select>
+    
+    <select id="recSearch.getRecRestoreRecKeySearchList" parameterClass="java.util.HashMap" resultClass="egovMap">
+    /* ID : recSearch.getRecRestoreRecKeySearchList */
+		select 
+			to_char(to_date(rec_time,'yyyy-mm-dd hh24:mi:ss'),'yyyy-mm-dd') rec_date,
+		    to_char(to_date(rec_time,'yyyy-mm-dd hh24:mi:ss'),'hh24:mi:ss') rec_time,
+		    dn_no,
+		    user_id,
+		    tenant_id,
+			file_name,
+            call_id,
+            cust_tel,
+            restore_kind,
+		    restore_status
+		from tb_rec_restore_file 
+		where RESTORE_MERGE_KEY = #findRecKey#   
+		order by REC_TIME asc
+    </select>
+    
+    <select id="recSearch.getRecRestoreStatusList" parameterClass="java.util.HashMap" resultClass="egovMap">
+    /* ID : recSearch.getRecRestoreStatusList */
+		select
+		    restore_status_cd status, count(*) cnt
+		from (
+		        select 
+		            case 
+                        when RESTORE_MERGE_KEY is not null then '11'
+                        when  restore_status <![CDATA[= 0 ]]> then '0'
+                        when  restore_status <![CDATA[= 1  ]]> or restore_status <![CDATA[=2 ]]> then '2'
+                        when  restore_status <![CDATA[= 3  ]]> then '3'
+                        when  restore_status <![CDATA[= 9 ]]> then '4'
+                        when  restore_status <![CDATA[= 10]]>  then '10'
+                        else '5' end restore_status_cd
+		        from  tb_rec_restore_file rrf
+		        where search_visible=1
+		        <isNotEmpty property="txtDate"> 
+					and TO_DATE(REC_TIME, 'YYYYMMDD HH24:MI:SS') between TO_DATE(#txtDate#||#recFrmTm#, 'YYYYMMDD HH24:MI:SS')
+								   and TO_DATE(#txtDate# ||#recEndTm# , 'YYYYMMDD HH24:MI:SS')
+				</isNotEmpty>	   
+				<isNotEmpty property="findDnName">
+					and  DN_NO like '%' ||  #findDnName# || '%'	
+				</isNotEmpty>
+				<isNotEmpty property="findCallID">
+					and CALL_ID like '%' || #findCallID# || '%'	
+				</isNotEmpty>
+		     ) rf
+		group by restore_status_cd 
+    </select>
+    <!-- 복원관련 end -->
+    
+    <update id="recSearch.getRecSearchCustUpdate" parameterClass="java.util.HashMap" >
+    	/* ID : recSearch.getRecSearchCustUpdate */
+    	call sp_setcustinfo_v3(#recKey#,#callId#,#custName#,#findCustTel#,#findCustNo#,null,null,#fnidCustEtc#,null,null)
+		
+    </update>
+    
+    <update id="recSearch.getRecSearchCustExcelUpdate" parameterClass="java.util.HashMap" >
+    /* ID : recSearch.getRecSearchCustExcelUpdate */
+    	call sp_setcustinfo_v3(#updateInfo00#,#updateInfo01#,#updateInfo1#,#updateInfo3#,#updateInfo2#,null,null,
+    	#updateInfo4#||'|C'||#updateInfo5#||'|C'||#updateInfo6#||'|C'||#updateInfo7#||'|C'||#updateInfo8#||'|C'||#updateInfo9#||'|C'||#updateInfo10#||'|C'||#updateInfo11#||'|C'
+    	,null,null)
+    </update>
+    
+    <select id="recSearch.getRecFilePathListCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+   		/* recSearch.getRecFilePathListCnt */
+		select 
+		    count(*) CNT
+		from TB_MNG_GUBUNINFO a
+		where 1=1 
+		<isNotEmpty property="findGubunCode"> 
+			and a.gubun_code like '%' || #findGubunCode# || '%' 
+		</isNotEmpty> 
+		<isNotEmpty property="findGubunName">
+			and a.gubun_name like '%' || #findGubunName# || '%'
+		</isNotEmpty> 
+		<isNotEmpty property="findGubunUseFlag">
+			and a.gubun_use_flag = #findGubunUseFlag#
+		</isNotEmpty> 
+		<isNotEmpty property="findDeleteUseFlag">
+			and a.delete_use_flag = #findDeleteUseFlag# 
+		</isNotEmpty>
+		<isNotEmpty property="findStorageUseVolumn">
+			and a.storage_use_volumn = #findStorageUseVolumn#
+		</isNotEmpty>
+	</select>
+    
+    <select id="recSearch.getRecFilePathList" parameterClass="java.util.HashMap" resultClass="egovMap">
+   		/* recSearch.getRecFilePathList */
+			select 
+			    GUBUN_CODE,
+			    GUBUN_PARENT_CODE,
+			    GUBUN_NAME,
+			    GUBUN_PATH,
+			    GUBUN_DESC,
+			    GUBUN_USE_FLAG,
+				DELETE_USE_FLAG,
+				STORAGE_DAY,
+				STORAGE_VOLUMN,
+				STORAGE_USE_VOLUMN,
+				DELETE_PATH,
+				INS_ID
+			from (
+				select 
+					ROW_NUMBER() OVER (ORDER BY a.INS_ID desc ) AS RowNum1,
+				    a.GUBUN_CODE,
+				    a.GUBUN_PARENT_CODE,
+				    a.GUBUN_NAME,
+				    a.GUBUN_PATH,
+				    a.GUBUN_DESC,
+				    a.GUBUN_USE_FLAG,
+					a.DELETE_USE_FLAG,
+					a.STORAGE_DAY,
+					a.STORAGE_VOLUMN,
+					a.STORAGE_USE_VOLUMN,
+					a.DELETE_PATH,
+					a.INS_ID
+				FROM TB_MNG_GUBUNINFO a
+				where 1=1 
+				<isNotEmpty property="findGubunCode"> 
+					and a.gubun_code like '%' || #findGubunCode# || '%' 
+				</isNotEmpty> 
+				<isNotEmpty property="findGubunName">
+					and a.gubun_name like '%' || #findGubunName# || '%'
+				</isNotEmpty> 
+				<isNotEmpty property="findGubunUseFlag">
+					and a.gubun_use_flag = #findGubunUseFlag#
+				</isNotEmpty> 
+				<isNotEmpty property="findDeleteUseFlag">
+					and a.delete_use_flag = #findDeleteUseFlag# 
+				</isNotEmpty>
+				<isNotEmpty property="findStorageUseVolumn">
+					and a.storage_use_volumn = #findStorageUseVolumn#
+				</isNotEmpty>
+			) TB_IN
+			where <![CDATA[ RowNum1 > (#iEPageNo# - #iSPageNo# )]]>
+			and <![CDATA[ RowNum1 <= #iEPageNo#  ]]>
+	</select>
+	
+	<select id="recSearch.getRecFilePathCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* recSearch.getRecFilePathCnt */
+		SELECT 
+		    count(*) cnt
+		FROM TB_MNG_GUBUNINFO a
+		where 1=1
+		<isEqual property="inpId" compareValue="btnFilePath">
+			and gubun_path = #filePath#
+<!-- 			<isNotEmpty property="parentId"> -->
+<!-- 				and gubun_parent_code = #parentId# -->
+<!-- 			</isNotEmpty> -->
+<!-- 			<isEmpty property="parentId"> -->
+<!-- 				and gubun_parent_code is null -->
+<!-- 			</isEmpty> -->
+		</isEqual>
+		<isEqual property="inpId" compareValue="btnPathCode">
+			and GUBUN_CODE = #pathCode#
+		</isEqual>
+		<isEqual property="inpId" compareValue="btnDeletePath">
+			and delete_path = #deletePath#
+		</isEqual>
+	</select>
+	
+	<insert id="recSearch.setRecFilePathInsert" parameterClass="java.util.HashMap">
+		/* ID : recSearch.setRecFilePathInsert */
+		insert into TB_MNG_GUBUNINFO (
+			GUBUN_CODE
+		 	<isNotEmpty property="parentId">
+				,GUBUN_PARENT_CODE
+			</isNotEmpty>
+			,GUBUN_name,GUBUN_path,GUBUN_desc,ins_id,ins_date,GUBUN_USE_FLAG
+			,STORAGE_DAY
+			,DELETE_USE_FLAG,STORAGE_VOLUMN,STORAGE_USE_VOLUMN,DELETE_PATH
+		 )VALUES
+		 	(#pathCode#
+		 	<isNotEmpty property="parentId">
+		 		,#parentId#
+		 	</isNotEmpty>
+		 	,#groupName#,#filePath#,#groupDesc#,#glo_userId#,sysdate,#useFlag#
+			<isNotEqual property="deleteUseFlag" compareValue="0">
+		 		,#limit#
+		 	</isNotEqual>
+		 	<isEqual property="deleteUseFlag" compareValue="0">
+		 		,null
+		 	</isEqual>
+		 	,#deleteUseFlag#,#storageVolumn#,#storageUseVolumn#,#deletePath#
+		 	)
+	</insert>
+	
+	<update id="recSearch.setRecFilePathParentIdUpdate" parameterClass="java.util.HashMap">
+		/* ID : recSearch.setRecFilePathParentIdUpdate */
+		UPDATE TB_MNG_GUBUNINFO SET
+		FILE_PATH_PARENT_ID = #parentId#
+		, UPT_ID = #glo_userId# 
+		, UPT_DATE = sysdate
+		WHERE GUBUN_CODE = #groupId#
+	</update>
+	
+	<update id="recSearch.setRecFilePathUpdate" parameterClass="java.util.HashMap">
+		/* ID : recSearch.setRecFilePathUpdate */
+		 UPDATE TB_MNG_GUBUNINFO SET gubun_name = #groupName# , gubun_path = #filePath# , gubun_desc = #groupDesc# 
+		<isNotEqual property="deleteUseFlag" compareValue="0">
+	 		, STORAGE_DAY = #limit#
+	 	</isNotEqual>
+	 	<isEqual property="deleteUseFlag" compareValue="0">
+	 		, STORAGE_DAY =null
+	 	</isEqual>
+		,DELETE_USE_FLAG = #deleteUseFlag# ,STORAGE_VOLUMN = #storageVolumn# ,STORAGE_USE_VOLUMN = #storageUseVolumn# ,DELETE_PATH = #deletePath# 
+		, UPT_ID = #glo_userId#
+		, UPT_DATE = sysdate
+	 	WHERE GUBUN_CODE = #orgFilePathId#
+		 
+	</update>
+	
+	<update id="recSearch.setRecFilePathUseUpdate" parameterClass="java.util.HashMap">
+		/* ID : recSearch.setRecFilePathUseUpdate */
+		 UPDATE TB_MNG_GUBUNINFO  
+		 SET UPT_ID = #glo_userId# 
+			, UPT_DATE = sysdate
+			, GUBUN_USE_FLAG = #useFlag#
+		WHERE gubun_code = #orgFilePathId#
+<!-- 	 	<isEqual property="useFlag" compareValue="N"> -->
+<!-- 		 	WHERE GUBUN_CODE in ( -->
+<!-- 	            SELECT  -->
+<!-- 	                a.GUBUN_CODE -->
+<!-- 	            FROM TB_MNG_GUBUNINFO a -->
+<!-- 	            start with a.gubun_code = #orgFilePathId# -->
+<!-- 	            connect by prior a.GUBUN_CODE = a.GUBUN_PARENT_CODE -->
+<!--             )  -->
+<!-- 		 </isEqual> -->
+<!-- 		 <isEqual property="useFlag" compareValue="Y"> -->
+<!-- 		 	WHERE GUBUN_CODE in ( -->
+<!-- 	            SELECT  -->
+<!-- 	                a.GUBUN_CODE -->
+<!-- 	            FROM TB_MNG_GUBUNINFO a -->
+<!-- 	            start with a.gubun_code = #orgFilePathId# -->
+<!-- 	            connect by prior a.GUBUN_PARENT_CODE = a.GUBUN_CODE -->
+<!--             )  -->
+<!-- 		 </isEqual> -->
+		 
+	</update>
+	
+	<select id="recSearch.getRecFilePathDelChkCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* recSearch.getRecFilePathDelChkCount */
+		select 
+		    count(*) cnt
+		from tb_rec_file_index fi
+		inner join
+		(
+		    select '/'||a.gubun_directory||'/'||b.path||'/' as path 
+		    from tb_sys_gubuninfo a ,(
+		        SELECT 
+		            LISTAGG(gubun_path, '/')  WITHIN GROUP (ORDER BY rownum desc) path
+		        FROM TB_MNG_GUBUNINFO a
+		        start with a.GUBUN_CODE = #groupId#
+		        connect by prior a.GUBUN_PARENT_CODE = a.GUBUN_CODE
+		        order by level desc
+		    ) b
+		) re
+		on fi.store_drive like re.path || '%'
+	</select>
+	
+	<update id="recSearch.setRecFilePathDelete" parameterClass="java.util.HashMap">
+		/* ID : recSearch.setRecFilePathDelete */
+		 delete from TB_MNG_GUBUNINFO
+		 WHERE GUBUN_CODE = #groupId# or gubun_parent_code = #groupId#
+	</update>
+	
+	<select id="recSearch.getSysGubunList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* recSearch.getSysGubunList */
+		select * from (
+			select 
+				ROW_NUMBER() OVER (ORDER BY GUBUN_START_DATE desc ) AS RowNum2
+			    ,SYSTEM_ID
+				,PROCESS_ID
+				,GUBUN_STATUS
+				,GUBUN_START_DATE
+				,GUBUN_FILE_MAX
+				,GUBUN_SELECT_DAY
+				,GUBUN_DIRECTORY
+				,GUBUN_MEDIA_SPACE
+				,GUBUN_MEDIA_FREE_SPACE
+				,DELETE_DIRECTORY
+				,GUBUN_KIND
+			    ,system_name
+			    ,process_name
+			from (
+				select 
+				     ROW_NUMBER() OVER (ORDER BY g.GUBUN_START_DATE desc ) AS RowNum1
+				    ,g.SYSTEM_ID
+				    ,g.PROCESS_ID
+				    ,g.GUBUN_STATUS
+				    ,g.GUBUN_START_DATE
+				    ,g.GUBUN_FILE_MAX
+				    ,g.GUBUN_SELECT_DAY
+				    ,g.GUBUN_DIRECTORY
+				    ,g.GUBUN_MEDIA_SPACE
+				    ,g.GUBUN_MEDIA_FREE_SPACE
+				    ,g.DELETE_DIRECTORY
+				    ,g.GUBUN_KIND
+				    ,s.system_name
+				    ,p.process_name
+				from tb_sys_gubuninfo g
+				inner join tb_sys_sysinfo s
+				    on g.system_id = s.system_id
+				inner join tb_sys_procinfo p
+				    on g.system_id = p.system_id 
+				    and g.process_id = p.process_id
+				where 1=1 
+				<isNotEmpty property="findSystemId">
+					and g.system_id = #findSystemId#
+				</isNotEmpty>
+				<isNotEmpty property="findProcessCode">
+					and g.process_id = #findProcessCode#
+				</isNotEmpty>
+				<isNotEmpty property="findGubunKind">
+					and g.gubun_kind = #findGubunKind#
+				</isNotEmpty>
+				<isNotEmpty property="findGubunStatus">
+					and g.gubun_status = #findGubunStatus#
+				</isNotEmpty>
+			) TB_IN
+	        WHERE RowNum1<![CDATA[ <= ]]> #iEPageNo#
+        ) TB_OUT
+        WHERE RowNum2 <![CDATA[ <= ]]> #iSPageNo#
+	    order by GUBUN_START_DATE desc
+	</select>
+	
+	<select id="recSearch.getSysGubunListCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* recSearch.getSysGubunListCnt */
+		select 
+		     count(*) CNT
+		from tb_sys_gubuninfo
+		where 1=1 
+		<isNotEmpty property="findSystemId">
+			and system_id = #findSystemId#
+		</isNotEmpty>
+		<isNotEmpty property="findProcessCode">
+			and process_id = #findProcessCode#
+		</isNotEmpty>
+		<isNotEmpty property="findGubunKind">
+			and gubun_kind = #findGubunKind#
+		</isNotEmpty>
+		<isNotEmpty property="findGubunStatus">
+			and gubun_status = #findGubunStatus#
+		</isNotEmpty>
+	</select>
+	
+	<insert id="recSearch.setSysGubunInfo" parameterClass="java.util.HashMap">
+		/* ID : recSearch.setRecFileGubunInfo */
+		insert into tb_sys_gubuninfo (
+			SYSTEM_ID
+			, process_id
+			, GUBUN_STATUS
+			, GUBUN_START_DATE
+			, GUBUN_FILE_MAX
+			, GUBUN_SELECT_DAY
+			, GUBUN_DIRECTORY
+			, GUBUN_MEDIA_FREE_SPACE
+			, DELETE_DIRECTORY
+			, GUBUN_KIND
+		 )VALUES
+		 	(#findSystemId#
+		 	,#findProcessCode#,#findGubunStatus#, to_char(sysdate,'yyyyMMdd') ,#findGubunFileMax#
+		 	,#findGubunSelectDay#,#findGubunDirectory#,#findGubunMediaFreeSpace#
+		 	, #findDeleteDirectory# , #findGubunKind#
+		 	)
+	</insert>
+	
+	<update id="recSearch.setSysGubunInfoUpdate" parameterClass="java.util.HashMap">
+		/* ID : recSearch.setRecFileGubunInfoUpdate */
+		update tb_sys_gubuninfo set
+			 GUBUN_STATUS = #findGubunStatus#
+			, GUBUN_START_DATE = to_char(sysdate,'yyyyMMdd')
+			, GUBUN_FILE_MAX = #findGubunFileMax#
+			, GUBUN_SELECT_DAY = #findGubunSelectDay#
+			, GUBUN_DIRECTORY = #findGubunDirectory#
+			, GUBUN_MEDIA_SPACE = #findGubunMediaSpace#
+			, GUBUN_MEDIA_FREE_SPACE = #findGubunMediaFreeSpace#
+		 	, DELETE_DIRECTORY = #findDeleteDirectory#
+		 	, GUBUN_KIND = #findGubunKind#
+		where SYSTEM_ID = #findSystemId#
+		and process_id = #findProcessCode#
+	</update>
+	
+	<delete id="recSearch.delSysGubunInfo" parameterClass="java.util.HashMap">
+		delete from tb_sys_gubuninfo
+		where SYSTEM_ID = #findSystemId#
+		and process_id = #findProcessCode#
+	</delete>
+	
+	<select id="recSearch.getRecGubunInfoCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+			/* ID : recSearch.getRecGubunInfoCnt */
+			select 
+			    count(*) CNT
+			from tb_rec_gubun g
+			inner join tb_mng_gubuninfo gi
+			    on g.gubun_code = gi.gubun_code
+			where g.gubun_proc_flag = 1
+			<![CDATA[ and g.gubun_time >= #sFindSGubunTime# ]]> 
+			<![CDATA[ and g.gubun_time <= #sFindEGubunTime# ]]>
+			<isEqual property="selSearchType" compareValue="G">
+				<isNotEmpty property="findSStorageSize">				
+					<![CDATA[ and (ceil(g.GUBUN_DAILY_VOLUMN / 1024 *100)/100) >= #findSStorageSize# ]]>
+				</isNotEmpty>
+				<isNotEmpty property="findEStorageSize">
+					<![CDATA[ and (ceil(g.GUBUN_DAILY_VOLUMN / 1024 *100)/100) <= #findEStorageSize# ]]>
+				</isNotEmpty>
+			</isEqual>
+			<isEqual property="selSearchType" compareValue="S">
+				<isNotEmpty property="findSStorageSize">				
+					<![CDATA[ and (ceil(gi.storage_use_volumn / 1024 *100)/100) >= #findSStorageSize# ]]>
+				</isNotEmpty>
+				<isNotEmpty property="findEStorageSize">
+					<![CDATA[ and (ceil(gi.storage_use_volumn / 1024 *100)/100) <= #findEStorageSize# ]]>
+				</isNotEmpty>
+			</isEqual>
+			<isNotEmpty property="findGubunName">
+				and g.gubun_name like '%' || #findGubunName# || '%' 
+			</isNotEmpty>
+			<isNotEmpty property="findGubunPath">
+				and g.gubun_path like '%' || #findGubunPath# || '%' 
+			</isNotEmpty>
+	</select>
+	
+	<select id="recSearch.getRecGubunInfo" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recSearch.getRecGubunInfo */
+		select * from (
+			select 
+				ROW_NUMBER() OVER (ORDER BY DEL_TIME desc ) AS RowNum2
+			    ,gubun_time
+			    ,gubun_name
+			    ,gubun_work_count
+			    ,gubun_work_check
+			    ,gubun_date
+			    ,gubun_path
+			    ,GUBUN_DAILY_VOLUMN
+			    ,storage_use_volumn
+			    ,DEL_TIME
+			from (
+				select 
+					ROW_NUMBER() OVER (ORDER BY g.DEL_TIME desc ) AS RowNum1
+					,g.DEL_TIME
+				    ,g.gubun_time
+				    ,g.gubun_name
+				    ,g.gubun_work_count
+				    ,g.gubun_work_check
+				    ,g.gubun_date
+				    ,g.gubun_path
+				    ,g.GUBUN_DAILY_VOLUMN
+				    ,gi.storage_use_volumn
+				from tb_rec_gubun g
+				inner join tb_mng_gubuninfo gi
+				    on g.gubun_code = gi.gubun_code
+				where g.gubun_proc_flag = 1
+				<![CDATA[ and g.gubun_time >= #sFindSGubunTime# ]]> 
+				<![CDATA[ and g.gubun_time <= #sFindEGubunTime# ]]>
+				<isEqual property="selSearchType" compareValue="G">
+					<isNotEmpty property="findSStorageSize">				
+						<![CDATA[ and (ceil(g.GUBUN_DAILY_VOLUMN / 1024 *100)/100) >= #findSStorageSize# ]]>
+					</isNotEmpty>
+					<isNotEmpty property="findEStorageSize">
+						<![CDATA[ and (ceil(g.GUBUN_DAILY_VOLUMN / 1024 *100)/100) <= #findEStorageSize# ]]>
+					</isNotEmpty>
+				</isEqual>
+				<isEqual property="selSearchType" compareValue="S">
+					<isNotEmpty property="findSStorageSize">				
+						<![CDATA[ and (ceil(gi.storage_use_volumn / 1024 *100)/100) >= #findSStorageSize# ]]>
+					</isNotEmpty>
+					<isNotEmpty property="findEStorageSize">
+						<![CDATA[ and (ceil(gi.storage_use_volumn / 1024 *100)/100) <= #findEStorageSize# ]]>
+					</isNotEmpty>
+				</isEqual>
+				<isNotEmpty property="findGubunName">
+					and g.gubun_name like '%' || #findGubunName# || '%' 
+				</isNotEmpty>
+				<isNotEmpty property="findGubunPath">
+					and g.gubun_path like '%' || #findGubunPath# || '%' 
+				</isNotEmpty>
+					) TB_IN
+			        WHERE RowNum1<![CDATA[ <=]]> #iEPageNo#
+		        ) TB_OUT
+	        WHERE RowNum2 <![CDATA[<= ]]>#iSPageNo#
+		    order by gubun_time desc
+	</select>
+	
+	<select id="recSearch.getRecDelGubunInfoCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recSearch.getRecDelGubunInfoCnt */
+		select 
+		    count(*) CNT
+		from tb_rec_gubun g
+		where g.gubun_proc_flag = 2
+		<![CDATA[ and g.GUBUN_TIME >= #sFindSGubunTime# ]]> 
+		<![CDATA[ and g.GUBUN_TIME <= #sFindEGubunTime# ]]>
+		<isNotEmpty property="findGubunName">
+			and g.gubun_name like '%' || #findGubunName# || '%' 
+		</isNotEmpty>
+		<isNotEmpty property="findGubunPath">
+			and g.gubun_path like '%' || #findGubunPath# || '%' 
+		</isNotEmpty>
+		<isNotEmpty property="findDelPath">
+			and g.GUBUN_PATH = #findDelPath#
+		</isNotEmpty>
+		<isNotEmpty property="findDelWorkGubun">
+			and g.GUBUN_WORK_GUBUN = #findDelWorkGubun#
+		</isNotEmpty>
+	</select>
+	
+	<select id="recSearch.getRecDelGubunInfo" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recSearch.getRecDelGubunInfo */
+		select * from (
+		select 
+   			Row_Number() over (order by DEL_TIME desc) RowNum2
+			,DEL_TIME
+			,GUBUN_NAME
+			,GUBUN_WORK_COUNT
+			,GUBUN_PATH
+		from (
+			select 
+				ROW_NUMBER() OVER (ORDER BY g.DEL_TIME desc ) AS RowNum1
+				,g.DEL_TIME
+				,g.GUBUN_NAME
+				,g.GUBUN_WORK_COUNT
+				,g.GUBUN_PATH
+			from tb_rec_gubun g
+			where g.gubun_proc_flag = 2
+			<![CDATA[ and g.GUBUN_TIME >= #sFindSGubunTime# ]]> 
+			<![CDATA[ and g.GUBUN_TIME <= #sFindEGubunTime# ]]>
+			<isNotEmpty property="findGubunName">
+				and g.gubun_name like '%' || #findGubunName# || '%' 
+			</isNotEmpty>
+			<isNotEmpty property="findGubunPath">
+				and g.gubun_path like '%' || #findGubunPath# || '%' 
+			</isNotEmpty>
+			<isNotEmpty property="findDelPath">
+				and g.GUBUN_PATH = #findDelPath#w
+			</isNotEmpty>
+			) TB_IN
+	        WHERE RowNum1<![CDATA[ <=]]> #iEPageNo#
+        ) TB_OUT
+        WHERE RowNum2 <![CDATA[<= ]]>#iSPageNo#
+		ORDER BY DEL_TIME desc
+	</select>
+	
+	
+	<insert id="recSearch.setRecGubunDelInsert" parameterClass="java.util.HashMap">
+		/* ID : recSearch.setRecGubunDelInsert */
+		insert into tb_rec_gubun (
+			GUBUN_TIME
+			,GUBUN_CODE
+			,DN_NO
+			,SYSTEM_ID
+			,PROCESS_ID
+			,GUBUN_NAME
+			,GUBUN_WORK_COUNT
+			,GUBUN_WORK_CHECK
+			,GUBUN_DATE
+			,GUBUN_PATH
+			,GUBUN_DAILY_VOLUMN
+			,GUBUN_PROC_FLAG
+			,DEL_TIME
+		) values (
+			
+		)
+			
+	</insert>
+	
+	<select id="recSearch.getCallIdSearch" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select media_scr from tb_rec_file where call_id = #callId# and media_scr = 1	
+	</select>
+	
+</sqlMap>

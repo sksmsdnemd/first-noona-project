@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="bkInfo">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+
+	<select id="bkInfo.getBkInfoCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : bkInfo.getBkInfoCount */
+		select count(*) as cnt
+			FROM tb_sys_bkInfo a 
+				join tb_sys_sysinfo b
+					on a.system_id = b.system_id
+				join tb_sys_procinfo c
+					on a.system_id = c.system_id
+					and a.process_id = c.process_id
+				left outer join tb_mng_basecode d
+					on d.class_id	= 'bk_status'
+					and d.code_id = a.bk_status
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND"  property="findText">
+				<isEqual property="findKey" compareValue="a.bk_directory">  	a.bk_directory  	</isEqual>
+				<isEqual property="findKey" compareValue="a.bk_directory_2">	a.bk_directory_2 	</isEqual>
+				Like '%'+ #findText# +'%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findSystemId">
+				a.system_id = #findSystemId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findProcessId">
+				a.process_id = #findProcessId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findMediaKind">
+				a.media_kind = #findMediaKind#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findBkStatus">
+				a.bk_status = #findBkStatus#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findBkDevice">
+				a.bk_device = #findBkDevice#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findBkKindNotIn">
+				a.bk_kind != #findBkKindNotIn#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+
+	<select id="bkInfo.getBkInfoList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : bkInfo.getBkInfoList */
+		select 
+				system_id, process_id, media_kind, bk_device, bk_kind
+				, bk_status, storage_day, bk_date, del_date, media_free_space
+				, bk_prevent_date, bk_query, bk_directory, bk_directory_2, bk_label_Header, bk_time_start
+				, bk_time_end, bk_files_max, del_files_max, system_name, process_name
+				, bk_status_name, media_kind_name
+			from(
+				select * 
+					from (
+						select
+								Row_Number() over (order by system_id desc, process_id desc, media_kind desc) RowNum2,* 
+							from (
+								select 
+										Row_Number() over (order by a.system_id, a.process_id, media_kind) RowNum1
+										, a.system_id, a.process_id, a.media_kind, a.bk_device, a.bk_kind
+										, a.bk_status, isnull(a.storage_day,0) storage_day, a.bk_date, a.del_date
+										, isnull(a.media_free_space, 0 ) media_free_space 
+										, isnull(a.bk_prevent_date,0) bk_prevent_date, a.bk_query, a.bk_directory
+										, a.bk_directory_2, a.bk_label_Header, isnull(a.bk_time_start,0) bk_time_start
+										, isnull(a.bk_time_end,0) bk_time_end, isnull(a.bk_files_max,0) bk_files_max
+										, isnull(a.del_files_max,0) del_files_max, b.system_name, c.process_name
+										, d.code_name bk_status_name 
+										, e.code_name media_kind_name 
+									FROM tb_sys_bkInfo a 
+										join tb_sys_sysinfo b
+											on a.system_id = b.system_id
+										join tb_sys_procinfo c
+											on a.system_id = c.system_id
+											and a.process_id = c.process_id
+										left outer join tb_mng_basecode d
+											on d.class_id	= 'bk_status'
+											and d.code_id = a.bk_status
+										left outer join tb_mng_basecode e
+											on e.class_id	= 'media_kind'
+											and e.code_id = a.media_kind
+								<dynamic prepend="WHERE">
+									<isNotEmpty prepend="AND"  property="findText">
+										<isEqual property="findKey" compareValue="a.bk_directory">  	a.bk_directory  	</isEqual>
+										<isEqual property="findKey" compareValue="a.bk_directory_2">  	a.bk_directory_2 	</isEqual>
+										Like '%'+ #findText# +'%'
+									</isNotEmpty>
+									<isNotEmpty prepend="AND" property="findSystemId">
+										a.system_id = #findSystemId#
+									</isNotEmpty>
+									<isNotEmpty prepend="AND" property="findProcessId">
+										a.process_id = #findProcessId#
+									</isNotEmpty>
+									<isNotEmpty prepend="AND" property="findMediaKind">
+										a.media_kind = #findMediaKind#
+									</isNotEmpty>
+									<isNotEmpty prepend="AND" property="findBkStatus">
+										a.bk_status = #findBkStatus#
+									</isNotEmpty>
+									<isNotEmpty prepend="AND" property="findBkDevice">
+										a.bk_device = #findBkDevice#
+									</isNotEmpty>
+									<isNotEmpty prepend="AND" property="findBkKindNotIn">
+										a.bk_kind != #findBkKindNotIn#
+									</isNotEmpty>
+								</dynamic>
+								) TB_IN
+						WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+					) TB_OUT 
+				WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+			) tbl2
+		order by system_id, process_id, media_kind
+	</select>
+
+	<insert id="bkInfo.setBkInfoInsert" parameterClass="java.util.HashMap">
+		/* ID : bkInfo.setBkInfoInsert */
+		insert into tb_sys_bkInfo
+			( 
+			system_id, process_id, media_kind, bk_device, bk_kind, storage_day, bk_date, del_date, media_free_space, bk_prevent_date
+			, bk_query, bk_directory, bk_directory_2, bk_label_Header, bk_time_start, bk_time_end, bk_files_max, del_files_max
+			) 
+		values 
+			(
+			#systemId#, #processId#, #mediaKind#, #bkDevice#, #bkKind#, #storageDay#, #bkDate#, #delDate#, #mediaFreeSpace#, #bkPreventDate#
+			, #bkQuery#, #bkDirectory#, #bkDirectory2#, #bkLabelHeader#, #bkTimeStart#, #bkTimeEnd#, #bkFilesMax#, #delFilesMax#
+			)
+	</insert>
+
+	<update id="bkInfo.setBkInfoUpdate" parameterClass="java.util.HashMap">
+		/* ID : bkInfo.setBkInfoUpdate */
+		update tb_sys_bkInfo set 
+			bk_device  			= #bkDevice#
+			, bk_kind  			= #bkKind#
+			, storage_day  		= #storageDay#
+			, bk_date 			= #bkDate#
+			, del_date 			= #delDate#
+			, media_free_space	= #mediaFreeSpace#
+			, bk_prevent_date 	= #bkPreventDate#
+			, bk_query 			= #bkQuery#
+			, bk_directory 		= #bkDirectory#
+			, bk_directory_2 	= #bkDirectory2#
+			, bk_label_Header 	= #bkLabelHeader#
+			, bk_time_start 	= #bkTimeStart#
+			, bk_time_end 		= #bkTimeEnd#
+			, bk_files_max 		= #bkFilesMax#
+			, del_files_max 	= #delFilesMax#
+		where system_id 		= #systemId#
+			and process_id  	= #processId#
+			and media_kind 		= #mediaKind#
+	</update>
+	
+	<delete id="bkInfo.setBkInfoDelete" parameterClass="java.util.HashMap" >
+		/* ID : bkInfo.setBkInfoDelete */
+		delete 
+			from tb_sys_bkInfo
+		where system_id    = #systemId#
+			and process_id = #processId#
+			and media_kind = #mediaKind#
+	</delete>
+
+</sqlMap>

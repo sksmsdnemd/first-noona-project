@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="recGrantAprv">
+
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+
+	<select id="recGrantAprv.getRecGrantAprv" resultClass="egovMap">
+		/** recGrantAprv.getRecGrantAprv */
+		SELECT
+			  a.REC_KEY                  AS "recKey"
+			, a.TENANT_ID                AS "tenantId"
+			, a.USER_ID                  AS "userId"
+			, ru.USER_NAME               AS "userName"
+			, ru.GROUP_NAME 			 AS "groupName"
+			, a.REC_GRANT                AS "recGrant"
+			, a.START_DT                 AS "startDt"
+			, a.END_DT                   AS "endDt"
+			, a.REC_TIME 				 AS "recTime"
+			, a.APRV_STATUS              AS "aprvStatus"
+			, a.REQ_REASON               AS "reqReason"
+			, a.REQ_APRVR_IDS            AS "reqAprvrIds"
+			, TO_CHAR(a.REQ_DATE, 'YYYY-MM-DD HH24:MI:SS')	AS "reqDate"
+			, a.APRVR_ID                 AS "aprvrId"
+			, au.USER_NAME               AS "aprvrName"
+			, TO_CHAR(a.APRV_DATE, 'YYYY-MM-DD HH24:MI:SS')	AS "aprvDate"
+			, a.APRV_REASON               AS "aprvReason"
+			, a.UPT_ID				     AS "uptId"
+			, TO_CHAR(a.UPT_DATE, 'YYYY-MM-DD HH24:MI:SS')	AS "uptDate"
+			, f.CALL_ID 				 AS "callId"
+<!--			, f.REC_TIME 				 AS "recTime"-->
+			, f.END_TIME 				 AS "endTime"
+			, f.CUST_NAME 				 AS "custName"
+			, f.DN_NO 				 	 AS "dnNo"
+		FROM TB_REC_GRANT_APRV a
+<!--			JOIN TB_REC_FILE f ON a.REC_KEY = f.REC_KEY-->
+			JOIN TB_REC_FILE_$recDt$ f ON a.REC_KEY = f.REC_KEY
+			LEFT OUTER JOIN (
+				SELECT u.*, g.GROUP_NAME
+				FROM TB_MNG_USERINFO u , TB_MNG_GROUP g
+				WHERE u.TENANT_ID = g.TENANT_ID AND u.GROUP_ID = g.GROUP_ID
+			) ru ON ru.TENANT_ID = a.TENANT_ID AND ru.USER_ID = a.USER_ID
+			LEFT OUTER JOIN TB_MNG_USERINFO au ON au.TENANT_ID = a.TENANT_ID AND au.USER_ID = a.APRVR_ID
+		WHERE 1=1
+		AND a.REC_KEY 	= #recKey#
+		AND a.TENANT_ID = #tenantId#
+		AND a.USER_ID 	= #userId#
+		AND a.REC_GRANT = #recGrant#
+		AND a.START_DT 	= #startDt#
+	</select>
+
+	<select id="recGrantAprv.getRecGrantAprvList" resultClass="egovMap">
+		/** recGrantAprv.getRecGrantAprvList */
+		SELECT
+			f.*
+		FROM (
+			SELECT
+				  ROW_NUMBER() OVER (ORDER BY a.REQ_DATE DESC) AS ROW_NUM
+				, a.REC_KEY                  AS "recKey"
+				, a.TENANT_ID                AS "tenantId"
+				, a.USER_ID                  AS "userId"
+				, ru.USER_NAME               AS "userName"
+				, ru.GROUP_NAME 			 AS "groupName"
+				, a.REC_GRANT                AS "recGrant"
+				, a.START_DT                 AS "startDt"
+				, a.END_DT                   AS "endDt"
+				, a.REC_TIME 				 AS "recTime"
+				, a.APRV_STATUS              AS "aprvStatus"
+				, a.REQ_REASON               AS "reqReason"
+				, a.REQ_APRVR_IDS            AS "reqAprvrIds"
+				, TO_CHAR(a.REQ_DATE, 'YYYY-MM-DD HH24:MI:SS')	AS "reqDate"
+				, a.APRVR_ID                 AS "aprvrId"
+				, au.USER_NAME               AS "aprvrName"
+				, TO_CHAR(a.APRV_DATE, 'YYYY-MM-DD HH24:MI:SS')	AS "aprvDate"
+				, a.UPT_ID				     AS "uptId"
+				, TO_CHAR(a.UPT_DATE, 'YYYY-MM-DD HH24:MI:SS')	AS "uptDate"
+	<!--			, f.CALL_ID 				 AS "callId"-->
+	<!--			, f.REC_TIME 				 AS "recTime"-->
+	<!--			, f.END_TIME 				 AS "endTime"-->
+	<!--			, f.CUST_NAME 				 AS "custName"-->
+	<!--			, f.DN_NO 				 	 AS "dnNo"-->
+			FROM TB_REC_GRANT_APRV a INNER JOIN TB_MNG_USERINFO b ON a.TENANT_ID = b.TENANT_ID AND a.USER_ID = b.USER_ID
+	<!--			JOIN TB_REC_FILE f ON a.REC_KEY = f.REC_KEY-->
+				JOIN (
+					SELECT u.*, g.GROUP_NAME
+					FROM TB_MNG_USERINFO u , TB_MNG_GROUP g
+					WHERE u.TENANT_ID = g.TENANT_ID AND u.GROUP_ID = g.GROUP_ID
+				) ru ON ru.TENANT_ID = a.TENANT_ID AND ru.USER_ID = a.USER_ID
+				LEFT OUTER JOIN TB_MNG_USERINFO au ON au.TENANT_ID = a.TENANT_ID AND au.USER_ID = a.APRVR_ID
+			WHERE 1=1
+
+
+			<isNotEmpty property="recKey">
+				AND a.REC_KEY = #recKey#
+			</isNotEmpty>
+			<isNotEmpty property="tenantId">
+				AND a.TENANT_ID = #tenantId#
+			</isNotEmpty>
+			<isNotEmpty property="userId">
+				AND a.USER_ID = #userId#
+			</isNotEmpty>
+			<isNotEmpty property="likeUserName">
+				AND ru.USER_NAME LIKE '%' ||  #likeUserName# || '%'
+			</isNotEmpty>
+
+			<isNotEmpty property="controlAuth">
+	            AND instr(#controlAuth#, b.GROUP_ID) > 0
+	        </isNotEmpty>
+
+			<isNotEmpty property="groupId">
+				AND EXISTS (
+					SELECT 1
+					FROM TB_MNG_USERINFO ui
+						JOIN (
+							SELECT
+								TENANT_ID, GROUP_ID
+							FROM TB_MNG_GROUP
+							WHERE 1=1
+							AND TENANT_ID = #tenantId#
+							START WITH GROUP_ID = #groupId#
+							CONNECT BY PRIOR GROUP_ID = PARENT_ID
+						) g ON g.TENANT_ID = ui.TENANT_ID AND g.GROUP_ID = ui.GROUP_ID
+					WHERE ui.TENANT_ID = a.TENANT_ID AND ui.USER_ID = a.USER_ID
+				)
+			</isNotEmpty>
+
+			<isNotEmpty property="recGrant">
+				AND a.REC_GRANT = #recGrant#
+			</isNotEmpty>
+			<isNotEmpty property="startDt">
+				AND a.START_DT = #startDt#
+			</isNotEmpty>
+			<isNotEmpty property="reqAprvrIds">
+				AND a.REQ_APRVR_IDS = #reqAprvrIds#
+			</isNotEmpty>
+			<isNotEmpty property="likeReqAprvrIds">
+				AND a.REQ_APRVR_IDS LIKE '%' ||  #likeReqAprvrIds# || '%'
+			</isNotEmpty>
+			<isNotEmpty property="aprvrId">
+				AND a.APRVR_ID = #aprvrId#
+			</isNotEmpty>
+			<isNotEmpty property="aprvStatus">
+				AND a.APRV_STATUS = #aprvStatus#
+			</isNotEmpty>
+			<isEqual property="searchType" compareValue="ALL">
+				AND (a.USER_ID = #schUserId# OR a.APRVR_ID = #schUserId#)
+			</isEqual>
+			<isEqual property="searchType" compareValue="REQ">
+				AND a.USER_ID = #schUserId#
+			</isEqual>
+			<isEqual property="searchType" compareValue="APRV">
+				AND a.APRVR_ID = #schUserId#
+			</isEqual>
+			<isNotEmpty property="reqDtFrom">
+			AND a.REQ_DATE BETWEEN  TO_DATE(#reqDtFrom# || '000000','YYYYMMDDHH24MISS') AND TO_DATE(#reqDtTo# || '235959','YYYYMMDDHH24MISS')
+			</isNotEmpty>
+		) f
+		WHERE 1=1
+		<isNotEmpty property="page">
+			AND f.ROW_NUM BETWEEN (#page# - 1) * #perPage# + 1 AND #page# * #perPage#
+		</isNotEmpty>
+	</select>
+
+	<select id="recGrantAprv.getRecGrantAprvListCnt" resultClass="egovMap">
+		/** recGrantAprv.getRecGrantAprvListCnt */
+		SELECT
+			COUNT(1) AS CNT
+		FROM TB_REC_GRANT_APRV a
+		<!--			JOIN TB_REC_FILE f ON a.REC_KEY = f.REC_KEY-->
+			LEFT OUTER JOIN (
+				SELECT u.*, g.GROUP_NAME
+				FROM TB_MNG_USERINFO u , TB_MNG_GROUP g
+				WHERE u.TENANT_ID = g.TENANT_ID AND u.GROUP_ID = g.GROUP_ID
+			) ru ON ru.TENANT_ID = a.TENANT_ID AND ru.USER_ID = a.USER_ID
+			LEFT OUTER JOIN TB_MNG_USERINFO au ON au.TENANT_ID = a.TENANT_ID AND au.USER_ID = a.APRVR_ID
+		WHERE 1=1
+
+		<isNotEmpty property="recKey">
+			AND a.REC_KEY = #recKey#
+		</isNotEmpty>
+		<isNotEmpty property="tenantId">
+			AND a.TENANT_ID = #tenantId#
+		</isNotEmpty>
+		<isNotEmpty property="userId">
+			AND a.USER_ID = #userId#
+		</isNotEmpty>
+		<isNotEmpty property="likeUserName">
+			AND ru.USER_NAME LIKE '%' ||  #likeUserName# || '%'
+		</isNotEmpty>
+
+		<isNotEmpty property="groupId">
+			AND EXISTS (
+				SELECT 1
+				FROM TB_MNG_USERINFO ui
+					JOIN (
+						SELECT
+							TENANT_ID, GROUP_ID
+						FROM TB_MNG_GROUP
+						WHERE 1=1
+						AND TENANT_ID = #tenantId#
+						START WITH GROUP_ID = #groupId#
+						CONNECT BY PRIOR GROUP_ID = PARENT_ID
+					) g ON g.TENANT_ID = ui.TENANT_ID AND g.GROUP_ID = ui.GROUP_ID
+				WHERE ui.TENANT_ID = a.TENANT_ID AND ui.USER_ID = a.USER_ID
+			)
+		</isNotEmpty>
+
+		<isNotEmpty property="recGrant">
+			AND a.REC_GRANT = #recGrant#
+		</isNotEmpty>
+		<isNotEmpty property="startDt">
+			AND a.START_DT = #startDt#
+		</isNotEmpty>
+		<isNotEmpty property="reqAprvrIds">
+			AND a.REQ_APRVR_IDS = #reqAprvrIds#
+		</isNotEmpty>
+		<isNotEmpty property="likeReqAprvrIds">
+			AND a.REQ_APRVR_IDS LIKE '%' ||  #likeReqAprvrIds# || '%'
+		</isNotEmpty>
+		<isNotEmpty property="aprvrId">
+			AND a.APRVR_ID = #aprvrId#
+		</isNotEmpty>
+		<isNotEmpty property="aprvStatus">
+			AND a.APRV_STATUS = #aprvStatus#
+		</isNotEmpty>
+		<isEqual property="searchType" compareValue="ALL">
+			AND (a.USER_ID = #schUserId# OR a.APRVR_ID = #schUserId#)
+		</isEqual>
+		<isEqual property="searchType" compareValue="REQ">
+			AND a.USER_ID = #schUserId#
+		</isEqual>
+		<isEqual property="searchType" compareValue="APRV">
+			AND a.APRVR_ID = #schUserId#
+		</isEqual>
+		<isNotEmpty property="reqDtFrom">
+			AND a.REQ_DATE BETWEEN  TO_DATE(#reqDtFrom# || '000000', 'YYYYMMDDHH24MISS') AND TO_DATE(#reqDtTo# || '235959', 'YYYYMMDDHH24MISS')
+		</isNotEmpty>
+	</select>
+
+
+	<select id="recGrantAprv.getRecGrantAprvrList" resultClass="egovMap">
+		/** recGrantAprv.getRecGrantAprvrList */
+		SELECT a.tenantId as "tenantId"
+				,a.userId as "userId"
+				,a.userName as "userName"
+		FROM(
+			SELECT
+				  u.TENANT_ID                AS tenantId
+				, u.USER_ID                  AS userId
+				, u.USER_NAME                AS userName
+			FROM TB_MNG_USERINFO u
+			WHERE 1=1
+			AND EXISTS (
+				SELECT 1
+				FROM TB_MNG_USER_AUTH b
+				INNER JOIN (
+					SELECT
+						TENANT_ID, GROUP_ID
+					FROM TB_MNG_GROUP
+					WHERE 1=1
+					AND TENANT_ID = #tenantId#
+					START WITH GROUP_ID = #groupId#
+					CONNECT BY PRIOR PARENT_ID = GROUP_ID
+				) g ON g.TENANT_ID = b.TENANT_ID
+				WHERE 1=1
+				AND b.TENANT_ID = u.TENANT_ID AND b.USER_ID = u.USER_ID
+				AND INSTR(b.CONTROL_GROUP, g.GROUP_ID) > 0
+	
+				<isEqual property="recListeningYn" compareValue="Y">
+					AND b.REC_LISTENING_YN = 'Y'
+				</isEqual>
+	
+				<isEqual property="recDownloadYn" compareValue="Y">
+					AND b.REC_DOWNLOAD_YN = 'Y'
+				</isEqual>
+			)
+	
+			UNION
+			SELECT
+				  u.TENANT_ID                AS tenantId
+				, u.USER_ID                  AS userId
+				, u.USER_NAME                AS userName
+			FROM TB_MNG_USERINFO u
+			WHERE 1=1
+			AND u.TENANT_ID = #tenantId#
+			AND u.GRANT_ID = 'SuperAdmin'
+			AND EXISTS (
+				SELECT 1
+				FROM TB_MNG_USER_AUTH b
+				WHERE 1=1
+				AND b.TENANT_ID = u.TENANT_ID AND b.USER_ID = u.USER_ID
+	
+				<isEqual property="recListeningYn" compareValue="Y">
+					AND b.REC_LISTENING_YN = 'Y'
+				</isEqual>
+	
+				<isEqual property="recDownloadYn" compareValue="Y">
+					AND b.REC_DOWNLOAD_YN = 'Y'
+				</isEqual>
+			)
+		) a
+		WHERE a.tenantId || a.userId != #glo_tenantId# || #glo_userId#
+	</select>
+
+
+	<insert id="recGrantAprv.setRecGrantAprvInsert">
+		/** recGrantAprv.setRecGrantAprvInsert */
+		INSERT INTO TB_REC_GRANT_APRV(
+			  REC_KEY
+			, TENANT_ID
+			, USER_ID
+			, REC_GRANT
+			, START_DT
+			, END_DT
+			, REC_TIME
+			, APRV_STATUS
+			, REQ_REASON
+			, REQ_DATE
+			, APRVR_ID
+			, UPT_ID
+			, UPT_DATE
+		)
+		VALUES(
+			  #recKey#
+			, #tenantId#
+			, #userId#
+			, #recGrant#
+			, #startDt#
+			, #endDt#
+			, #recTime#
+			, #aprvStatus#
+			, #reqReason#
+			, SYSDATE
+			, #aprvrId#
+			, #uptId#
+			, SYSDATE
+		)
+	</insert>
+
+	
+	<update id="recGrantAprv.setRecGrantAprvUpdate">
+		/** recGrantAprv.setRecGrantAprvUpdate */
+		UPDATE TB_REC_GRANT_APRV SET
+			  REC_KEY 		= #recKey#
+			, TENANT_ID 	= #tenantId#
+			, USER_ID 		= #userId#
+			, REC_GRANT 	= #recGrant#
+			, START_DT 		= #startDt#
+			, END_DT 		= #endDt#
+			, APRV_STATUS 	= #aprvStatus#
+			, REQ_REASON 	= #reqReason#
+			, REQ_APRVR_IDS = #reqAprvrIds#
+			, REQ_DATE 		= SYSDATE
+			, APRVR_ID 		= #aprvrId#
+			, APRV_DATE 	= #aprvDate#
+			, UPT_ID 		= #userId#
+			, UPT_DATE 		= SYSDATE
+		WHERE 1=1
+	</update>
+
+	<update id="recGrantAprv.setRecGrantAprvByAprvrUpdate">
+		/** recGrantAprv.setRecGrantAprvByAprvrUpdate */
+		UPDATE TB_REC_GRANT_APRV SET
+			  APRV_STATUS 	= #aprvStatus#
+			, APRVR_ID 		= #aprvrId#
+			, APRV_DATE 	= SYSDATE
+			, APRV_REASON 	= #aprvReason#
+			, UPT_ID 		= #aprvrId#
+			, UPT_DATE 		= SYSDATE
+		WHERE 1=1
+		AND REC_KEY 	= #recKey#
+		AND TENANT_ID 	= #tenantId#
+		AND USER_ID 	= #userId#
+		AND REC_GRANT 	= #recGrant#
+		AND START_DT 	= #startDt#
+	</update>
+
+	
+	<update id="recGrantAprv.setRecGrantAprvUpsert">
+		/** recGrantAprv.setRecGrantAprvUpsert */
+		MERGE INTO TB_REC_GRANT_APRV A
+		USING DUAL ON (
+			    A.REC_KEY 	= #recKey#
+			AND A.TENANT_ID = #tenantId#
+			AND A.USER_ID 	= #userId#
+			AND A.REC_GRANT = #recGrant#
+			AND A.START_DT 	= #startDt#
+		)
+		WHEN MATCHED THEN
+		UPDATE SET
+			  REC_KEY 		= #recKey#
+			, TENANT_ID 	= #tenantId#
+			, USER_ID 		= #userId#
+			, REC_GRANT 	= #recGrant#
+			, START_DT 		= #startDt#
+			, END_DT 		= #endDt#
+			, APRV_STATUS 	= #aprvStatus#
+			, REQ_REASON 	= #reqReason#
+			, REQ_APRVR_IDS = #reqAprvrIds#
+			, REQ_DATE 		= SYSDATE
+			, APRVR_ID 		= #aprvrId#
+			, APRV_DATE 	= #aprvDate#
+			, UPT_ID 		= #userId#
+			, UPT_DATE 		= SYSDATE
+		WHEN NOT MATCHED THEN
+		INSERT (
+			  REC_KEY
+			, TENANT_ID
+			, USER_ID
+			, REC_GRANT
+			, START_DT
+			, END_DT
+			, APRV_STATUS
+			, REQ_REASON
+			, REQ_APRVR_IDS
+			, REQ_DATE
+			, UPT_ID
+			, UPT_DATE
+		)
+		VALUES(
+			  #recKey#
+			, #tenantId#
+			, #userId#
+			, #recGrant#
+			, #startDt#
+			, #endDt#
+			, #aprvStatus#
+			, #reqReason#
+			, #reqAprvrIds#
+			, SYSDATE
+			, #userId#
+			, SYSDATE
+		)
+	</update>
+
+	<delete id="recGrantAprv.setRecGrantAprvDelete">
+		/** recGrantAprv.setRecGrantAprvDelete */
+		DELETE FROM TB_REC_GRANT_APRV
+		WHERE 1=1
+		AND REC_KEY 	= #recKey#
+		AND TENANT_ID 	= #tenantId#
+		AND USER_ID 	= #userId#
+		AND REC_GRANT 	= #recGrant#
+		AND START_DT 	= #startDt#
+	</delete>
+</sqlMap>

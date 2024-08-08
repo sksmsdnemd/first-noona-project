@@ -1,0 +1,59 @@
+﻿<!DOCTYPE html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <link rel="stylesheet" type="text/css" href="assets/dist/themes/default/style.min.css">
+
+
+</head>
+<body>
+
+    <div id="ProductInterests">  
+        <ul>
+                <li class="jstree-open">Markiser
+                    <ul>
+                                <li id="1" data-jstree='{"checked":false}'>Terrassemarkise</li>
+                                <li id="2" data-jstree='{"checked":false}'>Vindusmarkise</li>
+                                <li id="3" data-jstree='{"checked":false}'>Semi-Nova</li>
+                                <li id="4" data-jstree='{"checked":false}'>Dukskift</li>
+                                <li id="5" data-jstree='{"checked":false}'>Fasademarkise</li>
+                                <li id="6" data-jstree='{"checked":false}'>Kurvmarkise</li>
+                                <li id="7" data-jstree='{"checked":false}'>Andre</li>
+                    </ul>
+                </li>
+                <li class="jstree-open">Utv. Persienner
+                    <ul>
+                                <li id="8" data-jstree='{"checked":false}'>L50</li>
+                                <li id="9" data-jstree='{"checked":false}'>Spesial</li>
+                                <li id="10" data-jstree='{"checked":false}'>Variant</li>
+                                <li id="11" data-jstree='{"checked":false}'>L80</li>
+                    </ul>
+                </li>
+        </ul>
+    </div>
+	<button>dump</button>
+
+
+    <script src="assets/jquery-1.10.2.min.js" type="text/javascript"></script>
+    <script src="assets/dist/jstree.min.js" type="text/javascript"></script>
+
+
+    <script type="text/javascript">
+    	$(document).ready(function() {
+
+		 	$("#ProductInterests").jstree
+            ({
+                core: { themes: { icons: false } },
+                checkbox : { tie_selection : false },
+                plugins: ["themes", "checkbox"]
+            });
+
+			$('button').click(function () {
+			    alert($("#ProductInterests").jstree(true).get_checked().join(','));
+			});
+
+		});
+    </script>
+</body>
+</html>

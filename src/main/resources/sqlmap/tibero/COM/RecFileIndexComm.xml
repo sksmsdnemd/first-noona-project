@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="RecFileIndexComm">
+    <typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+
+    <sql id="TB_REC_FILE_INDEX_MULTI">
+        (
+            <iterate property="TB_REC_FILE_INDEX_TABLE_LIST" >
+                <isEqual property="TB_REC_FILE_INDEX_TABLE_LIST[].UNION_FLAG" compareValue="TRUE">
+                    UNION ALL
+                </isEqual>
+                SELECT * FROM $TB_REC_FILE_INDEX_TABLE_LIST[].TABLE_NAME$ WHERE 1=1
+                <isNotNull prepend="AND" property="TB_REC_FILE_INDEX_TABLE_LIST[].FIRST_START_DATE"> REC_TIME_F <![CDATA[ >= ]]> TO_CHAR(#TB_REC_FILE_INDEX_TABLE_LIST[].START_DATE#, 'YYYYMMDD') || '00'  </isNotNull>
+                <isNotNull prepend="AND" property="TB_REC_FILE_INDEX_TABLE_LIST[].FIRST_END_DATE">   REC_TIME_F <![CDATA[ <  ]]> TO_CHAR(#TB_REC_FILE_INDEX_TABLE_LIST[].END_DATE#,   'YYYYMMDD') || '99'  </isNotNull>
+            </iterate>
+        )
+    </sql>
+
+    <sql id="TB_REC_FILE_INDEX_MULTI_2">
+        (
+            <iterate property="TB_REC_FILE_INDEX_TABLE_LIST_2" >
+                <isEqual property="TB_REC_FILE_INDEX_TABLE_LIST_2[].UNION_FLAG" compareValue="TRUE">
+                    UNION ALL
+                </isEqual>
+                SELECT * FROM $TB_REC_FILE_INDEX_TABLE_LIST_2[].TABLE_NAME$ WHERE 1=1
+                <isNotNull prepend="AND" property="TB_REC_FILE_INDEX_TABLE_LIST_2[].FIRST_START_DATE"> REC_TIME_F <![CDATA[ >= ]]> TO_CHAR(#TB_REC_FILE_INDEX_TABLE_LIST_2[].START_DATE#, 'YYYYMMDD') || '00'  </isNotNull>
+                <isNotNull prepend="AND" property="TB_REC_FILE_INDEX_TABLE_LIST_2[].FIRST_END_DATE">   REC_TIME_F <![CDATA[ <  ]]> TO_CHAR(#TB_REC_FILE_INDEX_TABLE_LIST_2[].END_DATE#,   'YYYYMMDD') || '99'  </isNotNull>
+            </iterate>
+        )
+    </sql>
+
+</sqlMap>

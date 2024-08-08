@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="callTest">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="callTest.getDnListCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : callTest.getDnListCnt */
+		select count(*) as cnt
+		  from tb_mng_usertelno t1
+		  left outer join tb_mng_userinfo t2
+			on t1.tenant_id = t2.tenant_id
+		   and t1.user_id = t2.user_id
+		  left outer join (select * from tb_mng_basecode where class_id = 'dn_status') t3
+			on t1.dn_status = t3.code_id
+		  left outer join tb_sys_sysinfo t4
+			on t1.system_id = t4.system_id
+		  left outer join tb_sys_procinfo t5
+			on t1.system_id = t5.system_id
+		   and t1.process_id = t5.process_id
+		 where 1 = 1
+		   <isNotEmpty property="findTenantId">
+		   and t1.tenant_id = #findTenantId#
+		   </isNotEmpty>
+		   <isNotEmpty property="findDnNo">
+		   and t1.dn_no like concat(concat('%' , #findDnNo#) , '%')
+		   </isNotEmpty>
+		 order by t1.tenant_id, cast(t1.dn_no as int)
+ 
+	</select>
+	
+	<select id="callTest.getDnList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : callTest.getDnList */
+		select tenant_id
+			 , dn_no
+			 , user_id
+			 , user_name
+			 , agent_status
+			 , agent_status_name
+			 , phone_ip
+			 , dn_status
+			 , code_name
+			 , system_id
+			 , system_name
+			 , process_id
+			 , process_name
+			 , use_flag
+			 , use_flag_name
+		  from (
+			select row_number() over (order by tenant_id desc, cast(dn_no as int) desc) as rownum2
+				 , tb_in.*
+			  from (
+				select row_number() over (order by t1.tenant_id, cast(t1.dn_no as int)) as rownum1
+					 , t1.tenant_id
+					 , t1.dn_no
+					 , t1.user_id
+					 , t2.user_name
+					 , t2.agent_status
+					 , case when t2.agent_status = '01' then '로그인' else '로그아웃' end as agent_status_name
+					 , t1.phone_ip
+					 , t1.dn_status
+					 , t3.code_name
+					 , t1.system_id
+					 , t4.system_name
+					 , t1.process_id
+					 , t5.process_name
+					 , t1.use_flag
+					 , case when t1.use_flag = '0' then 'O' else 'X' end as use_flag_name
+				  from tb_mng_usertelno t1
+				  left outer join tb_mng_userinfo t2
+					on t1.tenant_id = t2.tenant_id
+				   and t1.user_id = t2.user_id
+				  left outer join (select * from tb_mng_basecode where class_id = 'dn_status') t3
+					on t1.dn_status = t3.code_id
+				  left outer join tb_sys_sysinfo t4
+					on t1.system_id = t4.system_id
+				  left outer join tb_sys_procinfo t5
+					on t1.system_id = t5.system_id
+				   and t1.process_id = t5.process_id
+				 where 1 = 1
+				   <isNotEmpty property="findTenantId">
+				   and t1.tenant_id = #findTenantId#
+				   </isNotEmpty>
+				   <isNotEmpty property="findDnNo">
+				   and t1.dn_no like concat(concat('%' , #findDnNo# ), '%')
+				   </isNotEmpty>
+			  ) tb_in
+			 where <![CDATA[ rownum1 <= #iEPageNo# ]]>
+		  )tn_in2
+		 where <![CDATA[ rownum2 <= #iSPageNo# ]]>
+		 order by tenant_id, cast(dn_no as int)
+	</select>
+	
+	<select id="callTest.getDnListAll" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : callTest.getDnListAll */
+		select row_number() over (order by t1.tenant_id, cast(t1.dn_no as int)) as rownum1
+			 , t1.tenant_id
+			 , t1.dn_no
+			 , t1.user_id
+			 , t2.user_name
+			 , t2.agent_status
+			 , case when t2.agent_status = '01' then '로그인' else '로그아웃' end as agent_status_name
+			 , t1.phone_ip
+			 , t1.dn_status
+			 , t3.code_name
+			 , t1.system_id
+			 , t4.system_name
+			 , t1.process_id
+			 , t5.process_name
+			 , t1.use_flag
+			 , case when t1.use_flag = '0' then 'O' else 'X' end as use_flag_name
+		  from tb_mng_usertelno t1
+		  left outer join tb_mng_userinfo t2
+			on t1.tenant_id = t2.tenant_id
+		   and t1.user_id = t2.user_id
+		  left outer join (select * from tb_mng_basecode where class_id = 'dn_status') t3
+			on t1.dn_status = t3.code_id
+		  left outer join tb_sys_sysinfo t4
+			on t1.system_id = t4.system_id
+		  left outer join tb_sys_procinfo t5
+			on t1.system_id = t5.system_id
+		   and t1.process_id = t5.process_id
+		 where 1 = 1
+		   <isNotEmpty property="findTenantId">
+		   and t1.tenant_id = #findTenantId#
+		   </isNotEmpty>
+		   <isNotEmpty property="findDnNo">
+		   and t1.dn_no like concat(concat('%' , #findDnNo# ), '%')
+		   </isNotEmpty>
+		 order by t1.tenant_id, cast(t1.dn_no as int)
+	</select>
+</sqlMap>

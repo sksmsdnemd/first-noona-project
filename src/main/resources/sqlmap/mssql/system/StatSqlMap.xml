@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="resource">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="resource.getResourceCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resource.getResourceCount */
+		select cnt
+			from(
+				select count(*) cnt
+					from(
+						select
+								<isEqual property="dateCol" compareValue=" a.reg_date , a.reg_time "> 
+									a.reg_date, a.reg_time	
+								</isEqual>
+								<isEqual property="dateCol" compareValue=" a.reg_date , substring(a.reg_time,1,2)  reg_time"> 
+									a.reg_date, substring(a.reg_time,1,2) reg_time	
+								</isEqual>
+								<isEqual property="dateCol" compareValue=" a.reg_date , '' reg_time"> 
+									a.reg_date, '' reg_time	
+								</isEqual>
+								<isEqual property="dateCol" compareValue=" substring(a.reg_date,1, 6)   reg_date , '' reg_time"> 
+									substring(a.reg_date,1, 6) reg_date, '' reg_time	
+								</isEqual>
+					 			, a.sys_group_id, a.system_id, b.system_name, a.res_class, a.res_code
+								, min(a.res_min) res_min, avg(a.res_avg) res_avg, max(a.res_max) res_max
+							from tb_sta_resource a 
+								join tb_sys_sysinfo b
+									on a.sys_group_id = b.sys_group_id
+									and a.system_id = b.system_id
+						<dynamic prepend="WHERE">
+							<isNotEmpty prepend="AND" property="findSysGroupId">
+								b.sys_group_id = #findSysGroupId#
+							</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findSystemId">
+								a.system_id = #findSystemId#
+							</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findClassId">
+								a.res_class = #findClassId#
+							</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findResCode">
+								a.res_code = #findResCode#
+							</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findERegDate">
+								a.reg_date	between #findSRegDate# and #findERegDate# 
+							</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findERegTime">
+								a.reg_time	between #findSRegTime# and #findERegTime# 
+							</isNotEmpty>
+						</dynamic>
+						group by 
+							<isEqual property="dateCol" compareValue=" a.reg_date , a.reg_time "> 
+								a.reg_date, a.reg_time	
+							</isEqual>
+							<isEqual property="dateCol" compareValue=" a.reg_date , substring(a.reg_time,1,2)  reg_time"> 
+								a.reg_date, substring(a.reg_time,1,2)	
+							</isEqual>
+							<isEqual property="dateCol" compareValue=" a.reg_date , '' reg_time"> 
+								a.reg_date 	
+							</isEqual>
+							<isEqual property="dateCol" compareValue=" substring(a.reg_date,1, 6)   reg_date , '' reg_time"> 
+								substring(a.reg_date,1, 6)	
+							</isEqual>
+							, a.sys_group_id, a.system_id, b.system_name, a.res_class, a.res_code, a.res_name
+						<isNotEmpty property="findResLimit">
+							HAVING avg(a.res_avg) >= #findResLimit#
+						</isNotEmpty>
+						) a 
+						join tb_sys_sysgroup c
+							on a.sys_group_id = c.sys_group_id
+						join tb_mng_basecode d
+							on a.res_class = d.class_id
+							and a.res_code = d.code_id
+				) tbl
+	</select>
+
+	<select id="resource.getResourceList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resource.getResourceList */
+		select 
+				reg_date, reg_time, sys_group_id, system_id, res_class, res_code, res_name
+				, sys_group_name, system_name, res_code_name, res_min, res_avg, res_max, res_name_conv 
+			from(
+				select * 
+					from (
+						select
+								Row_Number() over (order by reg_date DESC, reg_time DESC, sys_group_id DESC
+								, system_id DESC, res_class DESC, res_code DESC, res_name DESC) RowNum2,* 
+							from (
+								select 
+										Row_Number() over (order by reg_date, reg_time, sys_group_id, system_id
+										, res_class, res_code, res_name) RowNum1, *
+									from(
+										select 
+												a.reg_date, a.reg_time, a.sys_group_id, a.system_id, a.system_name
+												, a.res_class, a.res_code, a.res_name, c.sys_group_name, d.code_name res_code_name
+												, a.res_min, a.res_avg, a.res_max, d.code_name + '_' + a.res_name as res_name_conv 
+											from
+												(
+												select
+														<isEqual property="dateCol" compareValue=" a.reg_date , a.reg_time "> 
+															a.reg_date , a.reg_time	
+														</isEqual>
+														<isEqual property="dateCol" compareValue=" a.reg_date , substring(a.reg_time,1,2)  reg_time"> 
+															a.reg_date , substring(a.reg_time,1,2) reg_time	
+														</isEqual>
+														<isEqual property="dateCol" compareValue=" a.reg_date , '' reg_time"> 
+															a.reg_date , '' reg_time	
+														</isEqual>
+														<isEqual property="dateCol" compareValue=" substring(a.reg_date,1, 6)   reg_date , '' reg_time"> 
+															substring(a.reg_date,1, 6) reg_date , '' reg_time	
+														</isEqual>
+														, a.sys_group_id, a.system_id, b.system_name, a.res_class, a.res_code, a.res_name
+														, min(a.res_min) res_min, avg(a.res_avg) res_avg, max(a.res_max) res_max
+													from tb_sta_resource a 
+														join tb_sys_sysinfo b
+															on a.sys_group_id = b.sys_group_id
+															and a.system_id = b.system_id
+												<dynamic prepend="WHERE">
+													<isNotEmpty prepend="AND" property="findSysGroupId">
+														b.sys_group_id = #findSysGroupId#
+													</isNotEmpty>
+													<isNotEmpty prepend="AND" property="findSystemId">
+														a.system_id = #findSystemId#
+													</isNotEmpty>
+													<isNotEmpty prepend="AND" property="findClassId">
+														a.res_class = #findClassId#
+													</isNotEmpty>
+													<isNotEmpty prepend="AND" property="findResCode">
+														a.res_code = #findResCode#
+													</isNotEmpty>
+													<isNotEmpty prepend="AND" property="findERegDate">
+														a.reg_date	between #findSRegDate# and #findERegDate# 
+													</isNotEmpty>
+													<isNotEmpty prepend="AND" property="findERegTime">
+														a.reg_time	between #findSRegTime# and #findERegTime# 
+													</isNotEmpty>
+												</dynamic>
+												group by
+													<isEqual property="dateCol" compareValue=" a.reg_date , a.reg_time "> 
+														a.reg_date , a.reg_time	
+													</isEqual>
+													<isEqual property="dateCol" compareValue=" a.reg_date , substring(a.reg_time,1,2)  reg_time"> 
+														a.reg_date , substring(a.reg_time,1,2)	
+													</isEqual>
+													<isEqual property="dateCol" compareValue=" a.reg_date , '' reg_time"> 
+														a.reg_date 	
+													</isEqual>
+													<isEqual property="dateCol" compareValue=" substring(a.reg_date,1, 6)   reg_date , '' reg_time"> 
+														substring(a.reg_date,1, 6)	
+													</isEqual>
+												 	, a.sys_group_id, a.system_id, b.system_name, a.res_class, a.res_code, a.res_name
+												<isNotEmpty property="findResLimit">
+													HAVING avg(a.res_avg) >= #findResLimit#
+												</isNotEmpty>
+												) a 
+												join tb_sys_sysgroup c
+													on a.sys_group_id = c.sys_group_id
+												join tb_mng_basecode d
+													on a.res_class = d.class_id
+													and a.res_code = d.code_id
+										) tbl	
+								) TB_IN
+						WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+					) TB_OUT 
+				WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+			) tbl2
+		order by reg_date, reg_time, sys_group_id, system_id, res_class, res_code, res_name
+	</select>
+
+</sqlMap>

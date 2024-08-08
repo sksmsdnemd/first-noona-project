@@ -1,0 +1,943 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="userInfo">
+	<!-- <typeAlias alias="baseCode" type="com.bt.veloce.management.model.BaseCode"/> -->
+	<!-- <typeAlias alias="procInfo" type="com.bt.veloce.system.model.ProcInfo"/> -->
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+
+	<select id="userInfo.getTenantCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userInfo.getTenantCount */
+		select count(*) as cnt
+			FROM tb_mng_company
+		<isNotEmpty property="findTenantNameText">
+			where (tenant_id like '%' || #findTenantNameText# || '%' or tenant_name like '%' || #findTenantNameText# || '%' )
+		</isNotEmpty>
+	</select>
+	
+	<select id="userInfo.getTenantOverlapCheck" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userInfo.getTenantCount */   
+		select count(*) as cnt
+			FROM tb_mng_company 
+		<isNotEmpty property="findTenantNameText">
+			where tenant_id = #findTenantNameText#  
+<!-- 			or tenant_name = #findTenantNameText# -->
+		</isNotEmpty>
+	</select>
+
+	<select id="userInfo.getTenantList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userInfo.getTenantList */
+		select
+				tenant_id, tenant_name, agent_count, manager_count, expire_reason
+				, disk_limit, disk_used, loginip_check, base_path, serial_no
+				, to_char(reg_date,    'YYYY-MM-DD HH24:MI:SS') reg_date
+				, to_char(expire_date, 'YYYY-MM-DD HH24:MI:SS') expire_date
+			FROM tb_mng_company
+		<dynamic prepend="WHERE">
+			1=1
+			<!-- <isNotEmpty property="txtDate1_To">
+				<![CDATA[		to_char(to_date(reg_date),'YYYYMMDD') <= to_char(to_date(#txtDate1_To#),'YYYYMMDD')		]]>
+			</isNotEmpty>
+			<isNotEmpty property="txtDate1_From">
+				and <![CDATA[	to_char(to_date(reg_date),'YYYYMMDD') >= to_char(to_date(#txtDate1_From#),'YYYYMMDD') 	]]>
+			</isNotEmpty> -->
+			<isNotEmpty property="findTenantNameText">
+				and (tenant_id like '%' || #findTenantNameText# || '%' or tenant_name like '%' || #findTenantNameText# || '%' )
+			</isNotEmpty>
+			<isNotEmpty property="findDiskLimitFrom"> and <![CDATA[	disk_limit >= #findDiskLimitFrom# 	]]> </isNotEmpty>
+			<isNotEmpty property="findDiskLimitTo">   and <![CDATA[	disk_limit <= #findDiskLimitTo#   	]]> </isNotEmpty>
+			<isNotEmpty property="findDiskUsedFrom">  and <![CDATA[	disk_used  >= #findDiskUsedFrom#  	]]> </isNotEmpty>
+			<isNotEmpty property="findDiskUsedTo">    and <![CDATA[	disk_used  <= #findDiskUsedTo# 		]]> </isNotEmpty>
+		</dynamic>
+	</select>
+
+	<insert id="userInfo.setTenantInfoInsert" parameterClass="java.util.HashMap">
+		/* ID : userInfo.setTenantInfoInsert */
+<!-- 2020.07.07 정윤석 수정 -->
+<!--
+		insert into tb_mng_company
+			(
+			tenant_id, tenant_name, disk_limit, base_path, serial_no, reg_date
+			)
+		values
+			(
+			#tenantId#, #tenantName#, #diskLimit#, #basePath#, #serialNo#, sysdate
+			)
+ -->
+		INSERT INTO tb_mng_company (tenant_id, tenant_name, agent_count, manager_count, base_path, reg_date, ins_id, ins_date)
+		VALUES (#tenantId#, #tenantName#, #agentCount#, #managerCount#, #basePath#, sysdate, #userId#, sysdate)
+	</insert>
+
+	<!-- 2018-10-10 yoonys start
+	새로운 테넌트 생성시에 권한에 관련된 내용을 같이 생성해준다.
+	전제조건 : 설치시에 bridgetec 테넌트에대한 모든 내용이 들어있어야 함
+	-->
+	<insert id="userInfo.setAuthInfoInsert" parameterClass="java.util.HashMap">
+	/* ID : userInfo.setAuthInfoInsert */
+	INSERT INTO TB_MNG_AUTH
+	(TENANT_ID, GRANT_ID, GRANT_NAME, INS_ID, INS_DATE, UPT_ID, UPT_DATE, OAM_GRANT, AUTH_RANK, EX_GRANT)
+	(SELECT #tenantId# TENANT_ID, GRANT_ID, GRANT_NAME, INS_ID, INS_DATE, UPT_ID, UPT_DATE, OAM_GRANT, AUTH_RANK, EX_GRANT
+	FROM TB_MNG_AUTH
+	WHERE TENANT_ID='bridgetec')
+	</insert>
+	<insert id="userInfo.setMenuAuthInfoInsert" parameterClass="java.util.HashMap">
+	/* ID : userInfo.setMenuAuthInfoInsert */
+	INSERT INTO TB_MNG_MENUAUTH
+	(TENANT_ID, GRANT_ID, DEPTH1_ID, DEPTH2_ID, DEPTH3_ID, AUTH_KIND, INS_ID, INS_DATE, UPT_ID, UPT_DATE)
+	(SELECT #tenantId# AS TENANT_ID, GRANT_ID, DEPTH1_ID, DEPTH2_ID, DEPTH3_ID, AUTH_KIND, #userId#, sysdate, UPT_ID, UPT_DATE
+	FROM TB_MNG_MENUAUTH
+	WHERE TENANT_ID='bridgetec')
+	</insert>
+	<insert id="userInfo.setGroupInfoInsert" parameterClass="java.util.HashMap">
+	INSERT INTO TB_MNG_GROUP
+	(TENANT_ID,GROUP_ID,TOP_PARENT_ID,PARENT_ID,DEPTH,GROUP_NAME,VALUE_TITLE_ID,INS_ID,INS_DATE)
+	VALUES
+		(#tenantId#,#tenantId#,#tenantId#,'0','A',#tenantName#,0,#userId#,sysdate)
+	</insert>
+	<!--
+	2018-10-10 yoonys end
+ 	-->
+
+	<update id="userInfo.setTenantInfoUpdate" parameterClass="java.util.HashMap">
+		/* ID : userInfo.setTenantInfoUpdate */
+<!-- 2020.07.07 정윤석 수정 -->
+<!--
+		update tb_mng_company set
+			tenant_name	 = #tenantName#
+			, disk_limit = #diskLimit#
+			, base_path	 = #basePath#
+			, serial_no	 = #serialNo#
+		where tenant_id  = #tenantId#
+ -->
+		UPDATE tb_mng_company
+		   SET tenant_name = #tenantName#
+			 , agent_count = #agentCount#
+			 , manager_count = #managerCount#
+			 , base_path = #basePath#
+			 , upt_id = #userId#
+			 , upt_date = sysdate
+		 WHERE tenant_id = #tenantId#
+	</update>
+
+	<delete id="userInfo.setTenantInfoDelete" parameterClass="java.util.HashMap" >
+		/* ID : userInfo.setTenantInfoDelete */
+<!-- 2020.07.07 정윤석 수정 -->
+<!--
+		delete
+			from tb_mng_company
+		where tenant_id = #tenantId#
+ -->
+		UPDATE tb_mng_company
+		   SET expire_date = sysdate
+			 , expire_reason = #expireReason#
+			 , upt_id = #userId#
+			 , upt_date = sysdate
+		 WHERE tenant_id = #tenantId#
+	</delete>
+
+	<update id="userInfo.setTenantExpireCancle" parameterClass="java.util.HashMap">
+		/* ID : userInfo.setTenantExpireCancle */
+		UPDATE tb_mng_company
+		   SET expire_date = null
+			 , expire_reason = null
+			 , upt_id = #userId#
+			 , upt_date = sysdate
+		 WHERE tenant_id = #tenantId#
+	</update>
+
+	<select id="userInfo.getUserInfoCount_org" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userInfo.getUserInfoCount_org */
+		select count(*) as cnt
+			FROM tb_mng_userInfo tb_user
+				join tb_mng_group tb_group
+					on tb_user.tenant_id = tb_group.tenant_id
+					and tb_user.group_id = tb_group.group_id
+				join tb_mng_auth tb_auth
+					on tb_user.tenant_id = tb_auth.tenant_id
+					and tb_user.grant_id = tb_auth.grant_id
+		where tb_user.tenant_id = #findTenantId#
+		and tb_auth.auth_rank <![CDATA[ >= ]]> #authRank#
+			<isNotEmpty property="findGroupId">
+				and	tb_user.group_id in (
+						SELECT group_id
+						FROM tb_mng_group
+						START WITH (tenant_id = #findTenantId#
+						AND GROUP_ID = #findGroupId#)
+						CONNECT BY parent_id = PRIOR group_id
+						AND tenant_id = #findTenantId#
+					)
+			</isNotEmpty>
+			<isEmpty property="findGroupId">
+				<isEqual property="grantId" compareValue="GroupManager">
+					and tb_user.group_id in (
+					SELECT group_id
+					FROM tb_mng_group
+					START WITH (tenant_id = #findTenantId#
+					AND (GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID = #userId# and tenant_id = #findTenantId#)
+							<isNotEmpty property="controlAuth">
+								OR tb_user.group_id in  (
+								select g.GROUP_ID
+								from tb_mng_group g, tb_mng_userinfo u
+								where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+								and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+								and u.user_id = #userId#
+								and u.tenant_id = #findTenantId#
+								)
+							</isNotEmpty>
+					))
+					CONNECT BY parent_id = PRIOR group_id
+					AND tenant_id = #findTenantId#
+					)
+				</isEqual>
+				<isEqual property="grantId" compareValue="Manager">
+					and tb_user.group_id in (
+					SELECT group_id
+					FROM tb_mng_group
+					START WITH (tenant_id = #findTenantId#
+					AND (GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID = #userId# and tenant_id = #findTenantId#)
+					<isNotEmpty property="controlAuth">
+						OR tb_user.group_id in  (
+						select g.GROUP_ID
+						from tb_mng_group g, tb_mng_userinfo u
+						where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+						and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+						and u.user_id = #userId#
+						and u.tenant_id = #findTenantId#
+						)
+					</isNotEmpty>
+					))
+					CONNECT BY parent_id = PRIOR group_id
+					AND tenant_id = #findTenantId#
+					)
+				</isEqual>
+			</isEmpty>
+			<isNotEmpty property="findUserNameText">
+				and (tb_user.user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%' )
+			</isNotEmpty>
+			<isNotEmpty property="findGrantId">
+				and tb_user.grant_id = #findGrantId#
+			</isNotEmpty>
+			<isNotEmpty property="SSAUTHRANK">
+				and (tb_auth.auth_rank  >= #SSAUTHRANK# OR (tb_auth.auth_rank  = #SSAUTHRANK#  AND tb_user.user_id =#SSUSERID#))
+			</isNotEmpty>
+			<isNotEmpty property="findAgentStatus">
+				and	nvl(agent_status, '99') = #findAgentStatus#
+			</isNotEmpty>
+			<isNotEmpty property="findLoginCheck">
+				<isEqual property="findLoginCheck" compareValue="1"> and (session_id is not null or session_id != '')	</isEqual>
+				<isEqual property="findLoginCheck" compareValue="2"> and (session_id is null or session_id = '')		</isEqual>
+			</isNotEmpty>
+			<isNotEmpty property="findRetireeFlag">
+				and nvl(retiree_flag,1) = #findRetireeFlag#
+			</isNotEmpty>
+	</select>
+	
+	<select id="userInfo.getUserInfoCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userInfo.getUserInfoCount */
+		select count(*) as cnt
+			FROM tb_mng_userInfo tb_user
+				join tb_mng_group tb_group
+					on tb_user.tenant_id = tb_group.tenant_id
+					and tb_user.group_id = tb_group.group_id
+				join tb_mng_auth tb_auth
+					on tb_user.tenant_id = tb_auth.tenant_id
+					and tb_user.grant_id = tb_auth.grant_id
+		where tb_user.tenant_id  = #findTenantId#
+		and tb_auth.auth_rank <![CDATA[ >= ]]> #authRank#
+			<isNotEmpty property="findGroupId">
+				and	tb_user.group_id in (
+					SELECT group_id
+					FROM tb_mng_group
+					START WITH (tenant_id = #findTenantId#
+					AND GROUP_ID = #findGroupId#)
+					CONNECT BY parent_id = PRIOR group_id
+					AND tenant_id = #findTenantId#
+					)
+			</isNotEmpty>
+			<isEmpty property="findGroupId">
+				<isEqual property="grantId" compareValue="GroupManager">
+					and tb_user.group_id in (
+					SELECT group_id
+					FROM tb_mng_group
+					START WITH (tenant_id = #findTenantId#
+					AND (GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID = #userId# and tenant_id = #findTenantId#)
+					<isNotEmpty property="controlAuth">
+						OR group_id in  (
+						select g.GROUP_ID
+						from tb_mng_group g, tb_mng_userinfo u
+						where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+						and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+						and u.user_id = #userId#
+						and u.tenant_id = #findTenantId#
+						)
+					</isNotEmpty>
+					))
+					CONNECT BY parent_id = PRIOR group_id
+					AND tenant_id = #findTenantId#
+					)
+				</isEqual>
+				<isEqual property="grantId" compareValue="Manager">
+					and tb_user.group_id in (
+					SELECT group_id
+					FROM tb_mng_group
+					START WITH (tenant_id = #findTenantId#
+					AND (GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID = #userId# and tenant_id = #findTenantId#)
+					<isNotEmpty property="controlAuth">
+						OR group_id in  (
+						select g.GROUP_ID
+						from tb_mng_group g, tb_mng_userinfo u
+						where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+						and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+						and u.user_id = #userId#
+						and u.tenant_id = #findTenantId#
+						)
+					</isNotEmpty>
+					))
+					CONNECT BY parent_id = PRIOR group_id
+					AND tenant_id = #findTenantId#
+					)
+				</isEqual>
+			</isEmpty>
+			<isNotEmpty property="findUserNameText">
+				and (tb_user.user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%' )
+			</isNotEmpty>
+			<isNotEmpty property="findGrantId">
+				and tb_user.grant_id = #findGrantId#
+			</isNotEmpty>
+			<isNotEmpty property="SSAUTHRANK">
+				and (tb_auth.auth_rank >= #SSAUTHRANK# OR (tb_auth.auth_rank = #SSAUTHRANK#  AND tb_user.user_id = #SSUSERID#))
+			</isNotEmpty>
+			<isNotEmpty property="findAgentStatus">
+				and	nvl(agent_status, '99') = #findAgentStatus#
+			</isNotEmpty>
+			<isNotEmpty property="findLoginCheck">
+				<isEqual property="findLoginCheck" compareValue="1"> and (session_id is not null or session_id != '')	</isEqual>
+				<isEqual property="findLoginCheck" compareValue="2"> and (session_id is null or session_id = '')		</isEqual>
+			</isNotEmpty>
+			<isNotEmpty property="findRetireeFlag">
+				and nvl(retiree_flag,1) = #findRetireeFlag#
+			</isNotEmpty>
+	</select>
+
+	<select id="userInfo.getUserInfoList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userInfo.getUserInfoList */
+		select *
+			from(
+				select
+						Row_Number() over (order by tenant_id desc, user_id desc) RowNum2, TB_IN.*
+					from (
+						select
+								Row_Number() over (order by tb_user.tenant_id, tb_user.user_id) RowNum1
+								, tb_user.tenant_id, tb_user.user_id, tb_user.group_id, tb_user.grant_id, grant_name, user_name, user_pwd
+								, nvl(login_flag,0) login_flag, login_ip, to_char(login_date, 'YYYY-MM-DD HH24:MI:SS') login_date
+								, to_char(logout_date, 'YYYY-MM-DD HH24:MI:SS') logout_date, session_id, main_page
+								, nvl(agent_status, '99') agent_status, nvl(access_flag,1) access_flag, forced_logout, tb_user.ins_id
+								, to_char(tb_user.ins_date, 'YYYY-MM-DD HH24:MI:SS') ins_date, tb_user.upt_id
+								, to_char(tb_user.upt_date, 'YYYY-MM-DD HH24:MI:SS') upt_date
+								, group_name, control_auth, convert_flag, BACKUP_FLAG, salt, retiree_flag
+								, login_date_check_use, login_date_check_from, login_date_check_to
+								, nvl(login_err_count,0) login_err_count, player_kind, REAL_PLAY_KIND
+							FROM tb_mng_userInfo tb_user
+								join tb_mng_group tb_group
+									on tb_user.tenant_id = tb_group.tenant_id
+									and tb_user.group_id = tb_group.group_id
+								join tb_mng_auth tb_auth
+									on tb_user.tenant_id = tb_auth.tenant_id
+									and tb_user.grant_id = tb_auth.grant_id
+						where tb_user.tenant_id  = #findTenantId#
+						and tb_auth.auth_rank <![CDATA[ >= ]]> #authRank#
+							<isNotEmpty property="findGroupId">
+								and	tb_user.group_id in (
+									SELECT group_id
+									FROM tb_mng_group
+									START WITH (tenant_id = #findTenantId#
+									AND GROUP_ID = #findGroupId#)
+									CONNECT BY parent_id = PRIOR group_id
+									AND tenant_id = #findTenantId#
+									)
+							</isNotEmpty>
+							<isEmpty property="findGroupId">
+								<isEqual property="grantId" compareValue="GroupManager">
+									and tb_user.group_id in (
+									SELECT group_id
+									FROM tb_mng_group
+									START WITH (tenant_id = #findTenantId#
+									AND (GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID = #userId# and tenant_id = #findTenantId#)
+									<isNotEmpty property="controlAuth">
+										OR group_id in  (
+										select g.GROUP_ID
+										from tb_mng_group g, tb_mng_userinfo u
+										where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+										and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+										and u.user_id = #userId#
+										and u.tenant_id = #findTenantId#
+										)
+									</isNotEmpty>
+									))
+									CONNECT BY parent_id = PRIOR group_id
+									AND tenant_id = #findTenantId#
+									)
+								</isEqual>
+								<isEqual property="grantId" compareValue="Manager">
+									and tb_user.group_id in (
+									SELECT group_id
+									FROM tb_mng_group
+									START WITH (tenant_id = #findTenantId#
+									AND (GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID = #userId# and tenant_id = #findTenantId#)
+									<isNotEmpty property="controlAuth">
+										OR group_id in  (
+										select g.GROUP_ID
+										from tb_mng_group g, tb_mng_userinfo u
+										where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+										and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+										and u.user_id = #userId#
+										and u.tenant_id = #findTenantId#
+										)
+									</isNotEmpty>
+									))
+									CONNECT BY parent_id = PRIOR group_id
+									AND tenant_id = #findTenantId#
+									)
+								</isEqual>
+							</isEmpty>
+							<isNotEmpty property="findUserNameText">
+								and (tb_user.user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%' )
+							</isNotEmpty>
+							<isNotEmpty property="findGrantId">
+								and tb_user.grant_id = #findGrantId#
+							</isNotEmpty>
+							<isNotEmpty property="SSAUTHRANK">
+								and (tb_auth.auth_rank >= #SSAUTHRANK# OR (tb_auth.auth_rank = #SSAUTHRANK#  AND tb_user.user_id = #SSUSERID#))
+							</isNotEmpty>
+							<isNotEmpty property="findAgentStatus">
+								and	nvl(agent_status, '99') = #findAgentStatus#
+							</isNotEmpty>
+							<isNotEmpty property="findLoginCheck">
+								<isEqual property="findLoginCheck" compareValue="1"> and (session_id is not null or session_id != '')	</isEqual>
+								<isEqual property="findLoginCheck" compareValue="2"> and (session_id is null or session_id = '')		</isEqual>
+							</isNotEmpty>
+							<isNotEmpty property="findRetireeFlag">
+								and nvl(retiree_flag,1) = #findRetireeFlag#
+							</isNotEmpty>
+						) TB_IN
+				WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+			) TB_OUT
+		WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+		order by tenant_id, user_id
+	</select>
+
+    <select id="userInfo.getUserInfoList_org" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userInfo.getUserInfoList */
+		select *
+			from(
+				select
+						Row_Number() over (order by tenant_id desc, user_id desc) RowNum2, TB_IN.*
+					from (
+						select
+								Row_Number() over (order by tb_user.tenant_id, tb_user.user_id) RowNum1
+								, tb_user.tenant_id, tb_user.user_id, tb_user.group_id, tb_user.grant_id, grant_name, user_name, user_pwd
+								, nvl(login_flag,0) login_flag, login_ip, to_char(login_date, 'YYYY-MM-DD HH24:MI:SS') login_date
+								, to_char(logout_date, 'YYYY-MM-DD HH24:MI:SS') logout_date, session_id, main_page
+								, nvl(agent_status, '99') agent_status, nvl(access_flag,1) access_flag, forced_logout, tb_user.ins_id
+								, to_char(tb_user.ins_date, 'YYYY-MM-DD HH24:MI:SS') ins_date, tb_user.upt_id
+								, to_char(tb_user.upt_date, 'YYYY-MM-DD HH24:MI:SS') upt_date
+								, group_name, control_auth, convert_flag, BACKUP_FLAG, salt, retiree_flag
+								, login_date_check_use, login_date_check_from, login_date_check_to
+								, nvl(login_err_count,0) login_err_count, player_kind, REAL_PLAY_KIND
+							FROM tb_mng_userInfo tb_user
+								join tb_mng_group tb_group
+									on tb_user.tenant_id = tb_group.tenant_id
+									and tb_user.group_id = tb_group.group_id
+								join tb_mng_auth tb_auth
+									on tb_user.tenant_id = tb_auth.tenant_id
+									and tb_user.grant_id = tb_auth.grant_id
+						where tb_user.tenant_id  = #findTenantId#
+						and tb_auth.auth_rank <![CDATA[ >= ]]> #authRank#
+							<isNotEmpty property="findGroupId">
+								and	tb_user.group_id in (
+									select group_id from tb_mng_group
+									where tenant_id = #findTenantId#
+										and depth between substr(#findGroupId#, instr(#findGroupId#,'_')+1,10)
+														and substr(#findGroupId#, instr(#findGroupId#,'_')+1,10) || CHR(127)
+									)
+							</isNotEmpty>
+							<isEmpty property="findGroupId">
+								<isNotEqual property="grantId" compareValue="GroupManager">
+									<isNotEmpty property="controlAuth">
+										and tb_user.group_id in (
+											select g.group_id
+												from tb_mng_group g,
+													(
+													select depth from tb_mng_group g, tb_mng_userinfo u
+													where g.tenant_id = u.tenant_id
+														and instr(','||control_auth||',',','||g.depth||',') > 0
+														and u.user_id = #userId#
+														and u.tenant_id = #findTenantId#
+													) c
+											where g.depth LIKE c.depth || '%'
+												and tenant_id = #findTenantId#
+											)
+									</isNotEmpty>
+								</isNotEqual>
+								<isEqual property="grantId" compareValue="GroupManager">
+									and tb_user.group_id in (
+										select g.group_id
+											from tb_mng_group g,
+												(
+												select depth from tb_mng_group g, tb_mng_userinfo u
+												where g.tenant_id = u.tenant_id
+													and g.group_id = u.group_id
+													and u.user_id = #userId#
+													and u.tenant_id = #findTenantId#
+												) c
+										where g.depth LIKE c.depth || '%'
+											and tenant_id = #findTenantId#
+										)
+								</isEqual>
+							</isEmpty>
+							<isNotEmpty property="findUserNameText">
+								and (tb_user.user_id like '%' || #findUserNameText# || '%' or user_name like '%' || #findUserNameText# || '%' )
+							</isNotEmpty>
+							<isNotEmpty property="findGrantId">
+								and tb_user.grant_id = #findGrantId#
+							</isNotEmpty>
+							<isNotEmpty property="SSAUTHRANK">
+								and (tb_auth.auth_rank >= #SSAUTHRANK# OR (tb_auth.auth_rank = #SSAUTHRANK#  AND tb_user.user_id = #SSUSERID#))
+							</isNotEmpty>
+							<isNotEmpty property="findAgentStatus">
+								and	nvl(agent_status, '99') = #findAgentStatus#
+							</isNotEmpty>
+							<isNotEmpty property="findLoginCheck">
+								<isEqual property="findLoginCheck" compareValue="1"> and (session_id is not null or session_id != '')	</isEqual>
+								<isEqual property="findLoginCheck" compareValue="2"> and (session_id is null or session_id = '')		</isEqual>
+							</isNotEmpty>
+							<isNotEmpty property="findRetireeFlag">
+								and nvl(retiree_flag,1) = #findRetireeFlag#
+							</isNotEmpty>
+						) TB_IN
+				WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+			) TB_OUT
+		WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+		order by tenant_id, user_id
+	</select>
+
+	<select id="userInfo.getUserIdCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userInfo.getUserIdCount */
+		select count(*) as cnt
+			FROM tb_mng_userInfo tb_user
+		where tb_user.tenant_id  = #findTenantId#
+			<isNotEmpty property="findUserId"> and tb_user.user_id = #findUserId#	</isNotEmpty>
+	</select>
+
+	<select id="userInfo.checkPastUserPwd" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userInfo.userInfo.checkPastUserPwd */
+		SELECT CASE WHEN USER_PWD = #findUserPwd# THEN 'Y' ELSE 'N' END AS PAST_PWD_USE_YN
+		  FROM TB_MNG_USERINFO
+		 WHERE TENANT_ID = #findTenantId#
+		   AND USER_ID = #findUserId#
+	</select>
+
+	<!-- <select id="userInfo.getGroupBaseList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select tenant_id  , group_id as code , isnull(top_parent_id,0) top_parent_id, parent_id
+						, depth , group_name as code_nm, value_title_id
+						, group_mng_id, (select count(*)  cnt
+		from tb_mng_group b
+		where b.tenant_id  = #tenantId#
+							and b.top_parent_id = a.top_parent_id
+							and b.depth Like a.depth + '%'
+							and len(b.depth) = len(a.depth)+1
+							) sub_depth_cnt
+		FROM tb_mng_group a
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="tenantId">	a.tenant_id  = #tenantId#	</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findText">
+				<isEqual property="findKey" compareValue="a.group_id">	a.group_id Like '%'+ #findText# +'%'	</isEqual>
+				<isEqual property="findKey" compareValue="a.group_name">a.group_name Like '%'+ #findText# +'%'	</isEqual>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findDepth">	a.depth  like #findDepth#	</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findTreeText">	a.group_id in
+				<iterate property="findTreeText" open="(" conjunction="," close=")"> 	#findTreeText[]# 		</iterate>
+			</isNotEmpty>
+		</dynamic>
+		order by top_parent_id asc, depth asc
+	</select> -->
+
+	<!-- <select id="userInfo.getAuthList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select tenant_id  , grant_id as code , grant_name as code_nm
+		FROM tb_mng_auth
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="tenantId">		tenant_id = #tenantId#			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="SSAUTHRANK">	auth_rank  >= #SSAUTHRANK#		</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findExGrant">	ex_grant  = #findExGrant#		</isNotEmpty>
+		</dynamic>
+		order by tenant_id asc, AUTH_RANK desc, GRANT_ID asc
+	</select> -->
+
+	<!-- <select id="userInfo.getMainPageList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select depth1_id+depth2_id+depth3_id as code, menu_name as code_nm
+		FROM tb_mng_menu
+		order by depth1_id+depth2_id+depth3_id
+
+	</select> -->
+
+	<update id="userInfo.pwdUpdate" parameterClass="java.util.HashMap" >
+   		/* ID : userInfo.pwdUpdate */
+     	update tb_mng_userInfo set
+			  user_pwd			= case when nvl(#userPwd#,'') = '' then user_pwd else #userPwd# end
+			, salt				= case when nvl(#userPwd#,'') = '' then salt else #salt# end
+			, upt_date			= sysdate
+			, user_pwd_upt_date	= case when nvl(#userPwd#,'') = '' then user_pwd_upt_date else to_char(sysdate,'YYYYMMDD') end
+			, login_err_count 	= 0
+		where tenant_id 		= #tenantId#
+			and user_id			= #userId#
+	</update>
+
+	<!-- <select id="userInfo.getUserInfoBaseList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select a.tenant_id, a.user_id as code, a.group_id, a.grant_id, a.user_name as code_nm
+		FROM tb_mng_userInfo a
+		join tb_mng_group b	on a.tenant_id = b.tenant_id and a.group_id = b.group_id
+		join tb_mng_auth c	on a.tenant_id = c.tenant_id and a.grant_id = c.grant_id
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="tenantId">		a.tenant_id  = #tenantId#		</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findGroupId">	a.group_id  = #findGroupId#		</isNotEmpty>
+			<isNotNull property="findGrantIdList">
+				<iterate prepend="AND a.grant_id IN" property="findGrantIdList" open="(" close=")" conjunction=",">
+					#findGrantIdList[]#
+				</iterate>
+			</isNotNull>
+			<isNotEmpty prepend="AND" property="findGrantId">	a.grant_id  = #findGrantId#		</isNotEmpty>
+			<isNotEmpty prepend="AND" property="SSAUTHRANK">	c.auth_rank  >= #SSAUTHRANK#	</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findTreeText"> 	b.group_id in
+				<iterate property="findTreeText" open="(" conjunction="," close=")"> 	#findTreeText[]# 		</iterate>
+	 		</isNotEmpty>
+		</dynamic>
+		order by tenant_id, user_id
+	</select> -->
+
+	<insert id="userInfo.setUserInfoInsert" parameterClass="java.util.HashMap">
+		/* ID : userInfo.setUserInfoInsert */
+		insert into tb_mng_userInfo
+			(
+			tenant_id, user_id, group_id, grant_id, user_name, user_pwd, access_flag
+			, control_auth, convert_flag, BACKUP_FLAG, salt, retiree_flag, ins_id, ins_date, main_page
+			, login_date_check_use, login_date_check_from, login_date_check_to, player_kind, REAL_PLAY_KIND
+			)
+		values
+			(
+			#tenantId#, REPLACE(#userId#,' ' ,''), #groupId#, #grantId#, REPLACE(#userName#,' ' ,''), #userPwd#, #accessFlag#
+			, #controlAuth#, #convertFlag#, #backupFlag#, #salt#, #retireeFlag#, #insId#, sysdate, #mainPage#
+			, #loginCheckUse#, #loginCheckFrom#, #loginCheckTo#, #playerKind#, #realPlayKind#
+			)
+	</insert>
+
+	<update id="userInfo.setUserInfoUpdate" parameterClass="java.util.HashMap">
+		/* ID : userInfo.setUserInfoUpdate */
+		update tb_mng_userInfo set
+			group_id	            = #groupId#
+			, grant_id              = #grantId#
+			, user_name	            =  REPLACE(#userName#,' ' ,'')
+			<isNotEmpty property="userPwd">
+				, user_pwd	        = #userPwd#
+				, salt	            = #salt#
+			</isNotEmpty>
+			, access_flag	        = #accessFlag#
+			, control_auth	        = #controlAuth#
+			, convert_flag          = #convertFlag#
+			, BACKUP_FLAG        	 	= #backupFlag#
+			, retiree_flag          = #retireeFlag#
+			, upt_id	            = #insId#
+			, upt_date	            = sysdate
+			, main_page             = #mainPage#
+			, agent_status          = case when to_char(#agentStatus#) is null then agent_status else #agentStatus# end
+			, login_date_check_use  = #loginCheckUse#
+			, login_date_check_from = #loginCheckFrom#
+			, login_date_check_to   = #loginCheckTo#
+			<isNotEmpty property="userPwd">
+				, login_err_count   = 0
+				, user_pwd_upt_date	= to_char(sysdate,'YYYYMMDD')
+			</isNotEmpty>
+			, player_kind           = #playerKind#
+			, REAL_PLAY_KIND         = #realPlayKind#
+		where tenant_id             = #tenantId#
+			and user_id             = #userId#
+	</update>
+
+	<delete id="userInfo.setUserInfoDelete" parameterClass="java.util.HashMap" >
+		/* ID : userInfo.setUserInfoDelete */
+		delete from tb_mng_userInfo
+		where tenant_id = #tenantId#
+			and user_id = #userId#
+	</delete>
+	<update id="userInfo.setSessionUpdate" parameterClass="java.util.HashMap">
+		/* ID : userInfo.setSessionUpdate */
+		update tb_mng_userinfo set
+			login_flag	 	  = #loginFlag#
+			, login_ip	 	  = #loginIp#
+			, login_date 	  = sysdate
+			, session_id 	  = #sessionId#
+			, login_err_count = 0
+		where tenant_id  	  = #tenantId#
+			and user_id  	  = #userId#
+	</update>
+
+	<update id="userInfo.setSessionOutUpdate" parameterClass="java.util.HashMap">
+		/* ID : userInfo.setSessionOutUpdate */
+		update tb_mng_userinfo set
+			login_flag 	  = null
+			, logout_date = sysdate
+			, session_id  = null
+		where tenant_id   = #tenantId#
+			and user_id   = #userId#
+	</update>
+
+	<update id="userInfo.setForcedLogoutUpdate" parameterClass="java.util.HashMap">
+		/* ID : userInfo.setForcedLogoutUpdate */
+		update tb_mng_userinfo set
+			forced_logout = #forcedLogout#
+			, session_id  = null
+			, login_flag  = null
+			, logout_date = sysdate
+		where tenant_id   = #tenantId#
+			and user_id   = #userId#
+	</update>
+
+	<!-- <update id="userInfo.setLoginError" parameterClass="java.util.HashMap">
+		update tb_mng_userInfo
+		set
+			login_err_count = case #loginErrCount# when 0 then 0 else isnull(login_err_count,0)+1 end
+		where tenant_id = #tenantId#
+			and user_id = #userId#
+	</update> -->
+
+	<!-- <update id="userInfo.setUserPwdUpdate" parameterClass="java.util.HashMap">
+		update tb_mng_userInfo
+		set user_pwd	= #userPwd#
+		     , salt	= #salt#
+		     , user_pwd_upt_date = CONVERT( VARCHAR, getDate(), 112 )
+		     , upt_id = #uptId#
+		     , upt_date = getDate()
+		where tenant_id = #tenantId#
+			and user_id = #userId#
+	</update> -->
+
+	<!-- <update id="setUserPwdDateNextTime" parameterClass="java.util.HashMap">
+		update tb_mng_userInfo
+		set user_pwd_upt_date	= CONVERT(VARCHAR , CONVERT(DATETIME, dateadd(month,-3,getdate()))  + convert(int, #nextTime#), 112)
+		where tenant_id = #tenantId#
+			and user_id = #userId#
+	</update> -->
+
+	<update id="userInfo.setLoginFail" parameterClass="java.util.HashMap">
+		/* ID : userInfo.setLoginFail */
+		update tb_mng_userinfo set
+			login_err_count = nvl(login_err_count,0)+1
+		where tenant_id   = #tenantId#
+			and user_id   = #userId#
+	</update>
+
+	<update id="userInfo.initLoginErrorCount" parameterClass="java.util.HashMap">
+		/* ID : userInfo.initLoginErrorCount */
+		update tb_mng_userinfo
+		   set login_err_count = 0
+		 where tenant_id = #tenantId#
+		   and user_id = #findUserId#
+	</update>
+
+	<update id="userInfo.initLastLoginDate" parameterClass="java.util.HashMap">
+		/* ID : userInfo.initLastLoginDate */
+		update tb_mng_userinfo
+		   set login_date = null
+		 where tenant_id = #tenantId#
+		   and user_id = #findUserId#
+	</update>
+
+	<select id="userInfo.checkAuthUserPwd" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userInfo.checkAuthUserPwd */
+		SELECT CASE WHEN COUNT(1)= 2 THEN 'Y' ELSE 'N' END AS AUTH_AT
+		  FROM (
+			SELECT * FROM TB_MNG_USERINFO A
+			 WHERE A.USER_ID = #findUserId1#
+			   AND A.TENANT_ID = #findTenantId#
+			   AND A.USER_PWD =  #findUserPwd1#
+			 UNION
+			SELECT * FROM TB_MNG_USERINFO B
+			 WHERE B.USER_ID = #findUserId2#
+			   AND B.TENANT_ID = #findTenantId#
+			   AND USER_PWD = #findUserPwd2#
+		  )
+	</select>
+
+	<select id="userInfo.getUserSaltValue" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userInfo.getUserSaltValue */
+		SELECT A.USER_ID , A.SALT, A.GROUP_ID, B.GROUP_NAME
+		  FROM TB_MNG_USERINFO A
+		  LEFT OUTER JOIN TB_MNG_GROUP B
+			ON A.GROUP_ID = B.GROUP_ID
+		   AND A.TENANT_ID = #findTenantId#
+		 WHERE USER_ID IN ( #findUserId1#, #findUserId2# )
+		   AND B.TENANT_ID = #findTenantId#
+	</select>
+	
+	<select id="userInfo.getLoginIpListCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select
+		    count(*) as CNT
+		from tb_mng_loginip i
+		inner join tb_mng_company c 
+   			on i.tenant_id = c.tenant_id
+		where 1=1
+		<isNotEmpty property="findStartIp">
+			<![CDATA[ 
+				 and (REGEXP_REPLACE(REPLACE('.'||start_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') >= REGEXP_REPLACE(REPLACE('.'||#findStartIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') 
+				 	  or REGEXP_REPLACE(REPLACE('.'||end_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') >= REGEXP_REPLACE(REPLACE('.'||#findStartIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1')
+				 	 ) 
+			]]>
+		</isNotEmpty>
+		<isNotEmpty property="findEndIp"> 
+			<![CDATA[ 
+				 and (REGEXP_REPLACE(REPLACE('.'||start_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') <= REGEXP_REPLACE(REPLACE('.'||#findEndIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') 
+				 	  or REGEXP_REPLACE(REPLACE('.'||end_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') <= REGEXP_REPLACE(REPLACE('.'||#findEndIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1')
+				 	 ) 
+			 ]]>
+		</isNotEmpty>
+		<isNotEmpty property="findIpFlag">
+			and i.ip_flag = #findIpFlag#
+		</isNotEmpty>
+		<isNotEmpty property="findLoginFlag">
+			and i.login_flag = #findLoginFlag#
+		</isNotEmpty>
+		<isNotEmpty property="findUseFlag">
+			and i.use_flag = #findUseFlag#
+		</isNotEmpty>
+		<isNotEmpty property="findTenantId">
+			and i.tenant_id = #findTenantId#
+		</isNotEmpty>
+		
+	</select>
+	
+	<select id="userInfo.getLoginIpList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select 
+			*
+		from(
+			select
+				Row_Number() over (order by i.ins_date desc ) as RowNum1
+			    ,i.TENANT_ID
+			    ,i.START_IP
+			    ,i.END_IP
+			    ,i.IP_FLAG
+			    ,i.IP_COMMENTS
+			    ,i.LOGIN_FLAG
+			    ,i.USE_FLAG
+			    ,c.tenant_name
+			    ,i.ip_seq
+			from tb_mng_loginip i
+			inner join tb_mng_company c 
+    			on i.tenant_id = c.tenant_id
+			where 1=1
+			<isNotEmpty property="findStartIp">
+				<![CDATA[ 
+					 and (REGEXP_REPLACE(REPLACE('.'||start_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') >= REGEXP_REPLACE(REPLACE('.'||#findStartIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') 
+					 	  or REGEXP_REPLACE(REPLACE('.'||end_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') >= REGEXP_REPLACE(REPLACE('.'||#findStartIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1')
+					 	 ) 
+				]]>
+			</isNotEmpty>
+			<isNotEmpty property="findEndIp"> 
+				<![CDATA[ 
+					 and (REGEXP_REPLACE(REPLACE('.'||start_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') <= REGEXP_REPLACE(REPLACE('.'||#findEndIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') 
+					 	  or REGEXP_REPLACE(REPLACE('.'||end_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') <= REGEXP_REPLACE(REPLACE('.'||#findEndIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1')
+					 	 ) 
+				 ]]>
+			</isNotEmpty>
+			<isNotEmpty property="findIpFlag">
+				and i.ip_flag = #findIpFlag#
+			</isNotEmpty>
+			<isNotEmpty property="findLoginFlag">
+				and i.login_flag = #findLoginFlag#
+			</isNotEmpty>
+			<isNotEmpty property="findUseFlag">
+				and i.use_flag = #findUseFlag#
+			</isNotEmpty>
+			<isNotEmpty property="findTenantId">
+				and i.tenant_id = #findTenantId#
+			</isNotEmpty>
+		)
+		where <![CDATA[ RowNum1 > (#iEPageNo# - #iSPageNo# )]]>
+		and <![CDATA[ RowNum1 <= #iEPageNo#  ]]>
+	</select>
+	
+	<select id="userInfo.getLoginIpDuplicateCheck" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select
+			count(*) CNT
+		from tb_mng_loginip
+		where
+        <isEqual property="findIpFlag01" compareValue="1">
+			<![CDATA[
+			(	
+					 (REGEXP_REPLACE(REPLACE('.'||#findStartIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') <= REGEXP_REPLACE(REPLACE('.'||start_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') and REGEXP_REPLACE(REPLACE('.'||start_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') <= REGEXP_REPLACE(REPLACE('.'||#findEndIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') ) 
+				  or (REGEXP_REPLACE(REPLACE('.'||#findStartIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') <= REGEXP_REPLACE(REPLACE('.'||end_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') and REGEXP_REPLACE(REPLACE('.'||end_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') <= REGEXP_REPLACE(REPLACE('.'||#findEndIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') )
+			)
+			]]> 
+		</isEqual>
+		<isEqual property="findIpFlag01" compareValue="0">
+			<![CDATA[	
+			(
+					  (REGEXP_REPLACE(REPLACE('.'||start_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') <= REGEXP_REPLACE(REPLACE('.'||#findStartIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') and REGEXP_REPLACE(REPLACE('.'||end_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') >= REGEXP_REPLACE(REPLACE('.'||#findStartIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1')) 
+				   or (REGEXP_REPLACE(REPLACE('.'||start_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') = REGEXP_REPLACE(REPLACE('.'||#findStartIp#, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1'))
+			)
+			]]> 
+		</isEqual>
+		<isEqual property="cudMode" compareValue="U">
+			and ip_seq != #ipSeq#
+		</isEqual>
+		and login_flag = #findLoginFlag01#
+		and tenant_id = #findTenantId#
+	</select>
+	
+	<insert id="userInfo.setLoginIpInsert" parameterClass="java.util.HashMap">
+		/* ID : userInfo.setLoginIpInsert */
+		insert into tb_mng_loginip
+			(
+			TENANT_ID,START_IP,END_IP,IP_FLAG,IP_COMMENTS,LOGIN_FLAG,USE_FLAG,INS_ID,INS_DATE,ip_seq
+			)
+		values
+			(
+			#findTenantId#,#findStartIp#,#findEndIp#,#findIpFlag01#,#findComments#,#findLoginFlag01#,#findUseFLag01#,#glo_userId#,sysdate,BT_MNG_LOGINIP_SEQ.nextval
+			)
+	</insert>
+	
+	<update id="userInfo.setLoginIpUpdate" parameterClass="java.util.HashMap">
+		/* ID : userInfo.setLoginIpUpdate */
+		UPDATE tb_mng_loginip
+		   SET  ip_flag = #findIpFlag01#
+		   	 , ip_comments = #findComments#
+		   	 , login_flag = #findLoginFlag01#
+		   	 , use_flag = #findUseFLag01#
+		   	 , start_ip = #findStartIp#
+	   		 , end_ip = #findEndIp#
+			 , upt_id = #glo_userId#
+			 , upt_date = sysdate
+		 WHERE ip_seq = #ipSeq#
+	</update>
+
+	<select id="userInfo.getLoginIpCheck" parameterClass="java.util.HashMap" resultClass="egovMap">
+		select
+			nvl(sum(case when login_flag = 0 then 1 else -1 end),0) as login_ip_chk_cnt
+		from tb_mng_loginip
+		where
+		<![CDATA[	
+		(
+				  (REGEXP_REPLACE(REPLACE('.'||start_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') <= REGEXP_REPLACE(REPLACE('.'||(case when #loginIp# = '0:0:0:0:0:0:0:1' then '127.0.0.1' else #loginIp# end), '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') 
+				   and REGEXP_REPLACE(REPLACE('.'||end_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') >= REGEXP_REPLACE(REPLACE('.'||(case when #loginIp# = '0:0:0:0:0:0:0:1' then '127.0.0.1' else #loginIp# end), '.', '.00'), '([^.]{3}(\.|$$))|.', '\1')
+				  ) 
+			   or (REGEXP_REPLACE(REPLACE('.'||start_ip, '.', '.00'), '([^.]{3}(\.|$$))|.', '\1') = REGEXP_REPLACE(REPLACE('.'||(case when #loginIp# = '0:0:0:0:0:0:0:1' then '127.0.0.1' else #loginIp# end), '.', '.00'), '([^.]{3}(\.|$$))|.', '\1'))
+		)
+		]]> 
+		and tenant_id = #tenantId#
+		and use_flag = '0'
+	</select>
+	
+	<delete id="userInfo.removeLoginIpDelete" parameterClass="java.util.HashMap" >
+		/* ID : userInfo.removeLoginIpDelete */
+		delete from tb_mng_loginip where ip_seq = #ipSeq#
+	</delete>
+
+</sqlMap>

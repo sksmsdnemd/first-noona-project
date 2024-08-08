@@ -1,0 +1,93 @@
+@charset "utf-8";
+
+.proc_btn {
+	display: inline-block;
+	height: 15px;
+	width: 25px;
+	line-height: 15px;
+	border: 1px solid #B8B8B8;
+	padding: 0px 10px;;
+	margin:2px;
+	color: #636363;
+	font-size: 10px;
+	text-align:center;
+	vertical-align: middle;
+	cursor: auto;
+	box-shadow: 1px 1px 1px rgba(181, 181, 181, 0.50);
+}
+
+.proc_desc {
+	display: inline-block;
+	height: 13px;
+	line-height: 18px;
+	width: 20px;
+	border: 1px solid #d3d3d3;
+	box-shadow: 1px 1px 0px rgba(135, 135, 135, 0.1);
+	background: #fff;
+	margin-right: 2px;
+	overflow: hidden;
+	font-size: 0;
+	text-indent: -5000px;
+	box-sizing: border-box;
+	color: #636363;
+	cursor: auto;
+}
+
+.active {
+/* 	background:#B2CCFF; */
+/* 	opacity:0.8; */
+	color:#22741C;
+/* 	font-weight:bold; */
+}
+
+.standby {
+/* 	background:#FAECC5; */
+/* 	opacity:0.8; */
+	color:#FF5E00;
+/* 	font-weight:bold; */
+}
+
+.standalone {
+/* 	background:#B7F0B1; */
+/* 	opacity:0.8; */
+	color:#A566FF;
+/* 	font-weight:bold; */
+}
+
+.running {
+	background:#B7F0B1;
+	opacity:0.8;
+}
+
+.userStop {
+	background:#E6E6E6;
+	opacity:0.8;
+}
+
+.down {
+	background:#FF0000;
+	opacity:0.8;
+}
+
+.bar_max { position:relative; border:1px solid #B8B8B8; text-align:center; }
+.bar_per{ position:absolute; height:100%; }
+.bar_str { position:absolute; width:100%; }
+
+.bar_cpu_bgcolor { background-color:#E8D9FF; }
+.bar_cpu_color { background-color:#A566FF; }
+
+.bar_mem_bgcolor { background-color:#B2EBF4; }
+.bar_mem_color { background-color:#3DB7CC; }
+
+.bar_hdd_bgcolor { background-color:#B7F0B1; }
+.bar_hdd_color { background-color:#47C83E; }
+
+.bar_red_bgcolor { background-color:#FFCBCB; }
+.bar_red_color { background-color:#FF0000; }
+
+.bar_h20 { height:20px; }
+.bar_h40 { height:40px; }
+
+
+
+

@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="sysInfo">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="sysInfo.getMaxSystemId" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysInfo.getMaxSystemId */
+		select isnull(max(system_id),1000)+1 system_id
+			FROM tb_sys_sysInfo
+	</select>
+	
+	<select id="sysInfo.getSysInfoCount" parameterClass="java.util.HashMap"	resultClass="egovMap">
+		/* ID : sysInfo.getSysInfoCount */
+		select count(*) as cnt
+			FROM tb_sys_sysInfo a 
+				join tb_sys_sysgroup b
+					on a.sys_group_id = b.sys_group_id
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND"  property="findText">
+				<isEqual property="findKey" compareValue="system_id">	system_id  	</isEqual>
+				<isEqual property="findKey" compareValue="system_name"> system_name </isEqual>
+				Like '%'+ #findText# +'%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findSysGroupId">
+				a.sys_group_id = #findSysGroupId#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+
+	<select id="sysInfo.getSysInfoList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysInfo.getSysInfoList */
+		select 
+				RTRIM(CAST(sys_group_id AS CHAR(10))) as sys_group_id, RTRIM(CAST(system_id AS CHAR(10))) as system_id
+				, system_name, system_class, system_code, use_flag
+				, alarm_flag, setup_date, system_desc, ins_id, CONVERT(CHAR(23), ins_date, 21) as ins_date, upt_id
+				, CONVERT(CHAR(23), upt_date, 21) as upt_date, sys_group_name
+				, CASE WHEN use_flag = '0' THEN '예' ELSE '아니오' END AS use_flag_name
+			from(
+				select * 
+					from (
+						select 
+								Row_Number() over (order by sys_group_id desc, system_id desc) RowNum2,* 
+							from (
+								select 
+										Row_Number() over (order by a.sys_group_id, a.system_id) RowNum1
+										, a.sys_group_id, a.system_id, a.system_name, a.system_class, a.system_code, a.use_flag
+										, a.alarm_flag, a.setup_date, a.system_desc, a.ins_id, a.ins_date, a.upt_id
+										, a.upt_date , b.sys_group_name
+									FROM tb_sys_sysInfo a 
+										join tb_sys_sysgroup b
+											on a.sys_group_id = b.sys_group_id
+								<dynamic prepend="WHERE">
+									<isNotEmpty prepend="AND"  property="findText">
+										<isEqual property="findKey" compareValue="system_id">  	system_id  	</isEqual>
+										<isEqual property="findKey" compareValue="system_name"> system_name </isEqual>
+										Like '%'+ #findText# +'%'
+									</isNotEmpty>
+									<isNotEmpty prepend="AND" property="findSysGroupId">
+										a.sys_group_id = #findSysGroupId#
+									</isNotEmpty>
+								</dynamic>
+								) TB_IN
+						WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+						) TB_OUT 
+				WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+				) tbl2
+		order by sys_group_id, system_id
+	</select>
+
+	<insert id="sysInfo.setSysInfoInsert" parameterClass="java.util.HashMap">
+		/* ID : sysInfo.setSysInfoInsert */
+		insert into tb_sys_sysInfo
+			(
+			sys_group_id, system_id, system_name, system_class, system_code
+			, use_flag, alarm_flag, setup_date, system_desc, ins_id, ins_date
+			) 
+		values 
+			(
+			#sysGroupId#, #systemId#, #systemName#, #systemClass#, #systemCode#
+			, #useFlag#, #alarmFlag#, #setupDate#, #systemDesc#, #insId#, getdate()
+			)
+	</insert>
+
+	<update id="sysInfo.setSysInfoUpdate" parameterClass="java.util.HashMap">
+		/* ID : sysInfo.setSysInfoUpdate */
+		update tb_sys_sysInfo set 
+			system_name		= #systemName#
+			, system_class 	= #systemClass#
+			, system_code 	= #systemCode#
+			, use_flag 		= #useFlag#
+			, alarm_flag 	= #alarmFlag#
+			, setup_date 	= #setupDate#
+			, system_desc 	= #systemDesc#
+			, upt_id		= #uptId#
+			, upt_date		= getdate()
+		where sys_group_id 	= #sysGroupId# 
+			and system_id 	= #systemId#
+	</update>
+	
+	<delete id="sysInfo.setSysInfoDelete" parameterClass="java.util.HashMap" >
+		/* ID : sysInfo.setSysInfoDelete */
+		delete 
+			from tb_sys_sysInfo
+		where sys_group_id = #sysGroupId#
+			and system_id  = #systemId#
+	</delete>
+
+	<select id="sysInfo.getSysInfoByProcCbList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysInfo.getSysInfoByProcCbList */
+		select 
+				a.sys_group_id, a.system_id as code, a.system_name as code_nm, a.system_class, a.system_code, a.use_flag
+				, a.alarm_flag, a.setup_date, a.system_desc, b.sys_group_name 
+			FROM tb_sys_sysInfo a 
+				join tb_sys_sysgroup b
+					on a.sys_group_id = b.sys_group_id
+				join (
+					select sys_group_id, system_id  
+						from TB_SYS_PROCINFO
+					<dynamic prepend="WHERE">
+						<isNotEmpty prepend="AND" property="findProcessCode">
+							process_class = 'process_class'
+							and process_code in (#findProcessCode#)
+						</isNotEmpty>
+					</dynamic>
+					group by sys_group_id, system_id
+					) c
+					on a.sys_group_id = c.sys_group_id
+					and a.system_id = c.system_id
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="findSysGroupId">
+				a.sys_group_id = #findSysGroupId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="systemId">
+				a.system_id = #systemId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="useFlag">
+				a.use_flag = #useFlag#
+			</isNotEmpty>
+		</dynamic>
+		order by a.sys_group_id, a.system_id
+	</select>
+	
+	
+	<select id="sysInfo.getSysinfoIpList" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		select 
+		    sin.sys_group_id ,
+		    sin.system_id,
+		    sin.system_name,
+		    iin.system_ip
+		from tb_sys_sysinfo sin 
+		inner join tb_sys_procinfo pin
+		    on sin.sys_group_id = pin.sys_group_id and sin.system_id = pin.system_id
+		inner join tb_sys_ipinfo iin
+		    on sin.sys_group_id = iin.sys_group_id and sin.system_id = iin.system_id
+		where pin.process_code = '81'
+	</select>
+	
+	<select id="sysInfo.getRestoreSysIpList" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		select 
+		    sin.sys_group_id ,
+		    sin.system_id,
+		    sin.system_name,
+		    iin.system_ip
+		from tb_sys_sysinfo sin 
+		inner join tb_sys_procinfo pin
+		    on sin.sys_group_id = pin.sys_group_id and sin.system_id = pin.system_id  and pin.process_code = '41'
+		inner join tb_sys_ipinfo iin
+		    on sin.sys_group_id = iin.sys_group_id and sin.system_id = iin.system_id
+	</select>
+	
+	<select id="sysInfo.getLicenseListCnt" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		select
+		    count(*) cnt
+		from tb_mng_license a
+		inner join tb_sys_sysinfo b
+			on a.system_id = b.system_id
+		inner join tb_sys_sysinfo b
+			on a.system_id = b.system_id
+		inner join tb_sys_procinfo c
+  				on a.process_id = c.process_id
+		inner join tb_mng_company d
+			on d.tenant_id = a.tenant_id
+		<dynamic prepend="WHERE">
+				<isNotEmpty prepend="AND" property="findTenantId">
+					a.TENANT_ID = #findTenantId#
+				</isNotEmpty>
+				<isNotEmpty prepend="AND" property="systemId">
+					a.SYSTEM_ID = #systemId#
+				</isNotEmpty>
+				<isNotEmpty prepend="AND" property="findProcessCode">
+					a.PROCESS_ID = #findProcessCode#
+				</isNotEmpty>
+				<isNotEmpty prepend="AND" property="txtDate1_From">
+					<![CDATA[ a.LIC_TIME >= #txtDate1_From#+#recFrmTm# ]]>
+				</isNotEmpty>
+				<isNotEmpty prepend="AND" property="txtDate1_To">
+					<![CDATA[ a.LIC_TIME <= #txtDate1_To#+#recEndTm# ]]>
+				</isNotEmpty>
+				<isNotEmpty prepend="AND" property="useFlag">
+					a.USE_FLAG = #useFlag#
+				</isNotEmpty>
+				<isNotEmpty prepend="AND" property="findGubun">
+					a.GUBUN = #findGubun#
+				</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="sysInfo.getLicenseList" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		select 
+ 		    convert(varchar,LIC_TIME(),112) as LIC_TIME ,GUBUN,PROCESS_ID,SYSTEM_ID,SYSTEM_NAME,TENANT_ID,INS_ID,SEED,DEL_GEBUN,process_name
+ 		    ,tenant_name,use_flag
+		from ( 
+			select 
+				Row_Number() over (order by TENANT_ID,SYSTEM_ID, PROCESS_ID) RowNum2, TB_IN.*
+			from (
+				select
+				    Row_Number() over (order by a.TENANT_ID,a.SYSTEM_ID, a.PROCESS_ID) RowNum1
+				    ,a.LIC_TIME,a.GUBUN,a.PROCESS_ID,a.SYSTEM_ID,a.TENANT_ID,a.INS_ID,a.SEED,a.DEL_GEBUN,b.system_name,c.process_name,d.tenant_name
+				    ,a.use_flag
+				from tb_mng_license a
+				inner join tb_sys_sysinfo b
+					on a.system_id = b.system_id
+				inner join tb_sys_procinfo c
+    				on a.process_id = c.process_id
+    			inner join tb_mng_company d
+    				on a.tenant_id = d.tenant_id
+				<dynamic prepend="WHERE">
+					<isNotEmpty prepend="AND" property="findTenantId">
+						a.TENANT_ID = #findTenantId#
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="systemId">
+						a.SYSTEM_ID = #systemId#
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findProcessCode">
+						a.PROCESS_ID = #findProcessCode#
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="txtDate1_From">
+						<![CDATA[ a.LIC_TIME >= #txtDate1_From#+#recFrmTm# ]]>
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="txtDate1_To">
+						<![CDATA[ a.LIC_TIME <= #txtDate1_To#+#recEndTm# ]]>
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="useFlag">
+						a.USE_FLAG = #useFlag#
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findGubun">
+						a.GUBUN = #findGubun#
+					</isNotEmpty>
+				</dynamic>
+			) TB_IN
+			WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+		)TB_OUT 
+		WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+		order by TENANT_ID,SYSTEM_ID, PROCESS_ID desc
+	</select>
+	
+	<insert id="sysInfo.getLicenseInsert" parameterClass="java.util.HashMap">
+		/* ID : sysInfo.setSysInfoInsert */
+		insert into tb_mng_License
+			(
+			LIC_TIME
+			,GUBUN
+			,PROCESS_ID
+			,SYSTEM_ID
+			,TENANT_ID
+			,INS_ID
+			,SEED
+			,USE_FLAG
+			) 
+		values 
+			(
+			sysdate
+			,#findGubun#
+			,#findProcessCode#
+			,#systemId#
+			,#findTenantId#
+			,#glo_userId#
+			,#key#
+			,#useFlag#
+			)
+	</insert>
+	
+</sqlMap>

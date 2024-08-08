@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="veloceRest">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<insert id="rest.tenantInsert">
+		/* ID : rest.tenantInsert */
+		BEGIN
+			/* tenantRest : tenantInsert */
+			INSERT INTO TB_MNG_COMPANY (TENANT_ID, TENANT_NAME, AGENT_COUNT, MANAGER_COUNT, BASE_PATH, REG_DATE, INS_ID, INS_DATE)
+			VALUES (#tenantId#, #tenantName#, #agentCount#, #managerCount#, #basePath#, SYSDATE(), #reqSystem#, SYSDATE())
+			;
+			
+			/* tenantRest : authInsert */
+			INSERT INTO TB_MNG_AUTH (TENANT_ID, GRANT_ID, GRANT_NAME, INS_ID, INS_DATE, OAM_GRANT, AUTH_RANK, EX_GRANT)
+			SELECT #tenantId#, GRANT_ID, GRANT_NAME, #reqSystem#, SYSDATE(), OAM_GRANT, AUTH_RANK, EX_GRANT
+			  FROM TB_MNG_AUTH
+			 WHERE TENANT_ID = 'bridgetec'
+			;
+			
+			/* tenantRest : menuAuthInsert */
+			INSERT INTO TB_MNG_MENUAUTH (TENANT_ID, GRANT_ID, DEPTH1_ID, DEPTH2_ID, DEPTH3_ID, AUTH_KIND, INS_ID, INS_DATE)
+			SELECT #tenantId#, GRANT_ID, DEPTH1_ID, DEPTH2_ID, DEPTH3_ID, AUTH_KIND, #reqSystem#, SYSDATE()
+			  FROM TB_MNG_MENUAUTH
+			 WHERE TENANT_ID = 'bridgetec'
+			;
+			
+			/* tenantRest : groupInsert */
+			INSERT INTO TB_MNG_GROUP (TENANT_ID, GROUP_ID, TOP_PARENT_ID, PARENT_ID, GROUP_NAME, INS_ID, INS_DATE)
+			VALUES (#tenantId#, '000000', '000000', 0, #tenantName#, #reqSystem#, SYSDATE())
+			;
+		END;
+	</insert>
+	
+	<update id="rest.tenantUpdate">
+		/* ID : rest.tenantUpdate */
+		UPDATE TB_MNG_COMPANY
+		   SET TENANT_NAME = #tenantName#
+		     <isNotEmpty property="agentCount">, AGENT_COUNT = #agentCount#</isNotEmpty>
+		     <isNotEmpty property="managerCount">, MANAGER_COUNT = #managerCount#</isNotEmpty>
+		     <isNotEmpty property="basePath">, BASE_PATH = #basePath#</isNotEmpty>
+		     , UPT_ID = #reqSystem#
+		     , UPT_DATE = SYSDATE()
+		 WHERE TENANT_ID = #tenantId#
+	</update>
+	
+	<delete id="rest.tenantDelete">
+		/* ID : rest.tenantDelete */
+		UPDATE TB_MNG_COMPANY
+		   SET EXPIRE_DATE = SYSDATE()
+			 , EXPIRE_REASON = #expireReason#
+			 , UPT_ID = #reqSystem#
+			 , UPT_DATE = SYSDATE()
+		 WHERE TENANT_ID = #tenantId#
+	</delete>
+	
+	<select id="rest.tenantExstYn" resultClass="egovMap">
+		/* ID : rest.tenantExstYn */
+		SELECT CASE WHEN COUNT(*) > 0 THEN 'Y' ELSE 'N' END AS EXST_YN
+		  FROM TB_MNG_COMPANY
+		 WHERE TENANT_ID = #tenantId#
+	</select>
+	
+	<insert id="rest.groupInsert">
+		/* ID : rest.groupInsert */
+		INSERT INTO TB_MNG_GROUP (TENANT_ID, GROUP_ID, TOP_PARENT_ID, PARENT_ID, GROUP_NAME, GROUP_DESC, INS_ID, INS_DATE)
+		VALUES (#tenantId#, #groupId#, '000000', #parentId#, #groupName#, #groupDesc#, #reqSystem#, SYSDATE())
+	</insert>
+	
+	<update id="rest.groupUpdate">
+		UPDATE TB_MNG_GROUP
+		   SET PARENT_ID = #parentId#
+		     , GROUP_NAME = #groupName#
+		     <isNotEmpty property="groupDesc">, GROUP_DESC = #groupDesc#</isNotEmpty>
+		     , UPT_ID = #reqSystem#
+		     , UPT_DATE = SYSDATE()
+		 WHERE TENANT_ID = #tenantId#
+		   AND GROUP_ID = #groupId#
+	</update>
+	
+	<delete id="rest.groupDelete">
+		DELETE FROM TB_MNG_GROUP WHERE TENANT_ID = #tenantId# AND GROUP_ID = #groupId#
+	</delete>
+	
+	<select id="rest.groupExstYn" resultClass="egovMap">
+		/* ID : rest.groupExstYn */
+		SELECT CASE WHEN COUNT(*) > 0 THEN 'Y' ELSE 'N' END AS EXST_YN
+		  FROM TB_MNG_GROUP
+		 WHERE TENANT_ID = #tenantId#
+		   AND GROUP_ID = #groupId#
+	</select>
+	
+	<insert id="rest.userInsert">
+		/* ID : rest.groupInsert */
+		INSERT INTO TB_MNG_USERINFO (TENANT_ID, USER_ID, GROUP_ID, GRANT_ID, USER_NAME, USER_PWD, SALT, RETIREE_FLAG, LOGIN_DATE_CHECK_USE, CONVERT_FLAG, PLAYER_KIND, REAL_PLAY_KIND, INS_ID, INS_DATE)
+		VALUES (#tenantId#, #userId#, #groupId#, #grantId#, #userName#, #userPwd#, #salt#, '1', '0', '1', '0', '1', #reqSystem#, SYSDATE())
+	</insert>
+	
+	<update id="rest.userUpdate">
+		UPDATE TB_MNG_USERINFO
+		   SET GROUP_ID = #groupId#
+		     <isNotEmpty property="grantId">, GRANT_ID = #grantId#</isNotEmpty>
+		     , USER_NAME = #userName#
+		     <isNotEmpty property="userPwd">, USER_PWD = #userPwd#</isNotEmpty>
+		     <isNotEmpty property="retireeFlag">, RETIREE_FLAG = #retireeFlag#</isNotEmpty>
+		     , UPT_ID = #reqSystem#
+		     , UPT_DATE = SYSDATE()
+		 WHERE TENANT_ID = #tenantId#
+		   AND USER_ID = #userId#
+	</update>
+	
+	<delete id="rest.userDelete">
+		UPDATE TB_MNG_USERINFO SET RETIREE_FLAG = '0'
+		 WHERE TENANT_ID = #tenantId#
+		   AND USER_ID = #userId#
+	</delete>
+	
+	<select id="rest.userExstYn" resultClass="egovMap">
+		/* ID : rest.userExstYn */
+		SELECT CASE WHEN COUNT(*) > 0 THEN 'Y' ELSE 'N' END AS EXST_YN
+			 , CASE WHEN MAX(TO_NUMBER(RETIREE_FLAG)) = '0' THEN 'Y' ELSE 'N' END AS RETIRE_YN
+		  FROM TB_MNG_USERINFO
+		 WHERE TENANT_ID = #tenantId#
+		   AND USER_ID = #userId#
+	</select>
+	
+	<insert id="rest.dnInsert">
+		/* ID : rest.dnInsert */
+		<![CDATA[
+		DECLARE	v_cnt NUMERIC(10,0);
+		DECLARE	v_system_id NUMERIC(10,0);
+		DECLARE	v_process_id NUMERIC(10,0);
+
+		BEGIN
+			BEGIN
+				
+				DECLARE CONTINUE HANDLER FOR NOT FOUND 
+				BEGIN 
+					SELECT 0, 0, 0 INTO v_cnt, v_system_id, v_process_id;
+				END;
+				SELECT IFNULL(COUNT(*) OVER(), 0) AS CNT, IFNULL(t2.SYSTEM_ID, 0), IFNULL(t1.PROCESS_ID, 0)
+				  INTO v_cnt, v_system_id, v_process_id
+				  FROM TB_MNG_DNPTRN t1
+				  LEFT OUTER JOIN TB_SYS_PROCINFO t2
+					ON t1.PROCESS_ID = t2.PROCESS_ID
+				 WHERE t1.TENANT_ID = #tenantId#
+				   AND t1.EXCP_PTRN_AT = '0'
+				   AND CAST(#dnNo# AS UNSIGNED) BETWEEN CAST(t1.START_DN_NO AS UNSIGNED) AND CAST(t1.END_DN_NO AS UNSIGNED)
+				;
+			END;
+
+			IF v_cnt = 0 THEN
+				BEGIN
+					DECLARE CONTINUE HANDLER FOR NOT FOUND 
+					BEGIN 
+						SELECT 0, 0, 0 INTO v_cnt, v_system_id, v_process_id;
+					END;
+					SELECT IFNULL(COUNT(*) OVER(), 0) AS CNT, IFNULL(t2.SYSTEM_ID, 0), IFNULL(t1.PROCESS_ID, 0)
+					  INTO v_cnt, v_system_id, v_process_id
+					  FROM TB_MNG_DNPTRN t1
+					  LEFT OUTER JOIN TB_SYS_PROCINFO t2
+						ON t1.PROCESS_ID = t2.PROCESS_ID
+					 WHERE t1.TENANT_ID = #tenantId#
+					   AND t1.EXCP_PTRN_AT = '0'
+					   AND INET_ATON(#phoneIp#) BETWEEN INET_ATON(t1.START_IP) AND INET_ATON(t1.END_IP)
+					;
+				END;
+			END IF;
+
+			IF v_cnt = 0 THEN
+				BEGIN
+					-- no_data
+					DECLARE CONTINUE HANDLER FOR NOT FOUND 
+					BEGIN 
+						SELECT 0, 0, 0 INTO v_cnt, v_system_id, v_process_id;
+					END;
+					SELECT IFNULL(COUNT(*) OVER(), 0) AS CNT, IFNULL(t2.SYSTEM_ID, 0), IFNULL(t1.PROCESS_ID, 0)
+					  INTO v_cnt, v_system_id, v_process_id
+					  FROM TB_MNG_DNPTRN t1
+					  LEFT OUTER JOIN TB_SYS_PROCINFO t2
+						ON t1.PROCESS_ID = t2.PROCESS_ID
+					 WHERE t1.TENANT_ID = #tenantId#
+					   AND t1.EXCP_PTRN_AT = '1'
+					;
+				END;
+			END IF;
+
+			IF v_cnt = 0 THEN
+				INSERT INTO TB_MNG_USERTELNO (
+					TENANT_ID, DN_NO, USER_ID, PHONE_IP, USER_IP, DN_STATUS, USE_FLAG, INS_ID, INS_DATE
+				) VALUES (
+					#tenantId#, #dnNo#, #userId#, #phoneIp#, #userIp#, '00', '0', #reqSystem#, SYSDATE()
+				);
+			ELSE 
+				INSERT INTO TB_MNG_USERTELNO (
+					TENANT_ID, DN_NO, USER_ID, PHONE_IP, USER_IP, DN_STATUS, SYSTEM_ID, PROCESS_ID, USE_FLAG, INS_ID, INS_DATE
+				) VALUES (
+					#tenantId#, #dnNo#, #userId#, #phoneIp#, #userIp#, '00', v_system_id, v_process_id, '0', #reqSystem#, SYSDATE()
+				);
+			END IF;
+		END;
+		]]>
+	</insert>
+	
+	<update id="rest.dnUpdate">
+		/* ID : rest.dnUpdate */
+		<![CDATA[
+		DECLARE	v_cnt NUMERIC(10,0);
+		DECLARE	v_system_id NUMERIC(10,0);
+		DECLARE	v_process_id NUMERIC(10,0);
+
+		BEGIN
+			BEGIN
+				
+				DECLARE CONTINUE HANDLER FOR NOT FOUND 
+				BEGIN 
+					SELECT 0, 0, 0 INTO v_cnt, v_system_id, v_process_id;
+				END;
+				SELECT IFNULL(COUNT(*) OVER(), 0) AS CNT, IFNULL(t2.SYSTEM_ID, 0), IFNULL(t1.PROCESS_ID, 0)
+				  INTO v_cnt, v_system_id, v_process_id
+				  FROM TB_MNG_DNPTRN t1
+				  LEFT OUTER JOIN TB_SYS_PROCINFO t2
+					ON t1.PROCESS_ID = t2.PROCESS_ID
+				 WHERE t1.TENANT_ID = #tenantId#
+				   AND t1.EXCP_PTRN_AT = '0'
+				   AND CAST(#dnNo# AS UNSIGNED) BETWEEN CAST(t1.START_DN_NO AS UNSIGNED) AND CAST(t1.END_DN_NO AS UNSIGNED)
+				;
+			END;
+
+			IF v_cnt = 0 THEN
+				BEGIN
+					DECLARE CONTINUE HANDLER FOR NOT FOUND 
+					BEGIN 
+						SELECT 0, 0, 0 INTO v_cnt, v_system_id, v_process_id;
+					END;
+					SELECT IFNULL(COUNT(*) OVER(), 0) AS CNT, IFNULL(t2.SYSTEM_ID, 0), IFNULL(t1.PROCESS_ID, 0)
+					  INTO v_cnt, v_system_id, v_process_id
+					  FROM TB_MNG_DNPTRN t1
+					  LEFT OUTER JOIN TB_SYS_PROCINFO t2
+						ON t1.PROCESS_ID = t2.PROCESS_ID
+					 WHERE t1.TENANT_ID = #tenantId#
+					   AND t1.EXCP_PTRN_AT = '0'
+					   AND INET_ATON(#phoneIp#) BETWEEN INET_ATON(t1.START_IP) AND INET_ATON(t1.END_IP)
+					;
+				END;
+			END IF;
+
+			IF v_cnt = 0 THEN
+				BEGIN
+					-- no_data
+					DECLARE CONTINUE HANDLER FOR NOT FOUND 
+					BEGIN 
+						SELECT 0, 0, 0 INTO v_cnt, v_system_id, v_process_id;
+					END;
+					SELECT IFNULL(COUNT(*) OVER(), 0) AS CNT, IFNULL(t2.SYSTEM_ID, 0), IFNULL(t1.PROCESS_ID, 0)
+					  INTO v_cnt, v_system_id, v_process_id
+					  FROM TB_MNG_DNPTRN t1
+					  LEFT OUTER JOIN TB_SYS_PROCINFO t2
+						ON t1.PROCESS_ID = t2.PROCESS_ID
+					 WHERE t1.TENANT_ID = #tenantId#
+					   AND t1.EXCP_PTRN_AT = '1'
+					;
+				END;
+			END IF;
+
+			IF v_cnt = 0 THEN
+				UPDATE TB_MNG_USERTELNO
+				   SET USER_ID = #userId#
+					 , PHONE_IP = #phoneIp#
+					 , USER_IP = #userIp#
+					 , DN_STATUS = '00'
+					 , USE_FLAG = '0'
+					 , UPT_ID = #reqSystem#
+				     , UPT_DATE = sysdate
+				 WHERE TENANT_ID = #tenantId#
+				   AND DN_NO = #dnNo#
+				;
+			ELSE
+				UPDATE TB_MNG_USERTELNO
+				   SET USER_ID = #userId#
+					 , PHONE_IP = #phoneIp#
+					 , USER_IP = #userIp#
+					 , DN_STATUS = '00'
+					 , SYSTEM_ID = v_system_id
+					 , PROCESS_ID = v_process_id
+					 , USE_FLAG = '0'
+					 , UPT_ID = #reqSystem#
+				     , UPT_DATE = sysdate
+				 WHERE TENANT_ID = #tenantId#
+				   AND DN_NO = #dnNo#
+				;
+			END IF;
+		END;
+		]]>
+	</update>
+	
+	<delete id="rest.dnDelete">
+		/* ID : rest.dnDelete */
+		DELETE FROM TB_MNG_USERTELNO WHERE TENANT_ID = #tenantId# AND DN_NO = #dnNo#
+	</delete>
+	
+	<select id="rest.dnExstYn" resultClass="egovMap">
+		/* ID : rest.dnExstYn */
+		SELECT CASE WHEN COUNT(*) > 0 THEN 'Y' ELSE 'N' END AS EXST_YN
+		  FROM TB_MNG_USERTELNO
+		 WHERE TENANT_ID = #tenantId#
+		   AND DN_NO = #dnNo#
+	</select>
+	
+	<select id="rest.recInfoSelect" resultClass="egovMap">
+		/* ID : rest.recInfoSelect */
+		SELECT t1.TENANT_ID
+			 , t1.DN_NO
+			 , t1.GROUP_ID
+			 , t4.GROUP_NAME
+			 , t1.USER_ID AS AGENT_ID
+			 , t3.USER_NAME AS AGENT_NAME
+			 , t1.PHONE_IP
+			 , t1.REC_TIME AS REC_STRT_TIME
+			 , t1.END_TIME AS REC_TIME
+			 , t1.REC_END_TIME
+			 , t1.CALL_KIND
+			 , t1.CALL_ID
+			 , SUBSTRING_INDEX(SUBSTRING_INDEX(t1.CALL_ID, '_', 2), '_', -1) AS UCID
+			 , SUBSTRING_INDEX(SUBSTRING_INDEX(t1.CALL_ID, '_', 3), '_', -1) AS HOP
+			 , t1.CUST_NAME
+             <!-- , CASE WHEN LENGTH(t1.CUST_TEL) > 7 AND SUBSTR(t1.CUST_TEL, 0, 1) = '9' THEN SUBSTR(t1.CUST_TEL, 2)
+                    ELSE t1.CUST_TEL
+               END AS CUST_TEL -->
+             , t1.CUST_TEL
+			 , t1.CUST_NO
+			 , t1.MEDIA_VOICE
+			 , t1.MEDIA_SCR
+			 , t1.MEDIA_MOVIE
+			 , t1.SEARCH_VISIBLE
+			 , t1.CUST_ETC1
+			 , t1.CUST_ETC2
+			 , t1.CUST_ETC3
+			 , t1.CUST_ETC4
+			 , t1.CUST_ETC5
+			 , t1.CUST_ETC6
+			 , t1.CUST_ETC7
+			 , t1.CUST_ETC8
+			 , t1.HOLD
+			 , t1.TRAN_TEL
+			 , t2.MEDIA_KIND
+			 , t2.FILE_NAME
+			 , t2.UPLOAD_KIND
+			 , t2.RXRTPCNT
+			 , t2.TXRTPCNT
+		  FROM (
+		    SELECT *
+			  FROM (
+				SELECT a.*
+					 , DATE_FORMAT(DATE_ADD(a.REC_TIME, INTERVAL a.END_TIME SECOND), '%Y%m%d%H%i%S') AS REC_END_TIME
+				FROM TB_REC_FILE a
+				WHERE a.TENANT_ID = #tenantId#
+				AND a.REC_TIME <![CDATA[ >= ]]> CONCAT(#startDate#,'000000')
+				AND a.REC_TIME <![CDATA[ <= ]]> CONCAT(DATE_FORMAT(DATE_ADD(#startDate#, INTERVAL 1 DAY), '%Y-%m-%d'),'235959')
+		      )t
+		     WHERE REC_END_TIME <![CDATA[ >= ]]> CONCAT(#startDate#, #startTime#)
+		       AND REC_END_TIME <![CDATA[ <= ]]> CONCAT(#endDate#, #endTime#)
+		       <isNotEmpty property="agentId">
+			   AND USER_ID = #agentId#
+			   </isNotEmpty>
+		       <isNotEmpty property="dnNo">
+			   AND DN_NO = #dnNo#
+			   </isNotEmpty>
+		  ) t1
+		  INNER JOIN (
+			SELECT *
+			  FROM TB_REC_FILE_INDEX
+			 WHERE UPLOAD_KIND NOT IN ('0', '1', '2'<!-- , '9' -->)
+		  ) t2
+			ON t1.REC_KEY = t2.REC_KEY
+		  LEFT OUTER JOIN TB_MNG_USERINFO t3
+			ON t1.TENANT_ID = t3.TENANT_ID
+		   AND t1.USER_ID = t3.USER_ID
+          LEFT OUTER JOIN TB_MNG_GROUP t4
+        	ON t1.TENANT_ID = t4.TENANT_ID
+           AND t1.GROUP_ID = t4.GROUP_ID
+		 ORDER BY t1.REC_TIME DESC
+	</select>
+	
+</sqlMap>

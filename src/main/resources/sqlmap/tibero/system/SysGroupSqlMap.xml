@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="sysGroup">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="sysGroup.getSysGroupComboList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysGroup.getSysGroupComboList */
+		select 
+				RTRIM(CAST(sys_group_id AS CHAR(10))) as code
+				, sys_group_name as code_nm
+			FROM tb_sys_sysgroup
+		order by sys_group_id asc
+	</select>
+	
+	<select id="sysGroup.getSystemComboList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysGroup.getSystemComboList */
+		select 
+				RTRIM(CAST(system_id AS CHAR(10))) as code
+				, system_name as code_nm
+			FROM tb_sys_sysinfo
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="sysGoupId">
+				sys_group_id = #sysGoupId#
+			</isNotEmpty>
+		</dynamic>
+		order by system_id asc
+	</select>
+	
+	<select id="sysGroup.getSysCbList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysGroup.getSysCbList */
+		select 
+				CAST(system_id AS CHAR(4)) as code
+				, system_name as code_nm
+			FROM tb_sys_sysinfo
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="sysGoupId">
+				sys_group_id = #sysGoupId#
+			</isNotEmpty>
+		</dynamic>
+		order by system_id asc
+	</select>
+	
+<!-- 	<select id="sysGroup.getSysProcServerListCnt" parameterClass="java.util.HashMap" resultClass="egovMap"> -->
+<!-- 		/* ID : sysGroup.getSysProcServerListCnt */ -->
+<!-- 		select  -->
+<!-- 		    count(*) cnt -->
+<!-- 		from tb_sys_sysinfo sys -->
+<!-- 		inner join tb_sys_ipinfo ip -->
+<!-- 		    on sys.sys_group_id = ip.sys_group_id and sys.system_id = ip.system_id -->
+<!-- 		<dynamic prepend="WHERE"> -->
+<!-- 			<isNotEmpty prepend="AND" property="findSystemIp"> -->
+<!-- 				ip.system_ip = #findSystemIp# -->
+<!-- 			</isNotEmpty> -->
+<!-- 		</dynamic> -->
+<!-- 	</select> -->
+	
+	<select id="sysGroup.getSysProcServerList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysGroup.getSysProcServerList */
+		select * from (
+		    select 
+		        Row_Number() over (order by ip.system_ip asc ) as RowNum1,  
+		        sys.system_name||'('||ip.system_ip||')' as code_nm,
+		        ip.system_ip as code,
+		        sys.system_name
+		    from tb_sys_sysinfo sys
+		    inner join tb_sys_ipinfo ip
+		        on sys.sys_group_id = ip.sys_group_id and sys.system_id = ip.system_id
+		    <dynamic prepend="WHERE">
+		        <isNotEmpty prepend="AND" property="findSystemIp">
+		            ip.system_ip = #findSystemIp#
+		        </isNotEmpty>
+		    </dynamic>
+		    and ip.ip_use_item like '%412-1%'
+		)
+	</select>
+	
+	<select id="sysGroup.getSysIpList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysGroup.getSysIpList */
+		    select 
+		        Row_Number() over (order by ip.system_ip asc ) as RowNum1,  
+		        sys.system_name||'('||ip.system_ip||')' as code_nm,
+		        ip.system_ip as code,
+		        sys.system_name
+		    from tb_sys_sysinfo sys
+		    inner join tb_sys_ipinfo ip
+		        on sys.sys_group_id = ip.sys_group_id and sys.system_id = ip.system_id
+		    <dynamic prepend="WHERE">
+		        <isNotEmpty prepend="AND" property="findSystemIp">
+		            ip.system_ip = #findSystemIp#
+		        </isNotEmpty>
+		    </dynamic>
+		    where ip.ip_use_item like '%412-1%'
+	</select>
+	
+	
+	
+	
+	
+</sqlMap>

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="gubunRest">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="gubunRest.getGubunCodeCnt" resultClass="egovMap">
+		/* ID : gubunRest.getGubunCodeCnt */
+		SELECT COUNT(*) AS CNT
+		  FROM TB_MNG_GUBUNINFO
+		 WHERE GUBUN_CODE = #gubunCode#
+	</select>
+	
+	<insert id="gubunRest.insertGubunCode">
+		/* ID : gubunRest.insertGubunCode */
+		INSERT INTO TB_MNG_GUBUNINFO (
+			GUBUN_CODE, GUBUN_PARENT_CODE, GUBUN_NAME, GUBUN_PATH, GUBUN_DESC, INS_ID, INS_DATE
+			, GUBUN_USE_FLAG, DELETE_USE_FLAG, STORAGE_DAY, STORAGE_VOLUMN, DELETE_PATH
+		) VALUES (
+			#gubunCode#, #gubunParentCode#, #gubunName#, #gubunPath#, #gubunDesc#, #workId#, SYSDATE
+			, #gubunUseFlag#, #deleteUseFlag#, #storageDay#, #storageVolumn#, #deletePath#
+		)
+	</insert>
+	
+	<update id="gubunRest.updateGubunCode">
+		/* ID : gubunRest.updateGubunCode */
+		UPDATE TB_MNG_GUBUNINFO
+		   SET GUBUN_PARENT_CODE = #gubunParentCode#
+			 , GUBUN_NAME = #gubunName#
+			 , GUBUN_PATH = #gubunPath#
+			 , GUBUN_DESC = #gubunDesc#
+			 , UPT_ID = #workId#
+			 , UPT_DATE = SYSDATE
+			 , GUBUN_USE_FLAG = #gubunUseFlag#
+			 , DELETE_USE_FLAG = #deleteUseFlag#
+			 , STORAGE_DAY = #storageDay#
+			 , STORAGE_VOLUMN = #storageVolumn#
+			 , DELETE_PATH = #deletePath#
+		 WHERE GUBUN_CODE = #gubunCode#
+	</update>
+	
+	<select id="gubunRest.getVolumn_ori" resultClass="egovMap">
+		/* ID : gubunRest.getVolumn_ori */
+		SELECT GUBUN_TIME
+			 , SUM(GUBUN_DAILY_VOLUMN) AS USE_VOLUMN
+		  FROM TB_REC_GUBUN
+		 WHERE GUBUN_CODE = #gubunCode#
+		<isNotEmpty property="dnNo">
+		   AND DN_NO = #dnNo#
+		</isNotEmpty>
+		<isNotEmpty property="reqStartDate">
+		   AND GUBUN_TIME <![CDATA[ >= ]]> #reqStartDate#
+		</isNotEmpty>
+		<isNotEmpty property="reqEndDate">
+		   AND GUBUN_TIME <![CDATA[ <= ]]> #reqEndDate#
+		</isNotEmpty>
+		 GROUP BY GUBUN_TIME
+	</select>
+	
+	<select id="gubunRest.getVolumn" resultClass="egovMap">
+		/* ID : gubunRest.getVolumn */
+		SELECT SUBSTR(t1.REC_TIME, 0, 8) AS GUBUN_TIME
+			 , SUM(NVL(t2.VOCFILESIZE, 0)) AS USE_VOLUMN
+		  FROM TB_REC_FILE t1
+		  LEFT OUTER JOIN TB_REC_FILE_INDEX t2
+			ON t1.REC_KEY = t2.REC_KEY
+		 WHERE t1.TENANT_ID = #gubunCode#
+		   AND t1.GUBUN_KIND = '1'
+		<isNotEmpty property="dnNo">
+		   AND t1.DN_NO = #dnNo#
+		</isNotEmpty>
+		<isNotEmpty property="reqStartDate">
+		   AND t1.REC_TIME <![CDATA[ >= ]]> #reqStartDate# || '000000'
+		</isNotEmpty>
+		<isNotEmpty property="reqEndDate">
+		   AND t1.REC_TIME <![CDATA[ <= ]]> #reqEndDate# || '235959'
+		</isNotEmpty>
+		 GROUP BY SUBSTR(t1.REC_TIME, 0, 8)
+		 ORDER BY SUBSTR(t1.REC_TIME, 0, 8)
+	</select>
+	
+	<select id="gubunRest.getFirstRecDay" resultClass="egovMap">
+		/* ID : gubunRest.getFirstRecDay */
+		SELECT FIRST_REC_DAY
+		  FROM (
+			SELECT SUBSTR(REC_TIME, 0, 8) AS FIRST_REC_DAY
+			  FROM TB_REC_FILE
+			 WHERE REC_GUBUN = #gubunCode#
+			<isNotEmpty property="delTagetDn">
+			   AND DN_NO = #delTagetDn#
+			</isNotEmpty>
+			   AND GUBUN_KIND = '1'
+			 ORDER BY REC_TIME ASC
+		  )
+		 WHERE ROWNUM = 1
+	</select>
+	
+	<select id="gubunRest.getVolumnDelTerm" resultClass="egovMap">
+		/* ID : gubunRest.getVolumnDelTerm */
+		SELECT DISTINCT FIRST_VALUE(GUBUN_TIME) OVER() AS FROM_DAY
+			 , LAST_VALUE(GUBUN_TIME) OVER() AS TO_DAY
+		  FROM (
+			SELECT GUBUN_TIME
+				 , USE_VOLUMN
+				 , SUM(USE_VOLUMN) OVER(ORDER BY GUBUN_TIME) AS SUM_BEFORE
+			  FROM (
+				SELECT GUBUN_TIME
+					 , SUM(GUBUN_DAILY_VOLUMN) AS USE_VOLUMN
+				  FROM TB_REC_GUBUN
+				 WHERE GUBUN_CODE = #gubunCode#
+				<isNotEmpty property="delTagetDn">
+				   AND DN_NO = #delTagetDn#
+				</isNotEmpty>
+				 GROUP BY GUBUN_TIME
+			  )
+			 ORDER BY GUBUN_TIME
+		  )
+		 WHERE TO_NUMBER(SUM_BEFORE) <![CDATA[ < ]]> (TO_NUMBER(#delVolumn#) * 1024 * 1024 * 1024)
+	</select>
+	
+	<update id="gubunRest.updateRecFileDelInfo">
+		/* ID : gubunRest.updateRecFileDelInfo */
+		UPDATE TB_REC_FILE
+		   SET GUBUN_KIND = '2'
+			 , DEL_TIME = #reqDateTime#
+		 WHERE REC_GUBUN = #gubunCode#
+		<isNotEmpty property="delTagetDn">
+		   AND DN_NO = #delTagetDn#
+		</isNotEmpty>
+		   AND GUBUN_KIND = '1'
+		   AND REC_TIME BETWEEN #delStartDate# AND #delEndDate#
+	</update>
+	
+	<insert id="gubunRest.insertGubunDelInfo">
+		/* ID : gubunRest.insertGubunDelInfo */
+		INSERT INTO TB_REC_GUBUN_DEL(
+			DEL_TIME, GUBUN_CODE, GUBUN_NAME, DEL_PATH, DEL_TAGET_DATA
+			, DEL_TAGET_DN, DEL_TAGET_COUNT, DEL_WORK_GUBUN, DEL_WORK_ID, DEL_DESC
+		)
+		SELECT #reqDateTime# AS DEL_TIME
+			 , GUBUN_CODE
+			 , GUBUN_NAME
+			 , GUBUN_PATH AS DEL_PATH
+			 , #delTagetData# AS DEL_TAGET_DATA
+			 , #delTagetDn# AS DEL_TAGET_DN
+			 , #delTagetCount# AS DEL_TAGET_COUNT
+			 , #delWorkGubun#  AS DEL_WORK_GUBUN
+			 , #workId# AS DEL_WORK_ID
+			 , #delDesc# AS DEL_DESC
+		  FROM TB_MNG_GUBUNINFO
+		 WHERE GUBUN_CODE = #gubunCode#
+	</insert>
+	
+	<select id="gubunRest.getRecStatistics" resultClass="egovMap">
+		/* ID : gubunRest.getRecStatistics */
+		SELECT USER_ID
+			 , USER_NAME
+			 , GROUP_ID
+			 , GROUP_NAME
+			 , SUM(I_CNT) AS IB_CNT
+			 , SUM(I_SIZE) AS IB_SIZE
+			 , SUM(O_CNT) AS OB_CNT
+			 , SUM(O_SIZE) AS OB_SIZE
+			 , SUM(E_CNT) AS ETC_CNT
+			 , SUM(E_SIZE) AS ETC_SIZE
+		  FROM (
+			SELECT t1.USER_ID
+				 , t3.USER_NAME
+				 , t1.GROUP_ID
+				 , t4.GROUP_NAME
+				 , SUM(CASE WHEN t1.CALL_KIND = '1' THEN 1 ELSE 0 END) AS I_CNT
+				 , SUM(CASE WHEN t1.CALL_KIND = '2' THEN 1 ELSE 0 END) AS O_CNT
+				 , SUM(CASE WHEN t1.CALL_KIND NOT IN ('1', '2') THEN 1 ELSE 0 END) AS E_CNT
+				 , SUM(CASE WHEN t1.CALL_KIND = '1' THEN t2.VOCFILESIZE ELSE 0 END) AS I_SIZE
+				 , SUM(CASE WHEN t1.CALL_KIND = '2' THEN t2.VOCFILESIZE ELSE 0 END) AS O_SIZE
+				 , SUM(CASE WHEN t1.CALL_KIND NOT IN ('1', '2') THEN t2.VOCFILESIZE ELSE 0 END) AS E_SIZE
+			  FROM TB_REC_FILE t1
+			  LEFT OUTER JOIN TB_REC_FILE_INDEX t2
+				ON t1.REC_KEY = t2.REC_KEY
+			  LEFT OUTER JOIN TB_MNG_USERINFO t3
+				ON t1.TENANT_ID = t3.TENANT_ID
+			   AND t1.USER_ID = t3.USER_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP t4
+				ON t1.TENANT_ID = t4.TENANT_ID
+			   AND t1.GROUP_ID = t4.GROUP_ID
+			 WHERE t1.TENANT_ID = #gubunCode#
+			   AND t1.REC_TIME <![CDATA[ >= ]]> #reqStartDate# || #reqStartTime#
+			   AND t1.REC_TIME <![CDATA[ <= ]]> #reqEndDate# || #reqEndTime#
+			 GROUP BY t1.USER_ID, t3.USER_NAME, t1.GROUP_ID, t4.GROUP_NAME, t1.CALL_KIND
+		  )
+		 GROUP BY USER_ID, USER_NAME, GROUP_ID, GROUP_NAME
+		 ORDER BY USER_ID, USER_NAME, GROUP_ID, GROUP_NAME
+	</select>
+	
+</sqlMap>

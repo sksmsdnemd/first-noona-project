@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="bkLabel">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="bkLabel.getBkLabelCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : bkLabel.getBkLabelCount */
+		SELECT COUNT(*) AS CNT
+		  FROM TB_SYS_BKLABEL
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND"  property="findText">
+				<isEqual property="findKey" compareValue="bk_label_id">		BK_LABEL_ID  	</isEqual>
+				<isEqual property="findKey" compareValue="bk_device">		BK_DEVICE 		</isEqual>
+				<isEqual property="findKey" compareValue="last_worker">		LAST_WORKER  	</isEqual>
+				LIKE CONCAT('%', #findText#, '%')
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findFromCondition">
+				<![CDATA[	FROM_CONDITION >= #findFromCondition#	]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findEndCondition">
+				<![CDATA[	END_CONDITION <= #findEndCondition#		]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="bkLabel.getBkLabelList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : bkLabel.getBkLabelList */
+		SELECT BK_LABEL_ID, BK_DEVICE, MEDIA_KIND
+			 , DATE_FORMAT(STR_TO_DATE(FROM_CONDITION, '%Y-%m-%d %H:%i:%s'), '%Y-%m-%d %H:%i:%s') AS FROM_CONDITION
+			 , DATE_FORMAT(STR_TO_DATE(END_CONDITION, '%Y-%m-%d %H:%i:%s'), '%Y-%m-%d %H:%i:%s') AS END_CONDITION
+			 , STORE_PLACE, CAST(BK_FILE_CNT AS CHAR(10)) AS BK_FILE_CNT
+			 , CAST(USED_SPACE AS CHAR(10)) AS USED_SPACE, CAST(USABLE_SPACE AS CHAR(10)) AS USABLE_SPACE
+			 , RTRIM(CAST(STORE_YEAR AS CHAR(10))) AS STORE_YEAR
+			 , LAST_WORKER, DATE_FORMAT(LAST_BK_TIME, '%Y-%m-%d %H:%i:%s') AS LAST_BK_TIME, BK_RUN_FLAG, USE_RATE
+		  FROM (
+			SELECT * FROM (
+<!-- 				SELECT Row_Number() over (order by last_bk_time ) RowNum2, TB_IN.*  -->
+				SELECT TB_IN.* 
+				  FROM (
+<!-- 					SELECT Row_Number() over (order by last_bk_time desc) RowNum1 -->
+<!-- 						 , BK_LABEL_ID, BK_DEVICE, MEDIA_KIND, FROM_CONDITION, END_CONDITION -->
+					SELECT BK_LABEL_ID, BK_DEVICE, MEDIA_KIND, FROM_CONDITION, END_CONDITION
+						 , STORE_PLACE, IFNULL(BK_FILE_CNT, 0) AS BK_FILE_CNT, IFNULL(USED_SPACE, 0) AS USED_SPACE
+						 , IFNULL(USABLE_SPACE, 0) AS USABLE_SPACE, IFNULL(STORE_YEAR, 0) AS STORE_YEAR
+						 , LAST_WORKER, LAST_BK_TIME
+						 , CASE BK_RUN_FLAG WHEN '1' THEN '진행' WHEN '2' THEN '완료' ELSE '' END AS BK_RUN_FLAG
+						 , ROUND((IFNULL(USED_SPACE, 0) * 100) / (IFNULL(USED_SPACE, 0) + IFNULL(USABLE_SPACE, 0))) AS USE_RATE
+					  FROM TB_SYS_BKLABEL
+					<dynamic prepend="WHERE">
+						<isNotEmpty prepend="AND" property="findText">
+							<isEqual property="findKey" compareValue="bk_label_id">		BK_LABEL_ID  	</isEqual>
+							<isEqual property="findKey" compareValue="bk_device">  		BK_DEVICE 		</isEqual>
+							<isEqual property="findKey" compareValue="last_worker">  	LAST_WORKER  	</isEqual>
+							LIKE CONCAT('%', #findText#, '%')
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findFromCondition">
+							<![CDATA[	FROM_CONDITION >= #findFromCondition#	]]>
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findEndCondition">
+							<![CDATA[	END_CONDITION <= #findEndCondition#		]]>
+						</isNotEmpty>
+					</dynamic>
+				  ) TB_IN
+				<!-- WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]> -->
+			) TB_OUT 
+			<!-- WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]> -->
+		  ) tbl2
+		 ORDER BY LAST_BK_TIME DESC
+	</select>
+
+	<update id="bkLabel.setBkLabelUpdate" parameterClass="java.util.HashMap">
+		/* ID : bkLabel.setBkLabelUpdate */
+		UPDATE TB_SYS_BKLABEL
+		   SET LAST_WORKER = NULLIF(#lastWorker#, '')
+			 , STORE_PLACE = NULLIF(#storePlace#, '')
+			 , STORE_YEAR  = NULLIF(#storeYear#, '')
+		 WHERE BK_LABEL_ID = #bkLabelId#
+	</update>
+							
+	<delete id="bkLabel.setBkLabelDelete" parameterClass="java.util.HashMap" >
+		/* ID : bkLabel.setBkLabelDelete */
+		DELETE FROM TB_SYS_BKLABEL
+		 WHERE BK_LABEL_ID = #bkLabelId#
+	</delete>
+
+</sqlMap>

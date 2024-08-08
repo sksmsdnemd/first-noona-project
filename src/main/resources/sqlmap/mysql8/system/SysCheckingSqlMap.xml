@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ 	"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="sysCheck">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="sysCheck.getSummarySystem" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysCheck.getSummarySystem */
+		SELECT RM.SYSTEM_ID AS SYSTEM_ID , SI.SYSTEM_NAME SYSTEM_NAME, SYSTEM_IP, RM.RES_CODE RES_CODE, CODE_NAME
+			 , RM.RES_NAME RES_NAME, RM.RES_MAX RES_TOTAL, RM.RES_MAX*USE_MAX/100 RES_USED, USE_MAX USE_MAX_PERCENT
+			 , DATE_FORMAT(STR_TO_DATE(REGTIMEMIN, '%Y%m%d%H%i%s'), '%Y%m%d%H%i%s') AS REG_TIME_MIN, REGTIMEMAX AS REG_TIME_MAX
+		  FROM (
+			SELECT S.SYS_GROUP_ID, S.SYSTEM_ID, S.RES_CODE, S.RES_NAME, S.RES_MAX USE_MAX
+				 , MIN(CONCAT(REG_DATE, REG_TIME)) REGTIMEMIN, MAX(CONCAT(REG_DATE, REG_TIME)) REGTIMEMAX
+			  FROM (
+				SELECT SYS_GROUP_ID, SYSTEM_ID, RES_CODE, RES_NAME
+					 , AVG(RES_AVG) RES_AVG, MAX(RES_AVG) RES_MAX
+				  FROM TB_STA_RESOURCE
+				 WHERE REG_DATE > DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -15 DAY), '%Y%m%d') 
+				 GROUP BY SYS_GROUP_ID, SYSTEM_ID, RES_CODE, RES_NAME 
+			  ) S , TB_STA_RESOURCE R
+			 WHERE REG_DATE      > DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -15 DAY), '%Y%m%d') 
+			   AND R.SYSTEM_ID = S.SYSTEM_ID 
+			   AND R.RES_CODE  = S.RES_CODE 
+			   AND R.RES_NAME  = S.RES_NAME
+			   AND R.RES_AVG   = S.RES_MAX
+			 GROUP BY S.SYS_GROUP_ID, S.SYSTEM_ID, S.RES_CODE, S.RES_NAME, S.RES_MAX	
+		  ) TS, TB_SYS_SYSINFO SI, TB_SYS_RESMON RM,
+			(SELECT CODE_ID, CODE_NAME FROM TB_MNG_BASECODE WHERE CLASS_ID='res_class') RC,
+			(SELECT SYS_GROUP_ID, SYSTEM_ID, SYSTEM_IP FROM TB_SYS_IPINFO) IP
+		 WHERE SI.SYSTEM_ID    = RM.SYSTEM_ID 
+		   AND RM.SYS_GROUP_ID = SI.SYS_GROUP_ID 
+		   AND RM.RES_CODE     = CODE_ID
+		   AND TS.SYSTEM_ID    = SI.SYSTEM_ID 
+		   AND TS.SYS_GROUP_ID = SI.SYS_GROUP_ID
+		   AND TS.RES_CODE     = RM.RES_CODE 
+		   AND RM.RES_NAME     = TS.RES_NAME
+		   AND IP.SYSTEM_ID    = SI.SYSTEM_ID 
+		   AND IP.SYS_GROUP_ID = SI.SYS_GROUP_ID
+		<isNotEmpty prepend="AND" property="findSysName">
+			SI.SYSTEM_ID = #findSysName#
+		</isNotEmpty>
+		 ORDER BY SYSTEM_IP, RM.SYSTEM_ID, SI.SYSTEM_NAME, RES_CODE
+	</select>
+	
+	<select id="sysCheck.getSummaryProcess" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysCheck.getSummaryProcess */
+		SELECT P.SYSTEM_ID, SYSTEM_NAME, P.PROCESS_ID, PROCESS_NAME, PROC_VER, PORT_IDX MRS_PORT_IDX  
+			 , CONCAT(CASE IFNULL(HA_MODE,'0') WHEN '2' THEN 'Std-' ELSE 'Act-' END
+			 , CASE IFNULL(ACT_FLAG,'0') WHEN '1' THEN 'Run' WHEN '2' THEN 'Down' WHEN '3' THEN 'Stop' ELSE 'Wait' END) ACT_FLAG  
+			 , IFNULL(ERR_CNT,0) ERR_CNT
+			 , CASE SUBSTR(PROCESS_NAME, 1, 3) WHEN 'MRU' THEN IFNULL(MRU_REC_CNT, 0) ELSE 0 END MRU_REC_CNT 
+			 , CASE SUBSTR(PROCESS_NAME, 1, 3) WHEN 'MRU' THEN IFNULL(MTU_REC_CNT, 0) ELSE 0 END MTU_REC_CNT
+			 , CASE SUBSTR(PROCESS_NAME, 1, 3) WHEN 'MFU' THEN IFNULL(MFU_CNT, 0) ELSE 0 END MFU_CNT
+		  FROM TB_SYS_PROCINFO P
+		  LEFT OUTER JOIN (
+		  	SELECT 1 SYS_GROUP_ID, SYSTEM_ID, PROCESS_ID, COUNT(*) ERR_CNT 
+			  FROM TB_ERR_ERRLOG 
+			 WHERE ERR_DATE >= DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -1 DAY), '%Y%m%d')
+			   AND ERR_MSG LIKE 'Process fault%'
+			 GROUP BY SYSTEM_ID, PROCESS_ID
+		  ) E 
+			ON E.SYSTEM_ID = P.SYSTEM_ID 
+		   AND E.PROCESS_ID = P.PROCESS_ID 
+		   AND E.SYS_GROUP_ID = P.SYS_GROUP_ID
+		  LEFT OUTER JOIN TB_SYS_SYSINFO S 
+			ON S.SYSTEM_ID = P.SYSTEM_ID
+		  LEFT OUTER JOIN (
+			SELECT 1 SYS_GROUP_ID, MRS_SYSTEM_ID, COUNT(*) MRU_REC_CNT 
+			  FROM TB_REC_FILE F, TB_REC_FILE_INDEX I
+			 WHERE F.REC_KEY = I.REC_KEY
+			   AND F.REC_TIME BETWEEN DATE_FORMAT(SYSDATE(), '%Y%m%d') AND CONCAT(DATE_FORMAT(SYSDATE(),'%Y%m%d'), '99')
+			   AND SEARCH_VISIBLE IN (0,1)
+			 GROUP BY MRS_SYSTEM_ID 
+		  ) MRU_SUM 
+			ON P.SYSTEM_ID = MRU_SUM.MRS_SYSTEM_ID 
+		   AND MRU_SUM.SYS_GROUP_ID = P.SYS_GROUP_ID
+		  LEFT OUTER JOIN (
+			SELECT 1 SYS_GROUP_ID, MRS_SYSTEM_ID, COUNT(*) MTU_REC_CNT 
+			  FROM TB_REC_FILE F, TB_REC_FILE_INDEX I
+			 WHERE F.REC_KEY = I.REC_KEY
+			   AND F.REC_TIME BETWEEN DATE_FORMAT(SYSDATE(), '%Y%m%d') AND CONCAT(DATE_FORMAT(SYSDATE(),'%Y%m%d'), '99')
+			   AND SEARCH_VISIBLE = 1
+			 GROUP BY MRS_SYSTEM_ID
+		  ) MTU_SUM 
+			ON P.SYSTEM_ID = MTU_SUM.MRS_SYSTEM_ID 
+		   AND MTU_SUM.SYS_GROUP_ID = P.SYS_GROUP_ID
+		  LEFT OUTER JOIN (
+			SELECT 'MFU' PROC_NAME, COUNT(*) MFU_CNT 
+			  FROM TB_REC_RECLOG
+			 WHERE WORK_SDATE > CURDATE()
+		  ) MFU_SUM 
+			ON PROCESS_NAME LIKE MFU_SUM.PROC_NAME || '%'
+		 WHERE 1=1
+		<isNotEmpty prepend="AND" property="findSysName">
+	 		P.SYSTEM_ID = #findSysName# 
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="findProcessName">
+	 		P.PROCESS_ID =#findProcessName#
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="findActFalg">
+			<isEqual property="findActFalg" compareValue="0"> 			P.HA_MODE = '2' 				</isEqual>
+			<isEqual property="findActFalg" compareValue="1"><![CDATA[ 	IFNULL(P.HA_MODE,'0') <> '2' ]]> 	</isEqual>
+		</isNotEmpty>
+		 ORDER BY P.SYSTEM_ID, PROCESS_ID
+	</select>
+	
+	<select id="sysCheck.getSummaryRecode" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysCheck.getSummaryRecode */
+		SELECT ERR_CONTENT, REC_DATE, MRS_SYSTEM_ID, DN_NO, PHONE_IP, IFNULL(USER_NAME,'') USER_NAME
+			 , USER_ID, REC_X_CNT, REC_O_COUNT, REC_ALL	
+		  FROM (
+			SELECT CASE WHEN USER_NAME IS NULL THEN 'USER' ELSE ERR_CONTENT END ERR_CONTENT 
+				 , REC_DATE, MRS_SYSTEM_ID, DN_NO, PHONE_IP 
+				 , CASE WHEN USER_NAME IS NULL 
+						THEN CASE WHEN ts.USER_ID IS NULL THEN 'NotLogin' ELSE 'NotRegist' END 
+						ELSE USER_NAME
+				   END USER_NAME
+				 , ts.USER_ID 
+				 , IFNULL(SUM(REC_X_COUNT),0) REC_X_CNT 
+				 , IFNULL(SUM(REC_O_COUNT),0) REC_O_COUNT 
+				 , IFNULL(SUM(REC_X_COUNT),0) + IFNULL(SUM(REC_O_COUNT),0) REC_ALL
+			  FROM (
+				SELECT CASE LENGTH(IFNULL(USER_ID,'')) WHEN 0 THEN 'USER' ELSE 'PACKET' END ERR_CONTENT
+					 , <![CDATA[ CASE WHEN i.UPLOAD_KIND > '2' AND i.UPLOAD_KIND < '9' THEN COUNT(*) END REC_O_COUNT ]]>
+					 , <![CDATA[ CASE WHEN i.UPLOAD_KIND < '3' OR i.UPLOAD_KIND = '9' THEN COUNT(*) END REC_X_COUNT	]]>
+					 , TENANT_ID, SUBSTR(f.REC_TIME,1,8) REC_DATE, MRS_SYSTEM_ID, DN_NO, PHONE_IP, f.USER_ID
+				  FROM TB_REC_FILE f, TB_REC_FILE_INDEX i
+				 WHERE f.REC_KEY = i.REC_KEY
+				   AND f.REC_TIME BETWEEN DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL -18 DAY), '%Y%m%d') AND DATE_FORMAT(DATE_ADD(SYSDATE(), INTERVAL 18 DAY), '%Y%m%d')
+				 GROUP BY TENANT_ID, SUBSTR(f.REC_TIME,1,8), MRS_SYSTEM_ID, DN_NO, PHONE_IP, f.USER_ID, i.UPLOAD_KIND
+			  ) ts 
+			  LEFT OUTER JOIN TB_MNG_USERINFO u 
+				ON ts.TENANT_ID = u.TENANT_ID 
+			   AND ts.USER_ID = u.USER_ID
+			 GROUP BY ERR_CONTENT, REC_DATE, MRS_SYSTEM_ID, DN_NO, PHONE_IP, USER_NAME, ts.USER_ID, ts.TENANT_ID
+			HAVING <![CDATA[ IFNULL(SUM(REC_X_COUNT),0) > 0 ]]> OR USER_NAME IS NULL
+		  ) t
+		 WHERE 1=1 
+		<isNotEmpty prepend="AND" property="findSysName">
+		 	MRS_SYSTEM_ID = #findSysName#
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="findUserName">
+		 	USER_NAME = #findUserName#
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="findUserId">
+		 	USER_ID = #findUserId#
+		</isNotEmpty>
+		<isNotEmpty property="findErrCont">
+			<isEqual prepend="AND" property="findErrCont" compareValue="0">
+				ERR_CONTENT = 'USER'<!-- '사용자미등록녹취' 수정 2014-09-25 -->
+			</isEqual>
+			<isEqual prepend="AND" property="findErrCont" compareValue="1">
+				ERR_CONTENT = 'PACKET'<!-- '패킷미수신녹취' 수정 2014-09-25 -->
+			</isEqual>
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="findPhoneIp">
+			PHONE_IP LIKE  #findPhoneIp# || '%'
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="findDnNo">
+			DN_NO = #findDnNo#
+		</isNotEmpty>
+		 ORDER BY ERR_CONTENT, REC_DATE, MRS_SYSTEM_ID, DN_NO, PHONE_IP, USER_NAME 
+	</select>
+
+</sqlMap>

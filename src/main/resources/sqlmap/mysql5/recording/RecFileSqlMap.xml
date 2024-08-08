@@ -1,0 +1,583 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="recordFile">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="recordFile.getNoSendRecFileIndexList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recordFile.getNoSendRecFileIndexList */
+		SELECT REC_KEY, TENANT_ID, REC_TIME, DN_NO, USER_ID, RTRIM(CAST(MEDIA_VOICE AS CHAR(10))) AS MEDIA_VOICE
+			 , RTRIM(CAST(MEDIA_SCR AS CHAR(10))) AS MEDIA_SCR, MEDIA_KIND, FILE_NAME
+			 , RTRIM(CAST(MRS_SYSTEM_ID AS CHAR(10))) AS MRS_SYSTEM_ID, UPLOAD_KIND
+			 , DATE_FORMAT(UPLOAD_DATE, '%Y-%m-%d %H:%i:%s') AS UPLOAD_DATE, STORE_DRIVE
+			 , BK_LABEL_ID, BK_DEL_KIND, DATE_FORMAT(DEL_TIME, '%Y-%m-%d %H:%i:%s') AS DEL_TIME
+			 , RTRIM(CAST(RETRY_COUNT AS CHAR(10))) AS RETRY_COUNT, MEDIA_KIND_NAME, UPLOAD_KIND_NAME
+			 , RXRTPCNT, TXRTPCNT, RXFILESIZE, TXFILESIZE
+		  FROM (
+			SELECT a.REC_KEY, a.TENANT_ID, a.REC_TIME, a.DN_NO, a.USER_ID , IFNULL(a.MEDIA_VOICE,0) AS MEDIA_VOICE
+				 , IFNULL(a.MEDIA_SCR,0) AS MEDIA_SCR, c.MEDIA_KIND, c.FILE_NAME
+				 , IFNULL(c.MRS_SYSTEM_ID,0) AS MRS_SYSTEM_ID, c.UPLOAD_KIND, c.UPLOAD_DATE
+				 , c.STORE_DRIVE, c.BK_LABEL_ID, c.BK_DEL_KIND, c.DEL_TIME, IFNULL(c.RETRY_COUNT,0) AS RETRY_COUNT
+			 	 , (SELECT CODE_NAME FROM TB_MNG_BASECODE WHERE CLASS_ID = 'media_kind' AND CODE_ID = c.MEDIA_KIND) AS MEDIA_KIND_NAME
+			 	 , (SELECT CODE_NAME FROM TB_MNG_BASECODE WHERE CLASS_ID = 'upload_class' AND CODE_ID = c.UPLOAD_KIND) AS UPLOAD_KIND_NAME
+			 	 , c.RXRTPCNT, c.TXRTPCNT, c.RXFILESIZE, c.TXFILESIZE
+			  FROM TB_REC_FILE a
+			  JOIN TB_REC_FILE_INDEX c
+				ON a.REC_KEY = c.REC_KEY
+			<dynamic prepend="WHERE">
+				<isNotEmpty prepend="AND" property="tenantId">			a.TENANT_ID = #tenantId#								</isNotEmpty>
+				<isNotEmpty prepend="AND" property="findUserId">		a.USER_ID LIKE CONCAT('%', #findUserId#, '%')			</isNotEmpty>
+				<isNotNull  property="userid">			
+					<isNotEmpty prepend="AND" property="userid">		a.USER_ID = '$userid$' 									</isNotEmpty>									
+				</isNotNull>
+				<isNotEmpty prepend="AND" property="findRecKey">		a.REC_KEY = #findRecKey#								</isNotEmpty>
+				<isNotEmpty prepend="AND" property="findSRecTime">		a.REC_TIME BETWEEN #findSRecTime# AND #findERecTime#	</isNotEmpty>
+				<isNotEmpty prepend="AND" property="findMediaKind">		c.MEDIA_KIND = #findMediaKind#							</isNotEmpty>
+				<isNotEmpty prepend="AND" property="findUploadKind"> 	c.UPLOAD_KIND = #findUploadKind#						</isNotEmpty>
+			</dynamic>
+		  ) tbl1
+		 ORDER BY FILE_NAME
+	</select>
+	
+	<select id="recordFile.getNoSendRecCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recordFile.getNoSendRecCount */
+        SELECT COUNT(*) as cnt
+          FROM (
+            SELECT COUNT(*) cnt
+				 , REC_TIME, USER_ID, USER_NAME, MEDIA_KIND
+				 , SUM(ROW_CNT0) AS ROW_CNT0, SUM(ROW_CNT1) AS ROW_CNT1, SUM(ROW_CNT2) AS ROW_CNT2
+				 , SUM(ROW_CNT3) AS ROW_CNT3, SUM(ROW_CNT4) AS ROW_CNT4, SUM(row_cnt5) AS ROW_CNT5
+				 , SUM(ROW_CNT9) AS ROW_CNT9
+			  FROM (
+				SELECT SUBSTR(a.REC_TIME, 1, 8) AS REC_TIME
+					 , b.USER_ID, b.USER_NAME, d.MEDIA_KIND
+					 , CASE WHEN d.UPLOAD_KIND = 0 THEN COUNT(1) ELSE 0 END AS ROW_CNT0
+					 , CASE WHEN d.UPLOAD_KIND = 1 THEN COUNT(1) ELSE 0 END AS ROW_CNT1
+					 , CASE WHEN d.UPLOAD_KIND = 2 THEN COUNT(1) ELSE 0 END AS ROW_CNT2
+					 , CASE WHEN d.UPLOAD_KIND = 3 THEN COUNT(1) ELSE 0 END AS ROW_CNT3
+					 , CASE WHEN d.UPLOAD_KIND = 4 THEN COUNT(1) ELSE 0 END AS ROW_CNT4
+				 	 , CASE WHEN d.UPLOAD_KIND BETWEEN 5 AND 6 THEN COUNT(1) ELSE 0 END AS ROW_CNT5
+					 , CASE WHEN d.UPLOAD_KIND = 9 THEN COUNT(1) ELSE 0 END AS ROW_CNT9
+				  FROM TB_REC_FILE a
+				  JOIN TB_MNG_USERINFO b ON a.TENANT_ID = b.TENANT_ID AND a.USER_ID = b.USER_ID
+				  JOIN TB_MNG_GROUP c ON a.TENANT_ID = c.TENANT_ID AND a.GROUP_ID = c.GROUP_ID
+				  JOIN TB_REC_FILE_INDEX d ON a.REC_KEY = d.REC_KEY
+				<dynamic prepend="WHERE">
+					<isNotEmpty prepend="AND" property="tenantId"> 		a.TENANT_ID = #tenantId# 						</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findUserId"> 	a.USER_ID 	LIKE CONCAT('%', #findUserId#, '%')	</isNotEmpty>
+					<isNotNull  property="userid">
+						<isNotEmpty prepend="AND" property="userid"> 	a.USER_ID 	LIKE CONCAT('%', #userid#, '%')		</isNotEmpty>
+					</isNotNull>
+					<isNotEmpty prepend="AND"  property="findText">
+						<isEqual property="findKey" compareValue="a.user_id">  a.USER_ID  		</isEqual>
+						<isEqual property="findKey" compareValue="b.user_name">  b.USER_NAME 	</isEqual>
+						<isEqual property="findKey" compareValue="a.dn_no">  a.dn_no  			</isEqual>
+						<isEqual property="findKey" compareValue="user_id">  a.USER_ID  		</isEqual>
+						<isEqual property="findKey" compareValue="user_name">  b.USER_NAME  	</isEqual>
+						<isEqual property="findKey" compareValue="dn_no">  a.DN_NO  			</isEqual>
+						LIKE CONCAT('%', #findText#, '%')
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findDnNo"> 		a.DN_NO 	LIKE #findDnNo# 							</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findCustName"> 	a.CUST_NAME LIKE #findCustName# 						</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findCustNo"> 	a.CUST_NO 	LIKE #findCustNo# 							</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findCustTel"> 	a.CUST_TEL 	LIKE #findCustTel# 							</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findSRecTime"> 	a.REC_TIME BETWEEN #findSRecTime# AND #findERecTime# 	</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findMediaKind"> d.MEDIA_KIND = #findMediaKind# 							</isNotEmpty>
+					<!-- <isNotEmpty prepend="AND" property="findGroupId"> 	c.DEPTH 	LIKE CONCAT(#findGroupId#, '%')				</isNotEmpty> -->
+					<isNotEmpty prepend="AND" property="findGroupId">
+						a.GROUP_ID IN (
+							SELECT t1.GROUP_ID
+							  FROM (
+								SELECT a.*
+									 , b.GROUP_NAME AS PARENT_NAME
+								     , (LENGTH(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID))
+								       - LENGTH(REPLACE(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>', ''))
+								       + 1) AS GROUP_LEVEL
+								     , CONCAT('>', CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>') AS ID_PATH_SEARCH
+								  FROM TB_MNG_GROUP a
+								  LEFT OUTER JOIN TB_MNG_GROUP b ON a.PARENT_ID = b.GROUP_ID
+								  LEFT OUTER JOIN TB_MNG_GROUP c ON b.PARENT_ID = c.GROUP_ID
+								  LEFT OUTER JOIN TB_MNG_GROUP d ON c.PARENT_ID = d.GROUP_ID
+								  LEFT OUTER JOIN TB_MNG_GROUP e ON d.PARENT_ID = e.GROUP_ID
+								  LEFT OUTER JOIN TB_MNG_GROUP f ON e.PARENT_ID = f.GROUP_ID
+								  LEFT OUTER JOIN TB_MNG_GROUP g ON f.PARENT_ID = g.GROUP_ID
+								  LEFT OUTER JOIN TB_MNG_GROUP h ON g.PARENT_ID = h.GROUP_ID
+								  LEFT OUTER JOIN TB_MNG_GROUP i ON h.PARENT_ID = i.GROUP_ID
+								  LEFT OUTER JOIN TB_MNG_GROUP j ON i.PARENT_ID = j.GROUP_ID
+								 WHERE a.TENANT_ID = #findTenantId#
+							  ) t1
+							 WHERE t1.ID_PATH_SEARCH LIKE CONCAT('%>', #findGroupId#, '>%')
+						)
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findTreeText"> c.GROUP_ID IN
+						<iterate property="findTreeText" open="(" conjunction="," close=")"> 	#findTreeText[]# 				</iterate>
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findUploadKind"> d.UPLOAD_KIND = #findUploadKind# 						</isNotEmpty>
+				</dynamic>
+				 GROUP BY SUBSTR(a.REC_TIME, 1, 8), b.USER_ID, b.USER_NAME, d.MEDIA_KIND, d.UPLOAD_KIND
+			  ) aa
+			 GROUP BY REC_TIME, USER_ID, USER_NAME, MEDIA_KIND
+          ) ff
+	</select>
+
+	<select id="recordFile.getNoSendRecList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recordFile.getNoSendRecList */
+		SELECT REC_TIME, USER_ID, USER_NAME, MEDIA_KIND, ROW_CNT0, ROW_CNT1, ROW_CNT2, ROW_CNT3, ROW_CNT4, ROW_CNT5, ROW_CNT9
+			 , (SELECT CODE_NAME FROM TB_MNG_BASECODE WHERE CLASS_ID = 'media_kind' AND CODE_ID = MEDIA_KIND) AS MEDIA_KIND_NAME
+		  FROM (
+			SELECT * FROM (
+				SELECT ROW_NUMBER() OVER (ORDER BY REC_TIME, USER_NAME DESC, MEDIA_KIND DESC) AS RowNum2, TB_IN.*
+				  FROM (
+					SELECT ROW_NUMBER() OVER (ORDER BY REC_TIME DESC, USER_NAME, MEDIA_KIND) AS RowNum1
+						 , REC_TIME, USER_ID, USER_NAME, MEDIA_KIND
+						 , SUM(ROW_CNT0) AS ROW_CNT0, SUM(ROW_CNT1) AS ROW_CNT1, SUM(ROW_CNT2) AS ROW_CNT2
+						 , SUM(ROW_CNT3) AS ROW_CNT3, SUM(ROW_CNT4) AS ROW_CNT4, SUM(ROW_CNT5) AS ROW_CNT5
+						 , SUM(ROW_CNT9) AS ROW_CNT9
+					  FROM (
+						SELECT SUBSTR(a.REC_TIME, 1, 8) AS REC_TIME
+							 , b.USER_ID, b.USER_NAME, d.MEDIA_KIND
+							 , CASE WHEN d.UPLOAD_KIND = 0 THEN COUNT(1) ELSE 0 END AS ROW_CNT0
+							 , CASE WHEN d.UPLOAD_KIND = 1 THEN COUNT(1) ELSE 0 END AS ROW_CNT1
+							 , CASE WHEN d.UPLOAD_KIND = 2 THEN COUNT(1) ELSE 0 END AS ROW_CNT2
+							 , CASE WHEN d.UPLOAD_KIND = 3 THEN COUNT(1) ELSE 0 END AS ROW_CNT3
+							 , CASE WHEN d.UPLOAD_KIND = 4 THEN COUNT(1) ELSE 0 END AS ROW_CNT4
+							 , CASE WHEN d.UPLOAD_KIND BETWEEN 5 AND 6 THEN COUNT(1) ELSE 0 END AS ROW_CNT5
+							 , CASE WHEN d.UPLOAD_KIND = 9 THEN COUNT(1) ELSE 0 END AS ROW_CNT9
+						  FROM TB_REC_FILE a 
+						  JOIN TB_MNG_USERINFO b ON a.TENANT_ID = b.TENANT_ID AND a.USER_ID = b.USER_ID
+						  JOIN TB_MNG_GROUP c ON a.TENANT_ID = c.TENANT_ID AND a.GROUP_ID = c.GROUP_ID
+						  JOIN TB_REC_FILE_INDEX d ON a.REC_KEY = d.REC_KEY
+						<dynamic prepend="WHERE">
+							<isNotEmpty prepend="AND" property="tenantId"> 		a.TENANT_ID = #tenantId# 						</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findUserId"> 	a.USER_ID LIKE CONCAT('%', #findUserId#, '%') 	</isNotEmpty>
+							<isNotNull  property="userid">
+								<isNotEmpty prepend="AND" property="userid"> 	a.USER_ID LIKE CONCAT('%', #userid#, '%') 		</isNotEmpty>
+							</isNotNull>
+							<isNotEmpty prepend="AND"  property="findText">
+								<isEqual property="findKey" compareValue="a.user_id">  a.USER_ID  </isEqual>
+								<isEqual property="findKey" compareValue="b.user_name">  b.USER_NAME </isEqual>
+								<isEqual property="findKey" compareValue="a.dn_no">  a.DN_NO  </isEqual>
+								<isEqual property="findKey" compareValue="user_id">  a.USER_ID  </isEqual>
+								<isEqual property="findKey" compareValue="user_name">  b.USER_NAME  </isEqual>
+								<isEqual property="findKey" compareValue="dn_no">  a.DN_NO  </isEqual>
+								LIKE CONCAT('%', #findText#, '%')
+							</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findDnNo"> 		a.DN_NO LIKE CONCAT('%', #findDnNo#, '%') 				</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findCustName"> 	a.CUST_NAME LIKE CONCAT('%', #findCustName#, '%') 		</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findCustNo"> 	a.CUST_NO LIKE CONCAT('%', #findCustNo#, '%') 			</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findCustTel"> 	a.CUST_TEL LIKE CONCAT('%', #findCustTel#, '%') 		</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findSRecTime"> 	a.REC_TIME BETWEEN #findSRecTime# AND #findERecTime#	</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findSEndTime"> 	<![CDATA[ a.END_TIME >= #findSEndTime# ]]> 				</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findEEndTime"> 	<![CDATA[ a.END_TIME <= #findEEndTime# ]]> 				</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findMediaKind"> d.MEDIA_KIND	= #findMediaKind# 						</isNotEmpty>
+							<!-- <isNotEmpty prepend="AND" property="findGroupId"> 	c.DEPTH LIKE CONCAT('', #findGroupId#, '%') 			</isNotEmpty> -->
+							<isNotEmpty prepend="AND" property="findGroupId">
+								a.GROUP_ID IN (
+									SELECT t1.GROUP_ID
+									  FROM (
+										SELECT a.*
+											 , b.GROUP_NAME AS PARENT_NAME
+										     , (LENGTH(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID))
+										       - LENGTH(REPLACE(CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>', ''))
+										       + 1) AS GROUP_LEVEL
+										     , CONCAT('>', CONCAT_WS('>', j.GROUP_ID, i.GROUP_ID, h.GROUP_ID, g.GROUP_ID, f.GROUP_ID, e.GROUP_ID, d.GROUP_ID, c.GROUP_ID, b.GROUP_ID, a.GROUP_ID), '>') AS ID_PATH_SEARCH
+										  FROM TB_MNG_GROUP a
+										  LEFT OUTER JOIN TB_MNG_GROUP b ON a.PARENT_ID = b.GROUP_ID
+										  LEFT OUTER JOIN TB_MNG_GROUP c ON b.PARENT_ID = c.GROUP_ID
+										  LEFT OUTER JOIN TB_MNG_GROUP d ON c.PARENT_ID = d.GROUP_ID
+										  LEFT OUTER JOIN TB_MNG_GROUP e ON d.PARENT_ID = e.GROUP_ID
+										  LEFT OUTER JOIN TB_MNG_GROUP f ON e.PARENT_ID = f.GROUP_ID
+										  LEFT OUTER JOIN TB_MNG_GROUP g ON f.PARENT_ID = g.GROUP_ID
+										  LEFT OUTER JOIN TB_MNG_GROUP h ON g.PARENT_ID = h.GROUP_ID
+										  LEFT OUTER JOIN TB_MNG_GROUP i ON h.PARENT_ID = i.GROUP_ID
+										  LEFT OUTER JOIN TB_MNG_GROUP j ON i.PARENT_ID = j.GROUP_ID
+										 WHERE a.TENANT_ID = #findTenantId#
+									  ) t1
+									 WHERE t1.ID_PATH_SEARCH LIKE CONCAT('%>', #findGroupId#, '>%')
+								)
+							</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findTreeText"> c.GROUP_ID in
+								<iterate property="findTreeText" open="(" conjunction="," close=")"> 	#findTreeText[]# 				</iterate>
+							</isNotEmpty>
+							<isNotEmpty prepend="AND" property="findUploadKind"> d.UPLOAD_KIND = #findUploadKind# 						</isNotEmpty>
+						</dynamic>
+						 GROUP BY SUBSTR(a.REC_TIME, 1, 8), b.USER_ID, b.USER_NAME, d.MEDIA_KIND, d.UPLOAD_KIND
+					  ) aa
+					 GROUP BY REC_TIME, USER_ID, USER_NAME, MEDIA_KIND
+				  ) TB_IN
+				 WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+			) TB_OUT
+			 WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+		  ) tbl2
+		 ORDER BY REC_TIME DESC, USER_NAME , MEDIA_KIND
+	</select>
+	
+	<update id="recordFile.setRecFileMemoUpdate" parameterClass="java.util.HashMap">
+		/* ID : recordFile.setRecFileMemoUpdate */
+		UPDATE TB_REC_FILE
+		   SET CUST_ETC9  = NULLIF(#custEtc9#, '')
+			 , CUST_ETC10 = NULLIF(#custEtc10#, '')
+		 WHERE REC_KEY    = #recKey#
+	</update>
+	
+	<select id="recordFile.getRecFileList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recordFile.getRecFileList */
+		SELECT * 
+		  FROM (
+			SELECT DISTINCT SUBSTR(t1.REC_TIME,1,8) AS REC_TIME, t1.REC_TIME AS REC_TIME_TERM, t1.DN_NO, t1.GROUP_ID, t1.USER_ID, t2.GROUP_NAME
+			  FROM TB_REC_FILE t1
+			  JOIN TB_MNG_GROUP t2 
+				ON t1.TENANT_ID = t2.TENANT_ID 
+			   AND t1.GROUP_ID = t2.GROUP_ID
+			 WHERE 1 = 1
+			   AND t1.TENANT_ID = #tenantId#
+			   AND (t1.USER_ID IS NULL OR t1.USER_ID = '')
+			   AND t1.SEARCH_VISIBLE = '1'
+			<isNotEmpty prepend="AND" property="findSRecTime"> 	t1.REC_TIME BETWEEN #findSRecTime# AND #findERecTime#	</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findDnNo"> 		t1.DN_NO LIKE CONCAT('%', #findDnNo#, '%')				</isNotEmpty>
+		  ) a 
+		  LEFT OUTER JOIN (	
+			SELECT DISTINCT MIN(t1.REC_TIME) AS MIN_REC_TIME, MAX(t1.REC_TIME) AS MAX_REC_TIME
+				 , t1.DN_NO AS DN_NO_BAT, t1.USER_ID AS USER_ID_BAT, t2.USER_NAME AS USER_NAME_BAT
+			  FROM TB_REC_FILE t1
+			  JOIN TB_MNG_USERINFO t2 
+				ON t1.TENANT_ID = t2.TENANT_ID 
+			   AND t1.USER_ID = t2.USER_ID
+			 WHERE 1 = 1
+			<![CDATA[
+			   AND t1.TENANT_ID = #tenantId#
+			   AND (t1.USER_ID IS NOT NULL OR t1.USER_ID != '')
+			   AND t1.SEARCH_VISIBLE = '1'
+			   AND t1.REC_TIME >  #findBefTime#
+			   AND t1.REC_TIME <= #findSRecTime#
+			]]>
+			 GROUP BY t1.DN_NO, t1.USER_ID, t2.USER_NAME
+		  ) b
+			ON a.DN_NO = b.DN_NO_BAT
+		 ORDER BY DN_NO, REC_TIME_TERM
+	</select>
+	
+	<select id="recordFile.getRecFileCallList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recordFile.getRecFileCallList */
+		SELECT t1.REC_KEY, t1.TENANT_ID, t1.REC_TIME, t1.DN_NO, t1.GROUP_ID
+			 , t2.GROUP_NAME, t1.CALL_ID, t1.CALL_KIND
+		  FROM TB_REC_FILE t1 
+		  JOIN TB_MNG_GROUP t2 
+			ON t1.TENANT_ID = t2.TENANT_ID 
+		   AND t1.GROUP_ID = t2.GROUP_ID
+		 WHERE 1 = 1 
+		   AND t1.TENANT_ID = #tenantId#
+		   AND (t1.USER_ID IS NULL OR t1.USER_ID = '')
+		   AND t1.SEARCH_VISIBLE = '1'
+		   AND t1.REC_TIME BETWEEN #startDate# AND #endDate#
+		   AND t1.DN_NO = #dnNo#
+		 ORDER BY REC_TIME
+	</select>
+	
+	<update id="recordFile.setRecFileUserIdUpdate" parameterClass="java.util.HashMap">
+		/* ID : recordFile.setRecFileUserIdUpdate */
+		UPDATE TB_REC_FILE
+		   SET USER_ID = NULLIF(#userId#, '')
+		 WHERE 1=1
+		   AND TENANT_ID = #tenantId#
+		   AND (USER_ID IS NULL OR USER_ID = '')
+		   AND SEARCH_VISIBLE = '1'
+		   AND REC_TIME BETWEEN #findSRecTime# AND #findERecTime#
+		   AND DN_NO = #dnNo#
+	</update>
+	
+	<update id="recordFile.setRecFileCallUserIdUpdate" parameterClass="java.util.HashMap">
+		/* ID : recordFile.setRecFileCallUserIdUpdate */
+		UPDATE TB_REC_FILE
+		   SET USER_ID = NULLIF(#userId#, '')
+		 WHERE 1=1
+		   AND (USER_ID IS NULL OR USER_ID = '')
+		   AND SEARCH_VISIBLE = '1'
+		   AND REC_KEY = #recKey#
+	</update>
+	
+	<select id="recordFile.getMaxMarkingId" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recordFile.getMaxMarkingId */
+		SELECT IFNULL(MAX(MARKING_ID),0)+1 AS MARKING_ID
+		  FROM TB_REC_MARKCODE
+		 WHERE TENANT_ID = #tenantId#
+	</select>
+	
+	<select id="recordFile.getMarkCodeList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recordFile.getMarkCodeList */
+		SELECT TENANT_ID, MARKING_ID, MARKING_CLASS, MARKING_COLOR, MARKING_DESC
+		  FROM TB_REC_MARKCODE
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="findTenantId">
+				TENANT_ID = #findTenantId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findText">
+				MARKING_CLASS LIKE CONCAT('%', #findText#, '%')
+			</isNotEmpty>
+		</dynamic>
+		 ORDER BY TENANT_ID, MARKING_ID
+	</select>
+	
+	<insert id="recordFile.setMarkCodeInsert" parameterClass="java.util.HashMap">
+		/* ID : recordFile.setMarkCodeInsert */
+		INSERT INTO TB_REC_MARKCODE (
+			TENANT_ID, MARKING_ID, MARKING_CLASS, MARKING_COLOR, MARKING_DESC
+		) VALUES (
+			NULLIF(#tenantId#, ''), NULLIF(#markingId#, ''), NULLIF(#markingClass#, ''), NULLIF(#markingColor#, ''), NULLIF(#markingDesc#, '')
+		)
+	</insert>
+	
+	<update id="recordFile.setMarkCodeUpdate" parameterClass="java.util.HashMap">
+		/* ID : recordFile.setMarkCodeUpdate */
+		UPDATE TB_REC_MARKCODE
+		   SET MARKING_CLASS = NULLIF(#markingClass#, '')
+			 , MARKING_COLOR = NULLIF(#markingColor#, '')
+			 , MARKING_DESC  = NULLIF(#markingDesc#, '')
+		 WHERE TENANT_ID     = #tenantId#
+		   AND MARKING_ID    = #markingId#
+	</update>
+	
+	<delete id="recordFile.setMarkCodeDelete" parameterClass="java.util.HashMap" >
+		/* ID : recordFile.setMarkCodeDelete */
+		DELETE FROM TB_REC_MARKCODE
+		 WHERE TENANT_ID = #tenantId#
+		   AND MARKING_ID = #markingId#
+	</delete>
+	
+	<select id="recordFile.getRecGrant" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recordFile.getRecGrant*/
+		SELECT * FROM TB_REC_GRANT
+		 WHERE USER_ID = #userId# AND REC_KEY = #recKey#
+		/*만료일 비교 조건추가*/
+	</select>
+	
+	<update id="recordFile.updateRecFile" parameterClass="java.util.HashMap">
+		/* ID : recordFile.updateRecFile */
+		UPDATE TB_REC_FILE
+		   SET CALL_ID    = NULLIF(#callId#, '')
+			 , CUST_NAME  = NULLIF(#custName#, '')
+			 , CUST_TEL   = NULLIF(#custTel#, '')
+			 , CUST_NO    = NULLIF(#custNo#, '')
+			 , CUST_ETC1  = NULLIF(#etc_1#, '')
+			 , CUST_ETC2  = NULLIF(#etc_2#, '')
+			 , CUST_ETC3  = NULLIF(#etc_3#, '')
+			 , CUST_ETC4  = NULLIF(#etc_4#, '')
+			 , CUST_ETC5  = NULLIF(#etc_5#, '')
+			 , CUST_ETC6  = NULLIF(#etc_6#, '')
+			 , CUST_ETC7  = NULLIF(#etc_7#, '')
+			 , CUST_ETC8  = NULLIF(#etc_8#, '')
+			 , CUST_ETC9  = NULLIF(#etc_9#, '')
+			 , CUST_ETC10 = NULLIF(#etc_10#, '')
+		 WHERE REC_KEY    = #recKey# OR CALL_ID = #callId#
+	</update>
+	
+	<select id="recordFile.getRecSendDetailListCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recordFile.getRecSendDetailListCnt */
+		SELECT COUNT(*) AS CNT
+		  FROM TB_REC_FILE a
+		 INNER JOIN TB_REC_FILE_INDEX b
+			ON a.REC_KEY = b.REC_KEY
+		 WHERE 
+		<isEqual property="findTS" compareValue="1">
+		<!-- 1 -->
+			<![CDATA[	a.REC_TIME >=	concat(#txtDate1_From# , #findSRegTime#) ]]> 
+			AND <![CDATA[	a.REC_TIME <=	concat(#txtDate1_To# , #findERegTime#) ]]>
+		</isEqual>	
+		<isNotEqual property="findTS" compareValue="1">									
+		<!-- 2 -->	
+			<![CDATA[	SUBSTR(a.REC_TIME, 1, 8) >=	#txtDate1_From# ]]> 
+			AND <![CDATA[	SUBSTR(a.REC_TIME, 1, 8) <=	#txtDate1_To# ]]>
+			AND <![CDATA[	SUBSTR(a.REC_TIME, 9, 6) >=	#findSRegTime# ]]> 
+			AND <![CDATA[	SUBSTR(a.REC_TIME, 9, 6) <=	#findERegTime# ]]>
+		</isNotEqual>
+			AND a.TENANT_ID = #findTenantId#
+		<isNotEmpty prepend="AND" property="findSearchVisible">
+			a.SEARCH_VISIBLE = #findSearchVisible# 
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="findDnNo">
+			a.DN_NO Like concat(concat('%' , #findDnNo# ), '%')
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="findUploadKind">
+			b.UPLOAD_KIND = #findUploadKind# 
+		</isNotEmpty>
+		 ORDER BY a.REC_TIME ASC
+	</select>
+	
+	<select id="recordFile.getRecSendDetailList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recordFile.getRecSendDetailList */
+		SELECT  REC_TIME
+			 , UPLOAD_KIND 
+			 , UPLOAD_KIND_STR
+			 , TENANT_ID
+			 , DN_NO 
+			 , REC_KEY 
+			 , USER_ID 
+			 , USER_NAME
+			 , CALL_ID 
+			 , END_TIME
+			 , CUST_TEL
+			 , SEARCH_VISIBLE
+			 , CALL_TIME
+			 , RXRTPCNT
+			 , RXFILESIZE
+			 , TXRTPCNT
+			 , TXFILESIZE
+		  FROM (
+			SELECT * FROM (
+				SELECT ROW_NUMBER() OVER (ORDER BY REC_TIME) AS RowNum2, TB_IN.*
+				  FROM (
+                    SELECT ROW_NUMBER() OVER (ORDER BY a.REC_TIME DESC) AS RowNum1
+						 , DATE_FORMAT(a.REC_TIME, '%Y/%m/%d %H:%i:%s') AS REC_TIME
+						 , b.UPLOAD_KIND 
+						 , d.CODE_NAME AS UPLOAD_KIND_STR
+						 , a.TENANT_ID
+						 , a.DN_NO 
+						 , a.REC_KEY 
+						 , a.USER_ID 
+						 , c.USER_NAME
+						 , a.CALL_ID 
+						 , a.END_TIME
+						 , a.CUST_TEL
+						 , a.SEARCH_VISIBLE
+						 , b.CALL_TIME
+						 , b.RXRTPCNT
+						 , b.RXFILESIZE
+						 , b.TXRTPCNT
+						 , b.TXFILESIZE
+					  FROM TB_REC_FILE a
+					 INNER JOIN TB_REC_FILE_INDEX b
+						ON a.REC_KEY = b.REC_KEY
+					  LEFT OUTER JOIN TB_MNG_USERINFO c
+						ON a.USER_ID = c.USER_ID
+					   AND a.TENANT_ID = c.TENANT_ID
+					  LEFT OUTER JOIN TB_MNG_BASECODE d
+						ON d.CLASS_ID = 'upload_class'
+					   AND d.CODE_ID = b.UPLOAD_KIND
+					 WHERE
+					<isEqual property="findTS" compareValue="1">
+					<!-- 1 -->
+						<![CDATA[	a.REC_TIME >=	concat(#txtDate1_From# , #findSRegTime#) ]]> 
+						AND <![CDATA[	a.REC_TIME <=	concat(#txtDate1_To# , #findERegTime#) ]]>
+					</isEqual>	
+					<isNotEqual property="findTS" compareValue="1">									
+					<!-- 2 -->	
+						<![CDATA[	SUBSTR(a.REC_TIME, 1, 8) >=	#txtDate1_From# ]]> 
+						AND <![CDATA[	SUBSTR(a.REC_TIME, 1, 8) <=	#txtDate1_To# ]]>
+						AND <![CDATA[	SUBSTR(a.REC_TIME, 9, 6) >=	#findSRegTime# ]]> 
+						AND <![CDATA[	SUBSTR(a.REC_TIME, 9, 6) <=	#findERegTime# ]]>
+					</isNotEqual>
+						AND a.TENANT_ID = #findTenantId#
+					<isNotEmpty prepend="AND" property="findSearchVisible">
+						a.SEARCH_VISIBLE = #findSearchVisible# 
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findUploadKind">
+						b.UPLOAD_KIND = #findUploadKind# 
+					</isNotEmpty>
+					<isNotEmpty prepend="AND"  property="findText">	
+						<isEqual property="findSearch" compareValue="dn_no">		a.DN_NO		LIKE CONCAT('%' , #findText#, '%')	</isEqual>
+						<isEqual property="findSearch" compareValue="user_id">		a.USER_ID 	LIKE CONCAT('%' , #findText#, '%')	</isEqual>
+						<isEqual property="findSearch" compareValue="user_name">	c.USER_NAME LIKE CONCAT('%' , #findText#, '%')	</isEqual>
+					</isNotEmpty>
+					 ORDER BY a.REC_TIME DESC 
+				  ) TB_IN
+				 WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+			) TB_OUT
+			 WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+		  ) tbl2
+		 ORDER BY REC_TIME DESC
+	</select>
+	
+	<select id="recordFile.getRecSendDetailStat"  parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recordFile.getRecSendDetailStat */
+		SELECT b.UPLOAD_KIND, COUNT(b.UPLOAD_KIND) AS CNT
+			 , c.CODE_NAME AS UPLOAD_KIND_STR
+		  FROM TB_REC_FILE a, TB_REC_FILE_INDEX b
+		  LEFT OUTER JOIN TB_MNG_BASECODE c
+			ON b.UPLOAD_KIND = c.CODE_ID
+		   AND c.CLASS_ID = 'upload_class'
+		 WHERE a.REC_TIME BETWEEN CONCAT(#txtDate1_From#, '00') AND CONCAT(#txtDate1_To#, '99')
+		   AND a.TENANT_ID = #findTenantId#
+		   AND a.REC_KEY = b.REC_KEY
+		<isNotEmpty prepend="AND"  property="findText">	
+			<isEqual property="findSearch" compareValue="dn_no">		a.DN_NO		LIKE CONCAT('%', #findText#, '%')	</isEqual>
+			<isEqual property="findSearch" compareValue="user_id">		a.USER_ID 	LIKE CONCAT('%', #findText#, '%')	</isEqual>
+			<isEqual property="findSearch" compareValue="user_name">	c.USER_NAME LIKE CONCAT('%', #findText#, '%')	</isEqual>
+		</isNotEmpty>
+ 		 GROUP BY b.UPLOAD_KIND, c.CODE_NAME
+ 	</select>
+ 
+ 	<select id="recordFile.getAPIConstList" parameterClass="java.util.HashMap" resultClass="egovMap">
+ 		/* ID : recordFile.getAPIConstList */
+		SELECT REC_TIME
+			 , USER_ID
+			 , DN_NO
+			 , GROUP_ID
+			 , GROUP_NAME
+			 , CALL_ID AS DB_CALL_ID
+			 , CALL_ID AS API_CALL_ID
+			 , CALL_TYPE
+			 , CUST_NAME
+			 , CUST_TEL
+			 , CALL_KIND
+		  FROM (
+			SELECT * FROM (
+				SELECT ROW_NUMBER() OVER (ORDER BY REC_TIME) AS RowNum2, TB_IN.*
+				  FROM (
+					SELECT ROW_NUMBER() OVER (ORDER BY REC_TIME DESC) AS RowNum1
+					  FROM (
+						SELECT A.REC_TIME
+							 , A.USER_ID
+							 , A.DN_NO
+							 , A.GROUP_ID
+							 , C.GROUP_NAME
+							 , A.CALL_ID AS DB_CALL_ID
+							 , B.CALL_ID AS API_CALL_ID
+							 , B.CALL_TYPE
+							 , A.CUST_NAME
+							 , A.CUST_TEL
+							 , A.CALL_KIND
+						  FROM TB_REC_FILE A
+						  LEFT OUTER JOIN TB_API_CONST B
+							ON A.CALL_ID = B.CALL_ID
+						  LEFT OUTER JOIN TB_MNG_GROUP C
+							ON A.GROUP_ID = C.GROUP_ID
+						   AND C.TENANT_ID = #findTenantId#
+						 WHERE A.tenant_id = #findTenantId#
+						<isNotEmpty prepend="AND" property="findSRecTime"> 	A.REC_TIME BETWEEN #findSRecTime# AND #findERecTime# 	</isNotEmpty>
+						 ORDER BY A.REC_TIME DESC
+					  ) TB_IN
+					 WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+				  ) TB_OUT
+				WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+			) tbl2
+		  ) t
+		 ORDER BY REC_TIME DESC
+	</select>
+	
+	<select id="recordFile.getAPIConstListCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recordFile.getAPIConstListCnt */
+		SELECT COUNT(*) AS CNT FROM (
+			SELECT A.REC_TIME
+				 , A.USER_ID
+				 , A.DN_NO
+				 , A.GROUP_ID
+				 , C.GROUP_NAME
+				 , A.CALL_ID
+				 , B.CALL_ID
+				 , B.CALL_TYPE
+				 , A.CUST_NAME
+				 , A.CUST_TEL
+				 , A.CALL_KIND
+			  FROM TB_REC_FILE A
+			  LEFT OUTER JOIN TB_API_CONST B
+				ON A.CALL_ID = B.CALL_ID
+			  LEFT OUTER JOIN TB_MNG_GROUP C
+				ON A.GROUP_ID = C.GROUP_ID
+			   AND C.TENANT_ID = #findTenantId#
+			 WHERE  A.TENANT_ID = #findTenantId#
+			<isNotEmpty prepend="AND" property="findSRecTime"> 	A.REC_TIME BETWEEN #findSRecTime# AND #findERecTime# 	</isNotEmpty>
+			 ORDER BY A.REC_TIME DESC
+		) ac
+	</select>
+	
+</sqlMap>

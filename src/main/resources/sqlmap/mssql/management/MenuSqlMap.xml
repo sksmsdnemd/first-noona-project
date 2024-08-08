@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="menu">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+
+	<select id="menu.getMenuList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getMenuList */
+		select 
+				a.tenant_id, a.grant_id	, a.depth1_id, a.depth2_id, a.depth3_id
+		  		, b.menu_name, b.src_do, b.menu_auth_def, ISNULL(a.auth_kind,'N') auth_kind
+			FROM tb_mng_menuauth a 
+				join tb_mng_menu b 
+					on a.depth1_id  = b.depth1_id 
+					and a.depth2_id = b.depth2_id 
+					and a.depth3_id = b.depth3_id
+		    		and b.src_do is not null	
+		    		and a.tenant_id = #tenantId#	
+		    		and a.grant_id  = #grantId#
+		order by depth1_id, depth2_id, depth3_id
+	</select>
+	
+	<select id="menu.getMenuAuthList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getMenuAuthList */
+		select 
+				m.depth1_id, m.depth2_id, m.depth3_id, menu_name, src_do, auth_kind
+				, left ('          ', (case when m.depth2_id = 0 then 0 else 1 end + case when m.depth3_id = 0 then 0 else 1 end) * 4) head
+				, case when m.depth2_id = 0 then 0 else 1 end + case when m.depth3_id = 0 then 0 else 1 end depth
+			from TB_MNG_MENU m, TB_MNG_MENUAUTH ma
+		where m.depth1_id 	= ma.depth1_id 
+			and m.depth2_id = ma.depth2_id 
+			and m.depth3_id = ma.depth3_id
+			and grant_id 	= #findGrantId#
+			and tenant_id 	= #findTenantId#
+			and src_do is not null
+		order by m.depth1_id, m.depth2_id, m.depth3_id
+	</select>
+
+	<update id="menu.setMenuAuthUpdate" parameterClass="java.util.HashMap">
+		/* ID : menu.setMenuAuthUpdate */
+		update TB_MNG_MENUAUTH set 
+			 auth_kind	= #authKind#
+			, upt_id	= #uptId#
+			, upt_date	= getdate()
+		where 
+			tenant_id 	  = #tenantId#
+			and grant_id  = #grantId#
+			and depth1_id = #depth1Id#
+			and depth2_id = #depth2Id#
+			and depth3_id = #depth3Id#
+	</update>
+		
+	<select id="menu.getColTitleList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getColTitleList */
+		select isnull(table_name,'tb_rec_file') table_name, f.field_name, isnull(field_title,'') field_title 
+			from(	
+				select 'cust_etc1' field_name
+				union all select 'cust_etc2'
+				union all select 'cust_etc3'
+				union all select 'cust_etc4'
+				union all select 'cust_etc5'
+				union all select 'cust_etc6'
+				union all select 'cust_etc7'
+				union all select 'cust_etc8'
+				) f 
+				left outer join (
+					select table_id table_name, col_id field_name, col_text field_title 
+						from dbo.TB_MNG_COL_TITLE
+					where tenant_id = #findTenantId#
+						and table_id='tb_rec_file'
+					) t on f.field_name = t.field_name
+	</select>
+	
+	<update id="menu.setColTitleUpdate" parameterClass="java.util.HashMap">
+		/* ID : menu.setColTitleUpdate */
+		update TB_MNG_COL_TITLE set 
+			col_text 	 = #fieldTitle#
+			, upt_id	 = #uptId#
+			, upt_date	 = getdate()			
+		where tenant_id  = #findTenantId#
+			and table_id = 'tb_rec_file'
+			and col_id 	 = #fieldName#
+	</update>
+	
+	<insert id="menu.setColTitleInsert" parameterClass="java.util.HashMap">
+		/* ID : menu.setColTitleInsert */
+		insert into TB_MNG_COL_TITLE
+			(
+			tenant_id,table_id,col_id,col_text, upt_id,upt_date, ins_id, ins_date
+			)
+		values
+			(
+			#findTenantId#, 'tb_rec_file', #fieldName#, #fieldTitle#, #uptId#, getdate(), #uptId#, getdate()
+			)
+	</insert>
+	
+	<delete id="menu.setColTitleDelete" parameterClass="java.util.HashMap">
+		/* ID : menu.setColTitleDelete */
+		DELETE FROM TB_MNG_COL_TITLE 
+		 WHERE TENANT_ID = #findTenantId#
+		   AND TABLE_ID =  'tb_rec_file'
+		   AND COL_ID =  #fieldName#
+	</delete>
+	
+	<select id="menu.getConfigSectionList" parameterClass="java.util.HashMap"	resultClass="egovMap">
+		/* ID : menu.getConfigSectionList */
+		select distinct section code, section code_nm
+			from tb_was_config
+		order by section 
+	</select>
+	
+	<select id="menu.getConfigMaxOrder" parameterClass="java.util.HashMap"	resultClass="egovMap">
+		/* ID : menu.getConfigMaxOrder */
+		select isnull(max(key_order)+1,1) as max_key_order
+			from tb_was_config
+		where section = #section#
+	</select>
+				
+	<select id="menu.getConfigList" parameterClass="java.util.HashMap"	resultClass="egovMap">
+		/* ID : menu.getConfigList */
+		select section, key_code, key_order, RTRIM(CAST(val_type AS CHAR(10))) as val_type, val_cur, val_default, val_list, title_list, val_desc
+			from tb_was_config
+		<isNotEmpty property="findSection">	where section = #findSection# </isNotEmpty>
+		order by section, key_order 
+	</select>
+
+	<insert id="menu.setConfigInsert" parameterClass="java.util.HashMap">
+		/* ID : menu.setConfigInsert */
+		insert into tb_was_config
+			( 
+			section, key_code, key_order, val_type, val_cur, val_default, val_list, title_list, upt_date, upt_id, val_desc 
+			)
+		values
+			(
+			#section#, #keyCode#, #keyOrder#, #valType#, #valCur#, #valDefault#, #valList#, #titleList#, getdate(), #userId#, #valDesc# 
+			)
+	</insert>
+	
+	<update id="menu.setConfigUpdate" parameterClass="java.util.HashMap">
+		/* ID : menu.setConfigUpdate */
+		update tb_was_config set 
+			  section 	  = #section#
+			, key_code	  = #keyCode#
+			, key_order	  = #keyOrder#
+			, val_type	  = #valType#
+			, val_cur     = #valCur#
+			, val_default = #valDefault#
+			, val_list    = #valList#
+			, title_list  = #titleList#
+			, upt_id	  = #userId#
+			, upt_date	  = getdate()
+			, val_desc    = #valDesc#
+		where section     = #bkSection#
+			and key_code  = #bkKeyCode#
+			and key_order = #bkKeyOrder#
+	</update>
+	
+	<update id="menu.setConfigDelete" parameterClass="java.util.HashMap">
+		/* ID : menu.setConfigDelete */
+		delete from tb_was_config
+		 where section = #section#
+		   and key_code  = #keyCode#
+		   and key_order = #keyOrder#
+	</update>
+	
+	<update id="menu.setConfigSetting" parameterClass="java.util.HashMap">
+		/* ID : menu.setConfigSetting */
+		update tb_was_config set 
+			  val_cur     = #strKeyValue#
+			, upt_id	  = #userId#
+			, upt_date	  = getdate()
+		where section     = #strSection#
+			and key_code  = #strKeyCode#
+			and key_order = #strKeyOrder#
+	</update>
+	
+	<select id="menu.getSelectParam" parameterClass="java.util.HashMap" resultClass="String">
+		/* ID : menu.getSelectParam */
+		select val_cur 
+			from tb_was_config
+		where section = #section#
+			and key_code = #keyCode#
+	</select>
+	
+	<select id="menu.getMenuMngList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getMenuMngList */
+		select 
+				  RTRIM(CAST(depth1_id AS CHAR(10))) depth1_id
+				, RTRIM(CAST(depth2_id AS CHAR(10))) depth2_id
+				, RTRIM(CAST(depth3_id AS CHAR(10))) depth3_id
+				, menu_name, display_flag, log_flag, menu_auth_def
+				, src_link, help_src_link, src_do
+				, ins_id, CONVERT(CHAR(23), ins_date, 21) ins_date
+				, upt_id, CONVERT(CHAR(23), upt_date, 21) upt_date
+			from tb_mng_menu 
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="findMenuName">
+				menu_name like '%'+ #findMenuName# +'%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findDepth1">
+				depth1_id = #findDepth1#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findDepth2">
+				depth2_id = #findDepth2#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findDepth3">
+				depth3_id = #findDepth3#
+			</isNotEmpty>
+		</dynamic>
+		order by depth1_id asc, depth2_id asc, depth3_id asc
+	</select>
+	
+	<select id="menu.getDeptMenu1" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getDeptMenu1 */
+		select depth1_id code, menu_name code_nm 
+			from tb_mng_menu
+		where 	depth2_id = '0'
+			and depth3_id = '0'
+		order by depth1_id
+	</select>
+	
+	<select id="menu.getDeptMenu2" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getDeptMenu2 */
+		select depth2_id code, menu_name code_nm
+			from tb_mng_menu
+		where 	depth2_id != '0'
+			and depth3_id  = '0'
+			and depth1_id  = #findDepth1#
+		order by depth2_id
+	</select>
+	
+	<select id="menu.getDeptMenu3" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getDeptMenu3 */
+		select depth3_id code, menu_name code_nm 
+			from tb_mng_menu
+		where 	depth3_id != '0'
+			and depth1_id  = #findDepth1#
+			and depth2_id  = #findDepth2#
+		order by depth3_id
+	</select>
+	
+	<select id="menu.getDeptMenuMaxId1" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getDeptMenuMaxId1 */
+		select RTRIM(CAST(max(depth1_id)+1 AS CHAR(10))) as depth1_id 
+       		from tb_mng_menu 
+       	where 1=1 
+       	   and depth2_id = '0' 
+       	   and depth3_id = '0'
+	</select>
+	
+	<select id="menu.getDeptMenuMaxId2" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getDeptMenuMaxId2 */
+		select RTRIM(CAST(max(depth2_id)+1 AS CHAR(10))) as depth2_id
+			from tb_mng_menu 
+		where 1=1 
+		   and depth1_id = #depth1Id# 
+		   and depth3_id = '0'
+
+	</select>
+	
+	<select id="menu.getDeptMenuMaxId3" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getDeptMenuMaxId3 */
+		select RTRIM(CAST(max(depth3_id)+1 AS CHAR(10))) as depth3_id
+		   from tb_mng_menu 
+		where 1=1 
+		   and depth1_id = #depth1Id# 
+		   and depth2_id = #depth2Id#
+	</select>
+	
+	<insert id="menu.setMenuInsert" parameterClass="java.util.HashMap">
+		/* ID : menu.setMenuInsert */
+		insert into tb_mng_menu
+			( 
+			depth1_id, depth2_id, depth3_id, menu_name, display_flag, src_do, menu_auth_def , ins_id, ins_date 
+			) 
+		values 
+			(
+			#depth1Id#, #depth2Id#, #depth3Id#, #menuName#, #displayFlag#, #srcDo#, #menuAuthDef#, #insId#, getdate() 
+			)
+	</insert>
+	
+	<update id="menu.setMenuUpdate" parameterClass="java.util.HashMap">
+		/* ID : menu.setMenuUpdate */
+		update tb_mng_menu set 
+			  menu_name	    = #menuName#
+			, display_flag	= #displayFlag#
+			, src_do	    = #srcDo#
+			, menu_auth_def	= #menuAuthDef#
+			, upt_id	    = #uptId#
+			, upt_date	    = getdate()
+		where depth1_id     = #depth1Id#
+			and depth2_id   = #depth2Id#
+			and depth3_id   = #depth3Id#
+	</update>
+	
+	<delete id="menu.setMenuDelete" parameterClass="java.util.HashMap">
+		/* ID : menu.setMenuDelete */
+		delete from tb_mng_menu
+		where depth1_id   = #depth1Id#
+			and depth2_id = #depth2Id#
+			and depth3_id = #depth3Id#
+	</delete>
+	
+	<insert id="menu.setAuthByMenuInsert" parameterClass="java.util.HashMap">
+		/* ID : menu.setAuthByMenuInsert */
+		insert into tb_mng_menuauth
+			(
+			tenant_id, grant_id,depth1_id, depth2_id, depth3_id, auth_kind, ins_id, ins_date 
+			)
+		select 
+				tenant_id, grant_id, #depth1Id# depth1_id, #depth2Id# depth2_id, #depth3Id# depth3_id
+				, #menuAuthDef# auth_kind, #insId# ins_id, getdate() ins_date
+			from tb_mng_auth 
+	</insert>
+	
+	<delete id="menu.setAuthByMenuDelete" parameterClass="java.util.HashMap">
+		/* ID : menu.setAuthByMenuDelete */
+		delete from tb_mng_menuauth
+		 where depth1_id = #depth1Id#
+		   and depth2_id = #depth2Id#
+		   and depth3_id = #depth3Id#
+	</delete>
+	
+</sqlMap>

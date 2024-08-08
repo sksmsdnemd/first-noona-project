@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="userTel">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="userTel.getUserTelNoCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getUserTelNoCount*/
+		SELECT COUNT(*) AS CNT
+		  FROM TB_MNG_USERTELNO t1
+		  LEFT OUTER JOIN TB_MNG_USERINFO t2
+			ON t1.TENANT_ID = t2.TENANT_ID
+		   AND t1.USER_ID = t2.USER_ID
+		  LEFT OUTER JOIN (
+			SELECT CODE_ID AS DN_STATUS_CD, CODE_NAME AS DN_STATUS_NAME 
+			FROM TB_MNG_BASECODE 
+			WHERE CLASS_ID = 'dn_status'
+		  ) t3
+			ON IFNULL(t1.DN_STATUS, '00') = t3.DN_STATUS_CD
+		  LEFT OUTER JOIN TB_MNG_GROUP t4
+			ON t2.TENANT_ID = t4.TENANT_ID
+		   AND t2.GROUP_ID = t4.GROUP_ID
+		  LEFT OUTER JOIN TB_SYS_SYSINFO t5
+			ON t1.SYSTEM_ID = t5.SYSTEM_ID
+		  LEFT OUTER JOIN TB_SYS_PROCINFO t6
+			ON t1.SYSTEM_ID = t6.SYSTEM_ID
+		   AND t1.PROCESS_ID = t6.PROCESS_ID
+		 WHERE t1.TENANT_ID = #findTenantId#
+		<isNotEmpty property="controlAuth">
+		   AND t2.GROUP_ID IN (
+			WITH RECURSIVE RE_CATE AS (
+				SELECT 1 LEVEL
+					 , ROW_NUMBER() OVER(ORDER BY GROUP_ID) AS TOP_ORDER
+					 , GROUP_ID
+					 , PARENT_ID
+					 , GROUP_NAME
+					 , GROUP_ID AS ID_PATH
+				  FROM TB_MNG_GROUP
+				 WHERE TENANT_ID = #findTenantId#
+				   AND GROUP_ID IN (
+					SELECT g.GROUP_ID
+					  FROM TB_MNG_GROUP g
+					 INNER JOIN TB_MNG_USERINFO u
+						ON g.TENANT_ID = u.TENANT_ID
+					   AND INSTR(CONCAT(',', CONTROL_AUTH, ','), CONCAT(',', g.GROUP_ID, ',')) > 0
+					   AND u.USER_ID = #userId#
+					   AND u.TENANT_ID = #findTenantId#
+				   )
+				 UNION ALL
+				SELECT c.LEVEL + 1
+					 , c.TOP_ORDER AS TOP_ORDER
+					 , b.GROUP_ID
+					 , b.PARENT_ID
+					 , b.GROUP_NAME
+					 , CONCAT(c.ID_PATH, '>', b.GROUP_ID)
+				  FROM TB_MNG_GROUP b
+				 INNER JOIN RE_CATE c
+					ON b.TENANT_ID = #findTenantId#
+				   AND c.GROUP_ID = b.parent_id
+			)
+			SELECT GROUP_ID
+			  FROM RE_CATE
+			 ORDER BY TOP_ORDER, ID_PATH
+		   )
+		</isNotEmpty>
+		<isEmpty property="controlAuth">
+			<isEqual property="grantId" compareValue="Agent">
+		   AND t1.USER_ID = #userId#
+			</isEqual>
+			<isEqual property="grantId" compareValue="GroupManager">
+		   AND t2.GROUP_ID IN (
+			WITH RECURSIVE RE_CATE AS (
+				SELECT 1 LEVEL
+					 , ROW_NUMBER() OVER(ORDER BY GROUP_ID) AS TOP_ORDER
+					 , GROUP_ID
+					 , PARENT_ID
+					 , GROUP_NAME
+					 , GROUP_ID AS ID_PATH
+				  FROM TB_MNG_GROUP
+				 WHERE TENANT_ID = #findTenantId#
+				   AND GROUP_ID = ( SELECT GROUP_ID FROM TB_MNG_USERINFO WHERE USER_ID = #userId# AND TENANT_ID = #findTenantId# )
+				 UNION ALL
+				SELECT c.LEVEL + 1
+					 , c.TOP_ORDER AS TOP_ORDER
+					 , b.GROUP_ID
+					 , b.PARENT_ID
+					 , b.GROUP_NAME
+					 , CONCAT(c.ID_PATH, '>', b.GROUP_ID)
+				  FROM TB_MNG_GROUP b
+				 INNER JOIN RE_CATE c
+					ON b.TENANT_ID = #findTenantId#
+				   AND c.GROUP_ID = b.PARENT_ID
+			)
+			SELECT GROUP_ID
+			  FROM RE_CATE
+			 ORDER BY TOP_ORDER, ID_PATH
+		   )
+			</isEqual>
+		</isEmpty>
+		<isNotEmpty property="findGroupId">   AND t2.GROUP_ID = #findGroupId#</isNotEmpty>
+		<isNotEmpty property="findUserNameText">   AND (t1.USER_ID LIKE CONCAT('%', #findUserNameText#, '%') OR t2.USER_NAME LIKE CONCAT('%', #findUserNameText#, '%'))</isNotEmpty>
+		<isNotEmpty property="findDnText">   AND t1.DN_NO LIKE CONCAT('%', #findDnText#, '%')</isNotEmpty>
+		<isNotEmpty property="findPhoneIp">   AND t1.PHONE_IP LIKE CONCAT('%', #findPhoneIp#, '%')</isNotEmpty>
+		<isNotEmpty property="findSystemId">   AND t1.SYSTEM_ID = #findSystemId#</isNotEmpty>
+		<isNotEmpty property="findProcessId">   AND t1.PROCESS_ID = #findProcessId#</isNotEmpty>
+		<isNotEmpty property="findLogin">
+			<isEmpty property="findLogout">   AND IFNULL(NULLIF(t2.AGENT_STATUS, ''), '99') IN ('01')</isEmpty>
+			<isNotEmpty property="findLogout">   AND IFNULL(NULLIF(t2.AGENT_STATUS, ''), '99') IN ('01', '99')</isNotEmpty>
+		</isNotEmpty>
+		<isEmpty property="findLogin">
+			<isEmpty property="findLogout">   AND IFNULL(NULLIF(t2.AGENT_STATUS, ''), '99') NOT IN ('01','99')</isEmpty>
+			<isNotEmpty property="findLogout">   AND IFNULL(NULLIF(t2.AGENT_STATUS, ''), '99') IN ('99')</isNotEmpty>
+		</isEmpty>
+		<isEmpty property="findStatusWait">
+			<isEmpty property="findStatusRec">
+				<isEmpty property="findStatusNone"></isEmpty>
+				<isNotEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('00')</isNotEmpty>
+			</isEmpty>
+			<isNotEmpty property="findStatusRec">
+				<isEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('10')</isEmpty>
+				<isNotEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('10', '00')</isNotEmpty>
+			</isNotEmpty>
+		</isEmpty>
+		<isNotEmpty property="findStatusWait">
+			<isEmpty property="findStatusRec">
+				<isEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('01')</isEmpty>
+				<isNotEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('00', '01')</isNotEmpty>
+			</isEmpty>
+			<isNotEmpty property="findStatusRec">
+				<isEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('01', '10')</isEmpty>
+				<isNotEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('00', '01', '10')</isNotEmpty>
+			</isNotEmpty>
+		</isNotEmpty>
+		<isNotEqual property="callFrmTm" compareValue="000000">
+		   AND IFNULL(ROUND(TIMESTAMPDIFF(SECOND, t1.LAST_UPT_DATE, SYSDATE())), 0) <![CDATA[ >= ]]> SUBSTR(#callFrmTm#,1,2) * 3600 + SUBSTR(#callFrmTm#,3,2) * 60 + SUBSTR(#callFrmTm#,5,2)
+		</isNotEqual>
+		<isNotEqual property="callEndTm" compareValue="000000">
+		   AND IFNULL(ROUND(TIMESTAMPDIFF(SECOND, t1.LAST_UPT_DATE, SYSDATE())), 0) <![CDATA[ <= ]]> SUBSTR(#callEndTm#,1,2) * 3600 + SUBSTR(#callEndTm#,3,2) * 60 + SUBSTR(#callEndTm#,5,2)
+		</isNotEqual>
+	</select>
+	
+	<select id="userTel.getUserTelNoList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getUserTelNoList */ 
+		SELECT *
+		  FROM (
+			SELECT TB_IN.*
+			  FROM (
+				SELECT t1.TENANT_ID
+					 , t1.DN_NO
+					 , t1.USER_ID
+					 , t2.USER_NAME
+					 , t2.AGENT_STATUS
+					 , t1.PHONE_IP
+					 , t1.USER_IP
+					 , CASE IFNULL(t1.DN_STATUS, '00') WHEN '' THEN '00' ELSE DN_STATUS END AS DN_STATUS
+					 , t3.DN_STATUS_NAME
+					 , DATE_FORMAT(t1.LAST_UPT_DATE, '%Y-%m-%d %H:%i:%s') AS LAST_UPT_DATE
+					 , IFNULL(NULLIF(t2.GROUP_ID, ''), '') AS GROUP_ID
+					 , IFNULL(NULLIF(t4.GROUP_NAME, ''), '') AS GROUP_NAME
+					 , IFNULL(ROUND(TIMESTAMPDIFF(SECOND, t1.LAST_UPT_DATE, SYSDATE())), 0) AS ELAPSED_TIME
+					 , IFNULL(t1.SYSTEM_ID, 0) AS SYSTEM_ID
+					 , IFNULL(t1.PROCESS_ID, 0) AS PROCESS_ID
+					 , t5.SYSTEM_NAME
+					 , t6.PROCESS_NAME
+					 , t1.DN_NO_REF
+					 , t1.USE_FLAG
+				  FROM TB_MNG_USERTELNO t1
+				  LEFT OUTER JOIN TB_MNG_USERINFO t2
+					ON t1.TENANT_ID = t2.TENANT_ID
+				   AND t1.USER_ID = t2.USER_ID
+				  LEFT OUTER JOIN (
+					SELECT CODE_ID AS DN_STATUS_CD, CODE_NAME AS DN_STATUS_NAME 
+					FROM TB_MNG_BASECODE 
+					WHERE CLASS_ID = 'dn_status'
+				  ) t3
+					ON IFNULL(t1.DN_STATUS, '00') = t3.DN_STATUS_CD
+				  LEFT OUTER JOIN TB_MNG_GROUP t4
+					ON t2.TENANT_ID = t4.TENANT_ID
+				   AND t2.GROUP_ID = t4.GROUP_ID
+				  LEFT OUTER JOIN TB_SYS_SYSINFO t5
+					ON t1.SYSTEM_ID = t5.SYSTEM_ID
+				  LEFT OUTER JOIN TB_SYS_PROCINFO t6
+					ON t1.SYSTEM_ID = t6.SYSTEM_ID
+				   AND t1.PROCESS_ID = t6.PROCESS_ID
+				 WHERE t1.TENANT_ID = #findTenantId#
+				<isNotEmpty property="controlAuth">
+				   AND t2.GROUP_ID IN (
+					WITH RECURSIVE RE_CATE AS (
+						SELECT 1 LEVEL
+							 , ROW_NUMBER() OVER(ORDER BY GROUP_ID) AS TOP_ORDER
+							 , GROUP_ID
+							 , PARENT_ID
+							 , GROUP_NAME
+							 , GROUP_ID AS ID_PATH
+						  FROM TB_MNG_GROUP
+						 WHERE TENANT_ID = #findTenantId#
+						   AND GROUP_ID IN (
+							SELECT g.GROUP_ID
+							  FROM TB_MNG_GROUP g
+							 INNER JOIN TB_MNG_USERINFO u
+								ON g.TENANT_ID = u.TENANT_ID
+							   AND INSTR(CONCAT(',', CONTROL_AUTH, ','), CONCAT(',', g.GROUP_ID, ',')) > 0
+							   AND u.USER_ID = #userId#
+							   AND u.TENANT_ID = #findTenantId#
+						   )
+						 UNION ALL
+						SELECT c.LEVEL + 1
+							 , c.TOP_ORDER AS TOP_ORDER
+							 , b.GROUP_ID
+							 , b.PARENT_ID
+							 , b.GROUP_NAME
+							 , CONCAT(c.ID_PATH, '>', b.GROUP_ID)
+						  FROM TB_MNG_GROUP b
+						 INNER JOIN RE_CATE c
+							ON b.TENANT_ID = #findTenantId#
+						   AND c.GROUP_ID = b.PARENT_ID
+					)
+					SELECT GROUP_ID
+					  FROM RE_CATE
+					 ORDER BY TOP_ORDER, ID_PATH
+				   )
+				</isNotEmpty>
+				<isEmpty property="controlAuth">
+					<isEqual property="grantId" compareValue="Agent">
+				   AND t1.USER_ID = #userId#
+					</isEqual>
+					<isEqual property="grantId" compareValue="GroupManager">
+				   AND t2.GROUP_ID IN (
+					WITH RECURSIVE RE_CATE AS (
+						SELECT 1 LEVEL
+							 , ROW_NUMBER() OVER(ORDER BY GROUP_ID) AS TOP_ORDER
+							 , GROUP_ID
+							 , PARENT_ID
+							 , GROUP_NAME
+							 , GROUP_ID AS ID_PATH
+						  FROM TB_MNG_GROUP
+						 WHERE TENANT_ID = #findTenantId#
+						   AND GROUP_ID = ( SELECT GROUP_ID FROM TB_MNG_USERINFO WHERE USER_ID = #userId# AND TENANT_ID = #findTenantId# )
+						 UNION ALL
+						SELECT c.LEVEL + 1
+							 , c.TOP_ORDER AS TOP_ORDER
+							 , b.GROUP_ID
+							 , b.PARENT_ID
+							 , b.GROUP_NAME
+							 , CONCAT(c.ID_PATH, '>', b.GROUP_ID)
+						  FROM TB_MNG_GROUP b
+						 INNER JOIN RE_CATE c
+							ON b.TENANT_ID = #findTenantId#
+						   AND c.GROUP_ID = b.PARENT_ID
+					)
+					SELECT GROUP_ID
+					  FROM RE_CATE
+					 ORDER BY TOP_ORDER, ID_PATH
+				   )
+					</isEqual>
+				</isEmpty>
+				<isNotEmpty property="findGroupId">   AND t2.GROUP_ID = #findGroupId#</isNotEmpty>
+				<isNotEmpty property="findUserNameText">   AND (t1.USER_ID LIKE CONCAT('%', #findUserNameText#, '%') OR t2.USER_NAME LIKE CONCAT('%', #findUserNameText#, '%'))</isNotEmpty>
+				<isNotEmpty property="findDnText">   AND t1.DN_NO LIKE CONCAT('%', #findDnText#, '%')</isNotEmpty>
+				<isNotEmpty property="findPhoneIp">   AND t1.PHONE_IP LIKE CONCAT('%', #findPhoneIp#, '%')</isNotEmpty>
+				<isNotEmpty property="findSystemId">   AND t1.SYSTEM_ID = #findSystemId#</isNotEmpty>
+				<isNotEmpty property="findProcessId">   AND t1.PROCESS_ID = #findProcessId#</isNotEmpty>
+				<isNotEmpty property="findLogin">
+					<isEmpty property="findLogout">   AND IFNULL(NULLIF(t2.AGENT_STATUS, ''), '99') IN ('01')</isEmpty>
+					<isNotEmpty property="findLogout">   AND IFNULL(NULLIF(t2.AGENT_STATUS, ''), '99') IN ('01', '99')</isNotEmpty>
+				</isNotEmpty>
+				<isEmpty property="findLogin">
+					<isEmpty property="findLogout">   AND IFNULL(NULLIF(t2.AGENT_STATUS, ''), '99') NOT IN ('01','99')</isEmpty>
+					<isNotEmpty property="findLogout">   AND IFNULL(NULLIF(t2.AGENT_STATUS, ''), '99') IN ('99')</isNotEmpty>
+				</isEmpty>
+				<isEmpty property="findStatusWait">
+					<isEmpty property="findStatusRec">
+						<isEmpty property="findStatusNone"></isEmpty>
+						<isNotEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('00')</isNotEmpty>
+					</isEmpty>
+					<isNotEmpty property="findStatusRec">
+						<isEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('10')</isEmpty>
+						<isNotEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('10', '00')</isNotEmpty>
+					</isNotEmpty>
+				</isEmpty>
+				<isNotEmpty property="findStatusWait">
+					<isEmpty property="findStatusRec">
+						<isEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('01')</isEmpty>
+						<isNotEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('00', '01')</isNotEmpty>
+					</isEmpty>
+					<isNotEmpty property="findStatusRec">
+						<isEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('01', '10')</isEmpty>
+						<isNotEmpty property="findStatusNone">   AND IFNULL(NULLIF(t1.DN_STATUS, ''), '00') IN ('00', '01', '10')</isNotEmpty>
+					</isNotEmpty>
+				</isNotEmpty>
+				<isNotEqual property="callFrmTm" compareValue="000000">
+				   AND IFNULL(ROUND(TIMESTAMPDIFF(SECOND, t1.LAST_UPT_DATE, SYSDATE())), 0) <![CDATA[ >= ]]> SUBSTR(#callFrmTm#,1,2) * 3600 + SUBSTR(#callFrmTm#,3,2) * 60 + SUBSTR(#callFrmTm#,5,2)
+				</isNotEqual>
+				<isNotEqual property="callEndTm" compareValue="000000">
+				   AND IFNULL(ROUND(TIMESTAMPDIFF(SECOND, t1.LAST_UPT_DATE, SYSDATE())), 0) <![CDATA[ <= ]]> SUBSTR(#callEndTm#,1,2) * 3600 + SUBSTR(#callEndTm#,3,2) * 60 + SUBSTR(#callEndTm#,5,2)
+				</isNotEqual>
+				 ORDER BY t1.TENANT_ID, CAST(t1.DN_NO AS UNSIGNED)
+				 LIMIT $iEPageNo$
+			  ) TB_IN
+			 ORDER BY TB_IN.TENANT_ID DESC, CAST(TB_IN.DN_NO AS UNSIGNED) DESC
+			 LIMIT $iSPageNo$
+		  ) TB_OUT
+		 ORDER BY TB_OUT.TENANT_ID, CAST(TB_OUT.DN_NO AS UNSIGNED)
+	</select>
+	
+	<insert id="userTel.setUserTelNoInsert" parameterClass="java.util.HashMap">
+		/* ID : userTel.setUserTelNoInsert */ 
+		INSERT INTO TB_MNG_USERTELNO (
+			TENANT_ID, DN_NO, PHONE_IP, DN_NO_REF, SYSTEM_ID, PROCESS_ID
+			, USE_FLAG, DN_STATUS, INS_ID, INS_DATE, UPT_ID, UPT_DATE
+		) VALUES (
+			NULLIF(#tenantId#, ''), NULLIF(#dnNo#, ''), NULLIF(#phoneIp#, ''), NULLIF(#dnNoRef#, ''), NULLIF(#findSystemId#, ''), NULLIF(#findProcessId#, '')
+			, NULLIF(#useFlag#, ''), '00', NULLIF(#insId#, ''), SYSDATE(), NULLIF(#uptId#, ''), SYSDATE()
+		)
+	</insert>
+	
+	<update id="userTel.setUserTelNoUpdate" parameterClass="java.util.HashMap">
+		/* ID : userTel.setUserTelNoUpdate */ 
+		UPDATE TB_MNG_USERTELNO
+		   SET PHONE_IP   = NULLIF(#phoneIp#, '')
+			 , DN_NO_REF  = NULLIF(#dnNoRef#, '')
+			 , USER_ID 	  = RTRIM(NULLIF(#findUserId#, ''))
+			 , SYSTEM_ID  = NULLIF(#findSystemId#, '')
+			 , PROCESS_ID = NULLIF(#findProcessId#, '')
+			 , USE_FLAG   = NULLIF(#useFlag#, '')
+			 , UPT_ID     = NULLIF(#uptId#, '')
+			 , UPT_DATE   = SYSDATE()
+		 WHERE TENANT_ID  = #tenantId#
+		   AND DN_NO      = #dnNo#
+	</update>
+	
+	<delete id="userTel.setUserTelNoDelete" parameterClass="java.util.HashMap" >
+		/* ID : userTel.setUserTelNoDelete */ 
+		DELETE FROM TB_MNG_USERTELNO
+		 WHERE TENANT_ID = #tenantId#
+		   AND DN_NO = #dnNo#
+	</delete>
+	
+	<select id="userTel.getUserTelNoCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getUserTelNoCnt */
+		SELECT COUNT(*) AS CNT   
+		  FROM TB_MNG_USERTELNO 
+		 WHERE 
+		<isNotEmpty property="eDnNo">CAST(DN_NO AS UNSIGNED) BETWEEN #sDnNo# AND #eDnNo#</isNotEmpty>
+		<isEmpty property="eDnNo">DN_NO = #sDnNo#</isEmpty>
+	</select>
+	
+	<select id="userTel.getUserPhoneIpCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getUserPhoneIpCnt */
+		SELECT COUNT(*) AS CNT   
+		  FROM TB_MNG_USERTELNO 
+		 WHERE TENANT_ID = #tenantId#
+		<isEmpty property="phoneIpArr" prepend="AND">PHONE_IP = #phoneIp#</isEmpty>
+		<isNotEmpty property="phoneIpArr" prepend="AND">
+			<iterate open="(" close=")" conjunction="," property="phoneIpArr" prepend="PHONE_IP IN">
+    			#phoneIpArr[]#
+		  	</iterate>
+		</isNotEmpty>
+	</select>
+	
+	<select id="userTel.getDnPtrnCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getDnPtrnCount */
+		SELECT COUNT(*) AS CNT
+		  FROM TB_MNG_DNPTRN ptrn
+		  LEFT OUTER JOIN TB_SYS_PROCINFO proc
+			ON ptrn.PROCESS_ID = proc.PROCESS_ID
+		  LEFT OUTER JOIN TB_SYS_SYSINFO sys
+			ON proc.SYSTEM_ID = sys.SYSTEM_ID
+		 WHERE 1 = 1
+		<isNotEmpty property="findSystemId">   AND proc.SYSTEM_ID = #findSystemId#</isNotEmpty>
+		<isNotEmpty property="findProcessId">   AND proc.PROCESS_ID = #findProcessId#</isNotEmpty>
+		<isNotEmpty property="findTenantId">   AND ptrn.TENANT_ID = #findTenantId#</isNotEmpty>
+	</select>
+
+	<select id="userTel.getDnPtrnList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getDnPtrnList */
+		SELECT TB_OUT.*
+		  FROM (
+			SELECT TB_IN.*
+			  FROM (
+				SELECT ptrn.TENANT_ID
+					 , ptrn.PTRN_ID
+					 , ptrn.PROCESS_ID
+					 , proc.PROCESS_NAME
+					 , proc.SYSTEM_ID
+					 , sys.SYSTEM_NAME
+					 , ptrn.START_IP
+					 , ptrn.END_IP
+					 , ptrn.START_DN_NO
+					 , ptrn.END_DN_NO
+					 , ptrn.EXCP_PTRN_AT
+					 , ptrn.STATE_IP 
+				  FROM TB_MNG_DNPTRN ptrn
+				  LEFT OUTER JOIN TB_SYS_PROCINFO proc
+					ON ptrn.PROCESS_ID = proc.PROCESS_ID
+				  LEFT OUTER JOIN TB_SYS_SYSINFO sys
+					ON proc.SYSTEM_ID = sys.SYSTEM_ID
+				 WHERE 1 = 1
+				<isNotEmpty property="findSystemId">   AND proc.SYSTEM_ID = #findSystemId#</isNotEmpty>
+				<isNotEmpty property="findProcessId">   AND proc.PROCESS_ID = #findProcessId#</isNotEmpty>
+				<isNotEmpty property="findTenantId">   AND ptrn.TENANT_ID = #findTenantId#</isNotEmpty>
+				 ORDER BY ptrn.PTRN_ID
+				 LIMIT $iEPageNo$
+			  ) TB_IN
+			 ORDER BY TENANT_ID DESC, PTRN_ID DESC
+			 LIMIT $iSPageNo$
+		  ) TB_OUT
+		 ORDER BY TENANT_ID, PTRN_ID
+	</select>
+
+	<insert id="userTel.setDnPtrnInsert" parameterClass="java.util.HashMap">
+		/* ID : userTel.setDnPtrnInsert */
+		INSERT INTO TB_MNG_DNPTRN (TENANT_ID, PROCESS_ID, START_IP, END_IP, START_DN_NO, END_DN_NO, EXCP_PTRN_AT,STATE_IP)
+		VALUES ( #tenantId#, #processId#, #startIp#, #endIp#, #startDnNo#, #endDnNo#, #excpPtrnAt# ,#stateIp#)
+	</insert>
+
+	<update id="userTel.setDnPtrnUpdate"  parameterClass="java.util.HashMap">
+		/* ID : userTel.setDnPtrnUpdate */
+		UPDATE TB_MNG_DNPTRN
+		   SET TENANT_ID = #tenantId#
+			 , PROCESS_ID = #processId#
+			 , EXCP_PTRN_AT = #excpPtrnAt#
+			<isEqual property="stateIp" compareValue="N">
+			 , START_IP = NULL
+			 , END_IP = NULL
+			 , START_DN_NO = #startDnNo#
+			 , END_DN_NO = #endDnNo#
+			</isEqual>
+			<isEqual property="stateIp" compareValue="I">
+			 , START_IP = #startIp#
+			 , END_IP = #endIp#
+			 , START_DN_NO = NULL
+			 , END_DN_NO = NULL
+			</isEqual>
+			<isEmpty property="stateIp">
+			 , START_IP = NULL
+			 , END_IP = NULL
+			 , START_DN_NO = NULL
+			 , END_DN_NO = NULL
+			</isEmpty>
+			 , STATE_IP = #stateIp#
+		 WHERE PTRN_ID = #ptrnId#
+	</update>
+
+	<delete id="userTel.deleteDnPtrn"  parameterClass="java.util.HashMap">
+		/* ID : userTel.deleteDnPtrn */
+		DELETE FROM TB_MNG_DNPTRN
+		 WHERE PTRN_ID = #ptrnId#
+	</delete>
+
+	<select id="userTel.getExcpPtrnCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getExcpPtrnCnt */
+		SELECT COUNT(*) AS CNT
+		  FROM TB_MNG_DNPTRN ptrn
+		 WHERE ptrn.TENANT_ID = #tenantId#
+		   AND ptrn.EXCP_PTRN_AT = '1'
+		<isNotEmpty property="ptrnId">
+		   AND ptrn.PTRN_ID != #ptrnId#
+		</isNotEmpty>
+	</select>
+	
+	<select id="userTel.selectDnPtrnOverlapCheck" remapResults="true"  parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : userTel.selectDnPtrnOverlapCheck */
+		SELECT COUNT(*) AS CNT
+		  FROM TB_MNG_DNPTRN
+		 WHERE TENANT_ID = #tenantId#
+		   AND EXCP_PTRN_AT != 1
+		<isNotEmpty property="ptrnId">
+		   AND PTRN_ID != #ptrnId#
+		</isNotEmpty>
+		<isEqual property="stateIp" compareValue="I">
+		   AND STATE_IP = 'I' 
+           AND <![CDATA[ INET_ATON(END_IP) >= INET_ATON(#startIp#) ]]>
+           AND <![CDATA[ INET_ATON(START_IP) <= INET_ATON(#endIp#) ]]> 
+		</isEqual>
+		<isEqual property="stateIp" compareValue="N">
+		   AND STATE_IP = 'N'
+	       AND <![CDATA[ #startDnNo# <= END_DN_NO ]]>
+	       AND <![CDATA[ #endDnNo# >= START_DN_NO ]]>
+		</isEqual>
+	</select>
+	
+</sqlMap>

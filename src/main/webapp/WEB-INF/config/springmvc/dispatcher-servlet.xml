@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- - DispatcherServlet application context for Application's web tier. -->
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p" xmlns:context="http://www.springframework.org/schema/context" xmlns:mvc="http://www.springframework.org/schema/mvc" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+                		   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+                		   http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd">
+   
+    <!-- - The controllers are autodetected POJOs labeled with the @Controller annotation. -->
+    <context:component-scan base-package="com.bridgetec">
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller" />
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Service" />
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Repository" />
+    </context:component-scan>
+    
+    <!-- [LDW] 인증체크가 필요없는 URL / 함수 리스트 목록 -->
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <mvc:mapping path="/*" />
+            <bean class="com.bridgetec.common.ArgoInterceptor">
+                <!--인증 체크가 필요 없는 URL 리스트 -->
+                <property name="permittedURL">
+                    <set>
+                        <value>/common/LoginF.do</value>
+                        <value>/common/LoginConfigF.do</value>
+                        <value>/common/LoginSSOF.do</value>
+                        <value>/common/DbInfoConfigF.do</value>
+                        <value>/dbInfoConfig.do</value>
+                        <value>/sso/businessF.do</value>
+                        <value>/recording/STTPlayCF.do</value>
+                        <value>/recording/STTPlayOF.do</value>
+                        <value>/recording/STTPlaychromeF.do</value>
+                        <value>/recording/STTPlayieF.do</value>
+                        <value>/common/EnvF.do</value>  <!--비밀번호 변경-->
+                        <value>/manager/[a-zA-Z0-9]+\.do</value>
+                        <value>/recording/RecSearchF.do</value>
+                        <value>/veloceRest/[a-zA-Z0-9]+\.do</value>
+
+                        <value>/ARGO/login.do</value>
+                        <value>/argoLogOut.do</value>
+
+                        <value>/api/itg/crtfy.do</value>
+                        <value>/api/ext/crtfy.do</value>
+                    </set>
+                </property>
+                <property name="permittedMethod">
+                    <set> 
+                        <value>ARGOCOMMON.logout</value>
+                        <value>ARGOCOMMON.login</value>
+                        <value>ARGOCOMMON.loginFail</value>
+                        <value>ARGOCOMMON.dbPwdChg</value>
+                        <value>ARGOCOMMON.rsaPublicKey</value>
+                        <value>ARGOCOMMON.tenant</value>
+                        <value>ARGOCOMMON.pwVisible</value>
+                        <value>ARGOCOMMON.SP_UC_GET_AGENT_PW</value>  <!--비밀번호 변경-->
+                        <value>CM.SP_CM1060M01_01</value>   <!--비밀번호 변경을 위해서 환경설정값 조회 -->
+                        <!-- 관리자 페이지 세션 체크 필요없는 메서드-->
+                        <value>ARGOCOMMON.SP_CM_BOOKMARK_01</value><!-- 북마크 -->
+                        <value>ARGOCOMMON.SP_UC_SET_MENU_HISTORY_01</value><!--히스토리등록-->
+
+						<!-- Main Dashboard START-->
+						<value>ARGOCOMMON.SP_MNG_DASHBOARD01_01</value>	<!-- DASHBOARD : License 정보 조회 -->
+						<value>ARGOCOMMON.SP_MNG_DASHBOARD01_02</value>	<!-- DASHBOARD : License 정보 TENANT 조회 -->
+						<value>ARGOCOMMON.SP_MNG_DASHBOARD02_01</value>	<!-- DASHBOARD : TABLE SPACE 사용 현황 조회 -->
+						<!-- Main Dashboard END-->
+						
+						<value>recSearch.getRecSearchList_API</value>
+						<value>RECSEARCH.GETRECSEARCHLIST_API</value>
+						<value>comboBoxCode.getMfuIpList</value>
+						<value>COMBOBOXCODE.GETMFUIPLIST</value>
+						
+						<value>comboBoxCode.getConfigValue</value>
+						<value>recInfo.setAppRecLogRealInsert</value>
+						<value>userInfo.setLoginFail</value>
+                    </set>
+                </property>                
+            </bean>
+        </mvc:interceptor>
+    </mvc:interceptors>
+    
+    
+    <!-- [LDW] 모든 페이지에서 post방식으로 전송 한 경우 뒤로가기 버튼 누르면 만료된 페이지로 뜸 ( no cache)-->
+	<mvc:interceptors>
+	     <mvc:interceptor>
+	          <mvc:mapping path="/*" />
+	          <bean class="org.springframework.web.servlet.mvc.WebContentInterceptor">
+	               <property name="cacheSeconds" value="0"/>
+	               <property name="useExpiresHeader" value="true"/>
+				   <property name="useCacheControlHeader" value="true"/>
+				   <property name="useCacheControlNoStore" value="true"/>
+<!-- 	               <property name="cacheMappings"> -->
+<!-- 	                   <props> -->
+<!-- 	                      <prop key="/api/photo/**">86400</prop> -->
+<!-- 	                   </props> -->
+<!-- 	               </property> -->
+	           </bean>
+	     </mvc:interceptor>
+	</mvc:interceptors>
+    
+    <!-- - The form-based controllers within this application provide @RequestMapping - annotations at the type level for path mapping URLs and @RequestMapping - at the method level for request type mappings (e.g., GET and POST). - In contrast, ClinicController - which is not form-based - provides - @RequestMapping only at the method level for path mapping URLs. - - DefaultAnnotationHandlerMapping is driven by these annotations and is - enabled by default with Java 5+. -->
+    <bean id="annotationMapper" class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping" />
+   
+	<!-- - This bean processes annotated handler methods, applying Application-specific PropertyEditors - for request parameter binding. It overrides the default AnnotationMethodHandlerAdapter. -->
+    <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+        <property name="webBindingInitializer">
+            <bean class="egovframework.rte.cmmn.web.EgovBindingInitializer" />
+            <!-- bean class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter"/ -->
+        </property>
+        <property name="messageConverters">
+            <list>
+                <bean class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter">
+                    <property name="prefixJson" value="false"></property>
+                    <property name="supportedMediaTypes" value="application/json"></property>
+                </bean>
+                <bean class="org.springframework.http.converter.xml.Jaxb2RootElementHttpMessageConverter" />
+            </list>
+        </property>
+    </bean>
+    
+    <!--bean id="annotationMapper" class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping" p:order="2"/ -->
+    <!-- - This bean resolves specific types of exceptions to corresponding logical - view names for error views. The default behaviour of DispatcherServlet - is to propagate all exceptions to the servlet container: this will happen - here with all other types of exceptions. -->
+    <bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver" abstract="false">
+        <property name="defaultErrorView" value="error/saComErr" />
+        <property name="exceptionMappings">
+            <props>
+                <!-- <prop key="org.springframework.dao.DataAccessException">common/dataAccessFailure</prop>
+                <prop key="com.bridgetec.common.exception.EgovBizException">common/egovBizException</prop>
+                <prop key="org.springframework.security.AccessDeniedException">common/egovError</prop> -->
+                <prop key="org.springframework.transaction.TransactionException">error/transactionFailure</prop>
+                <prop key="org.springframework.web.multipart.MaxUploadSizeExceededException">error/fileUploadErr</prop>
+                <prop key="com.bridgetec.argo.common.NoGrantException">error/noGrantErr</prop>
+            </props>
+        </property>
+    </bean>
+    
+    <!-- - This bean configures the 'prefix' and 'suffix' properties of - InternalResourceViewResolver, which resolves logical view names - returned by Controllers. For example, a logical view name of "vets" - will be mapped to "/WEB-INF/jsp/vets.jsp". -->
+    <bean id="jspViewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="viewClass" value="org.springframework.web.servlet.view.JstlView" />
+        <property name="prefix" value="/WEB-INF/jsp/" />
+        <!-- <property name="prefix" value="/WEB-INF/jsp_eng/" /> -->
+        <property name="suffix" value=".jsp" />
+        <property name="order" value="1" />
+    </bean>
+    <bean id="beanNameResolver" class="org.springframework.web.servlet.view.BeanNameViewResolver">
+        <property name="order" value="0" />
+    </bean>
+    
+    <!-- - Message source for this context, loaded from localized "messages_xx" files. - Could also reside in the root application context, as it is generic, - but is currently just used within Application's web tier. <bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource" p:basename="messages"/> -->
+    <!-- For Pagination Tag -->
+    <bean id="imageRenderer" class="egovframework.rte.cmmn.web.EgovImgPaginationRenderer" />
+    <bean id="paginationManager" class="egovframework.rte.ptl.mvc.tags.ui.pagination.DefaultPaginationManager">
+        <property name="rendererType">
+            <map>
+                <entry key="image" value-ref="imageRenderer" />
+            </map>
+        </property>
+    </bean>
+    <!-- /For Pagination Tag -->
+    
+    <!-- 
+	<bean id="jacksonMessageConverter" class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter"/>
+	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">   
+	       <property name="messageConverters"> 
+	            <list>
+	                <ref bean="jacksonMessageConverter"/>
+	            </list>
+	        </property>
+	 </bean>
+	 
+	<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView" p:prefixJson="false"/>
+	
+	<bean id="saExcelDbUse" class="com.bridgetec.argo.common.util.SaExcelDbUse"/>
+	 -->
+	
+	<bean id="argoExcelExport" class="com.bridgetec.argo.common.util.ArgoExcelExport"/>
+</beans>

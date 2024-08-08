@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMapConfig PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-config-2.dtd">
+<sqlMapConfig>
+
+    <!-- (2023.07.19) TB_REC_FILE, TB_REC_FILE_INDEX 테이블 년/월 분리 시 사용할 공통 SQL (HAGUANGHO) START -->
+    <sqlMap resource="sqlmap/tibero/COM/RecFileComm.xml" />
+    <sqlMap resource="sqlmap/tibero/COM/RecFileIndexComm.xml" />
+    <!-- (2023.07.19) TB_REC_FILE, TB_REC_FILE_INDEX 테이블 년/월 분리 시 사용할 공통 SQL (HAGUANGHO) END -->
+    
+	<!-- COMMON  START -->
+    <sqlMap resource="sqlmap/tibero/COM/COMMON.xml" />
+    <sqlMap resource="sqlmap/tibero/COM/CodeList.xml" />
+	<!-- COMMON  END -->
+	
+	<!-- management  START -->
+	<sqlMap resource="sqlmap/tibero/management/BaseCodeSqlMap.xml" />
+	<sqlMap resource="sqlmap/tibero/management/MenuSqlMap.xml" />
+	<sqlMap resource="sqlmap/tibero/management/MenuSqlMapNew.xml" />        
+	<sqlMap resource="sqlmap/tibero/management/ActionLogSqlMap.xml" />    
+	<sqlMap resource="sqlmap/tibero/management/CallTestSqlMap.xml" />
+    <!-- management  END -->
+    
+    <!-- MNG START -->
+    <sqlMap resource="sqlmap/tibero/MNG/MNG1000.xml" />
+    <!-- MNG END -->
+    
+    <!-- USERMAN  START -->
+    <sqlMap resource="sqlmap/tibero/USERMAN/userManSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/USERMAN/userTelSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/USERMAN/userAuthSqlMap.xml" />
+
+    <!-- USERMAN  END -->
+    
+    <!-- recording  START -->
+    <sqlMap resource="sqlmap/tibero/recording/RecSearchSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/recording/RecSearchSqlMapNew.xml" />
+    <sqlMap resource="sqlmap/tibero/recording/RecFileSqlMap.xml" />
+    <!-- recording  END -->
+    
+    <!-- system  START -->
+    <sqlMap resource="sqlmap/tibero/system/SysGroupSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/system/SysInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/system/IpInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/system/ProcInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/system/ResMonSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/system/ResMonDefSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/system/BkLabelSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/system/BkInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/system/SysCheckingSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/system/StatSqlMap.xml" />
+    <!-- system  END -->
+    
+    <!-- alarm  START -->
+    <sqlMap resource="sqlmap/tibero/alarm/ErrCodeSqlMap.xml" />
+    <!-- alarm  END -->
+    
+    <!-- GROUPBASE  START -->
+    <sqlMap resource="sqlmap/tibero/GROUPBASE/GroupSqlMap.xml" />
+    <!-- GROUPBASE  END -->
+    
+    <!-- recManagement  START -->
+    <sqlMap resource="sqlmap/tibero/recManagement/RecSampleCallSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/recManagement/RecInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/recManagement/RecGrantAprvSqlMap.xml" />
+    <!-- recManagement  END -->
+    
+    <!-- Maintenance START 20181031 -->
+    <sqlMap resource="sqlmap/tibero/Maintenance/maintenanceSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/Maintenance/veloceRestSqlMap.xml" />
+    <sqlMap resource="sqlmap/tibero/Maintenance/gubunRestSqlMap.xml" />
+    <!-- Maintenance END -->
+    
+    
+    <!-- QA START 20230622 jslee -->
+    <sqlMap resource="sqlmap/tibero/QA/QA1000.xml" />
+    <sqlMap resource="sqlmap/tibero/QA/QA2000.xml" />
+    <sqlMap resource="sqlmap/tibero/QA/QA3000.xml" />
+    <sqlMap resource="sqlmap/tibero/QA/QA4000.xml" />
+    <!-- QA START 20230622 jslee -->
+
+</sqlMapConfig>

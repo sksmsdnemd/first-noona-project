@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "https://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="QA4000">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap"/>
+	
+	<!-- QA4020 기간별 추이보고서 START =================================================================================== -->  
+	<!-- 기간구분별(개인별.소속별/업무그룹별/근속기간별) ROW 조회   --> 
+ 	<procedure id="QA.SP_QA4020M01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_QA4020M01_01(#glo_tenantId#, #glo_groupId#, #txtDate1_From#, #txtDate1_To#, #dept1Id#,#user1Id#,#viewGubun#, #qaValueStatus#, #notiYn#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>	
+
+	
+
+ 	<!-- 조회구분별(월별/분기별/반기별/년도별) 데이터 조회   --> 
+ 	<procedure id="QA.SP_QA4020M01_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+		{ CALL SP_QA4020M01_02(#glo_tenantId#, #glo_groupId#, #txtDate1_From#, #txtDate1_To#, #dept1Id#, #user1Id#, #viewGubun#, #qaValueStatus#, #notiYn#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>		
+	
+	<!-- QA4030 평가항목별보고서 START =================================================================================== -->  
+ 	<!-- 기간구분별(개인별.소속별/업무그룹별/근속기간별) ROW 조회    --> 
+ 	<procedure id="QA.SP_QA4030M01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+	{ CALL SP_QA4030M01_01(#glo_tenantId#, #glo_groupId#,#timesId#
+		 , #dept1Id#,#user1Id#,#viewGubun#, #qaValueStatus#, #notiYn#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>	
+	
+ 	<!-- 조회구분별(월별/분기별/반기별/년도별) 문항별/업무구분별 데이터 조회   --> 
+ 	<procedure id="QA.SP_QA4030M01_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+	{ CALL SP_QA4030M01_02(#glo_tenantId#, #glo_groupId#,#timesId#
+		 , #dept1Id#,#user1Id#,#viewGubun#, #qaValueStatus#, #notiYn#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>	
+	
+ 	<!-- 문항별 컬럼목록 조회  --> 
+ 	<procedure id="QA.SP_QA4030M01_03" parameterClass="java.util.HashMap" resultClass="egovMap">
+ 		{ CALL SP_QA4030M01_03(#glo_tenantId#,#timesId#, #sortCd#
+		 , #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+	
+	<!-- 항목별 평가의견 조회  --> 
+ 	<procedure id="QA.SP_QA4060M01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+ 		{ CALL SP_QA4060M01_01(#glo_tenantId#,#txtDate1_From#, #txtDate1_To#, #timesId#, #deptId#, #agentId#, #qaaId#, #gbn#, #qaValueStatus#, #notiYn#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+	
+</sqlMap>

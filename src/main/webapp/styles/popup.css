@@ -1,0 +1,200 @@
+/*
+POPUP 화면을 위한 CSS 설정
+*/
+
+.popup_body {
+	background:#e8e8e8;
+	padding:11px;
+	}
+	
+.popup_block {
+	display:block;
+	border:1px solid #caced7 !important;
+    background:#f0f0f0;
+	margin-bottom:8px;
+	padding-top:8px;
+	padding-bottom:8px;
+	clear:both;
+}
+
+.popup_block_white {
+	display:block;
+	border:1px solid #caced7 !important;
+    background:#ffffff;
+	margin-bottom:8px;
+	padding-top:8px;
+	padding-bottom:8px;
+	clear:both;
+}
+.popup_block .datagrid-header-row {
+	background:#8b8b8b !important;
+	color:#fff !important;
+}
+
+.popup_block .datagrid-header-over {
+	background:#6d6d6d !important;
+	color:#fff !important;
+}
+
+.divPopupButton {
+	display:block; 
+	float: right; 
+	margin-bottom:8px;
+	border:0px solid #caced7;
+	clear:both;
+	}
+
+.popup_button{
+    background:#d89a2f !important;
+}
+.popup_button:hover {
+	background:#d49255 !important;
+}
+
+<!--시험지관리 css -->
+
+.popup_block .datagrid-row{
+    height: 46 !important;
+}
+
+
+.popup_block tr{
+    height: 46 !important;
+}
+
+#divListAnswer .datagrid-view .datagrid-editable-input {
+height: 100px !important;
+}
+	
+#divDetailPreview {
+	display:block;
+	border:1px solid #caced7 !important;
+    background:#ffffff;
+	margin-bottom:8px;
+	clear:both;
+}
+
+.previewTd{
+    vertical-align: top;
+    padding:10px ;
+    border:none;
+}
+
+.previewNo {
+font-size: 14pt;
+font-weight:900;
+color:inherit;
+}
+
+.previewComment {
+font-size: 10pt;
+font-weight:900;
+line-height:1.2;
+}
+	
+/* �������α׷��ú� */
+	
+#wrap_pop {width:100%; min-height:100%; position:relative; display:inline-block; vertical-align:middle; margin:0 auto;}
+#wrap_pop .head_bar {width:100%; height:45px; border-bottom:2px solid red; background:#2b3b48;}
+#wrap_pop .head_bar h2 {width:100%; font:20px NanumGothicBold; color:#F8B95A; letter-spacing:-1px;  line-height:45px; }
+	
+#body_all {width:100%; min-height:100%; position:relative;}
+#body_m {overflow:hidden; width:95%;    margin:0 auto; }
+#body_m .p_left {float:left; width:25%; }
+#body_m .p_left .cata {float:left; width:95%; text-align:center; height:920px;  border:1px solid #ddd;}
+#body_m .p_left .cata .b_left {float:left; display:inline-block; vertical-align:middle; padding:0 26px; width:83%; height:100%;}
+	
+#body_m .p_center {float:left; width:35%; }
+#body_m .p_center .p_hot {float:left; display:inline-block; width:95%; }
+#body_m .p_center .p_hot .real {float:left; width:49%; }
+#body_m .p_center .p_hot .month {float:left;  width:47%; }
+	
+#body_m .p_center .p_hot .month .hot_li {float:left; display:inline-block; width:100%; border:1px solid #d7d7d7;}
+	
+#body_m .p_center .p_time {float:left; width:95%;}
+#body_m .p_center .p_time table { width: 100%; border-collapse: collapse;}
+#body_m .p_center .p_time td, th {padding-left:10px;  font:12px NanumGothicBold; color:#888; letter-spacing:-1px;  line-height:28px; border: 1px solid #e8dbca;}
+#body_m .p_center .p_time th {height:24px; text-align: center; background-color:#cbb7a2;  font:12px NanumGothicBold; font-weight:bold; color:#fff; letter-spacing:0px;  line-height:28px; border: 1px solid #e8dbca; }
+#body_m .p_center .p_time td.alt {text-align: center; color:#888; background-color:#fcf5ee;}
+	
+#body_m .p_right  {float:left; width:38%; padding-left:15px; border-left:1px solid #ddd;}
+#body_m .p_right .p_sa {float:left; display:inline-block; width:100%; height:150px;}
+#body_m .p_right .p_sq {float:left; display:inline-block; width:100%; }
+
+#body_m .p_right .p_sq h2,select {float:left; width:94%; padding-right:0px; line-height:0px; }
+#body_m .p_right .p_sq .negati {float:left; }
+#body_m .p_right .p_sq table { width: 100%; border-collapse: collapse;   font:20px}
+#body_m .p_right .p_sq td, th {padding-left:10px;  font:12px NanumGothicBold; color:#888; letter-spacing:-1px;  line-height:28px; border: 1px solid #d9e4b7;}
+#body_m .p_right .p_sq th {height:24px; text-align: center; background-color:#bbce85;  font:12px NanumGothicBold; font-weight:bold; color:#fff; letter-spacing:0px;  line-height:28px; }
+#body_m .p_right .p_sq td.alt {text-align: center; color:#888; background-color:#f7faed;}
+#body_m .p_right .p_cha {float:left; display:inline-block; width:100%; height:150px; }
+	
+.g_graph {float:left; width:99%; height:100px;  border:1px solid #ddd;}
+.t_graph {float:left; margin:5px 10px 5px 0; width:73%;  border:1px solid #ddd;}
+.t_graph1 {float:left; margin:5px 10px 5px 0; width:90%; }
+.r_box {float:left; width:100%;  border:1px solid #ddd;}
+	
+.h100p {height:100%;} .h95p {height:95%;}
+.i_c_o2 {padding-left:25px; background:url("../images/common/icon_circle_orange2.png") left center no-repeat;}
+
+
+
+#body .b_left {float:left; display:inline-block; vertical-align:middle; padding:0 26px; width:190px; height:100%;}
+
+
+
+/* ��ŷ 08 14 */
+
+
+#body_all .b_ranking {display:inline-block; vertical-align:middle; width:100%;}
+#body_all .b_ranking li {display:block; vertical-align:middle; padding-left:10px; padding-right:10px; height:24px; overflow:hidden;}
+#body_all .b_ranking a {display:inline-block; vertical-align:middle; width:100%; height:100%;}
+#body_all .b_ranking .br_state {float:left; display:inline-block; vertical-align:middle; width:30px; height:24px; text-align:left;}
+#body_all .b_ranking .br_state.up {background:url("../images/common/icon_rank_up.png") 20px center no-repeat;}
+#body_all .b_ranking .br_state.keep {background:url("../images/common/icon_rank_keep.png") 20px center no-repeat;}
+#body_all .b_ranking .br_state.down {background:url("../images/common/icon_rank_down.png") 20px center no-repeat;}
+#body_all .b_ranking .br_state.new {background:url("../images/common/icon_rank_new.png") 20px center no-repeat;}
+#body_all .b_ranking .br_state .br_icon {display:inline-block; vertical-align:middle; margin:5px 0; width:14px; height:14px; font:10px NanumGothicbold; color:#fff; letter-spacing:-1px; line-height:14px; text-align:center; background:#a4a4a4;}
+#body_all .b_ranking .br_state .br_icon.bg1 {background:#f02900;}
+#body_all .b_ranking .br_state .br_icon.bg2 {background:#ff9100;}
+#body_all .b_ranking .br_state .br_icon.bg3 {background:#98aa00;}
+#body_all .b_ranking .br_state .br_icon.bg4 {background:#1b9dc0;}
+#body_all .b_ranking .br_state .br_icon.bg5 {background:#657fd6;}
+#body_all .b_ranking .br_state .br_icon.bg6 {background:#B0DE09;}
+#body_all .b_ranking .br_state .br_icon.bg7 {background:#04D215;}
+#body_all .b_ranking .br_state .br_icon.bg8 {background:#0D8ECF;}
+#body_all .b_ranking .br_state .br_icon.bg9 {background:#0D52D1;}
+#body_all .b_ranking .br_state .br_icon.bg10 {background:#2A0CD0;}
+#body_all .b_ranking .br_state .br_icon.bg11 {background:#8A0CCF;}
+#body_all .b_ranking .br_state .br_icon.bg12 {background:#CD0D74;}
+#body_all .b_ranking .br_state .br_icon.bg13 {background:#754DEB;}
+#body_all .b_ranking .br_state .br_icon.bg14 {background:#DDDDDD;}
+#body_all .b_ranking .br_state .br_icon.bg15 {background:#999999;}
+#body_all .b_ranking .br_state .br_icon.bg16 {background:#333333;}
+#body_all .b_ranking .br_state .br_icon.bg17 {background:#000000;}
+#body_all .b_ranking .br_state .br_icon.bg18 {background:#57032A;}
+#body_all .b_ranking .br_state .br_icon.bg19 {background:#CA9726;}
+#body_all .b_ranking .br_state .br_icon.bg20 {background:#990000;}
+
+#body_all .b_ranking .br_state .br_icon.no1 {background:url("../images/common/icon_rank_no.png") 0px 0px no-repeat;}
+#body_all .b_ranking .br_state .br_icon.no2 {background:url("../images/common/icon_rank_no.png") 0px -14px no-repeat;}
+#body_all .b_ranking .br_state .br_icon.no3 {background:url("../images/common/icon_rank_no.png") 0px -28px no-repeat;}
+#body_all .b_ranking .br_state .br_icon.no4 {background:url("../images/common/icon_rank_no.png") 0px -42px no-repeat;}
+#body_all .b_ranking .br_state .br_icon.no5 {background:url("../images/common/icon_rank_no.png") 0px -56px no-repeat;}
+#body_all .b_ranking .br_state .br_icon.no6 {background:url("../images/common/icon_rank_no.png") 0px -70px no-repeat;}
+#body_all .b_ranking .br_state .br_icon.no7 {background:url("../images/common/icon_rank_no.png") 0px -84px no-repeat;}
+#body_all .b_ranking .br_state .br_icon.no8 {background:url("../images/common/icon_rank_no.png") 0px -98px no-repeat;}
+#body_all .b_ranking .br_state .br_icon.no9 {background:url("../images/common/icon_rank_no.png") 0px -112px no-repeat;}
+#body_all .b_ranking .br_state .br_icon.no10 {background:url("../images/common/icon_rank_no.png") 0px -126px no-repeat;}
+#body_all .b_ranking .br_txt {margin-left:35px; height:24px;}
+#body_all .b_ranking .br_txt .text {line-height:24px;}
+
+
+
+
+
+
+
+
+
+

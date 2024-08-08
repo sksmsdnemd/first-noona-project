@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="recSample">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<insert id="recSample.setRecSampleCallInsert" parameterClass="java.util.HashMap" >
+	    <!--  (2023.08.09) TB_REC_SAMPLECALL 테이블에 새롭게 추가한 컬럼들에 등록할 데이터를 팝업창에 넘겨주기 위해 쿼리 변경 -->
+		/* ID : recSample.setRecSampleCallInsert */
+		INSERT INTO tb_rec_samplecall 
+			(
+				tenant_id, group_id, rec_key, media_kind, file_name, ins_id, ins_date, upt_id, upt_date, content
+	            , CUST_TEL
+	            , CALL_ID
+	            , DN_NO
+	            , END_TIME
+	            , MEDIA_SCR
+	            , MEDIA_VOICE
+	            , MFU_IP
+	            , PHONE_IP
+	            , REC_TIME
+	            , USER_ID
+	            , UPLOAD_CNT_SCR
+	            , UPLOAD_CNT_VOICE 
+			)
+		VALUES
+            (
+				#tenantId#, #groupId#, #recKey#, #mediaKind#, #fileName#, #insId#, sysdate, null, null, #content#
+                , #custTel#
+                , #callId#
+                , #dnNo#
+                , #endTime#
+                , #mediaScr#
+                , #mediaVoice#
+                , #mfuIp#
+                , #phoneIp#
+                , #recTime#
+                , #userId#
+                , #uploadCntScr#
+                , #uploadCntVoice#
+            )
+	</insert>
+	
+	<select id="recSample.getSampleCallExstYn" resultClass="egovMap">
+		/* ID : recSample.getSampleCallExstYn */
+		select case when count(*) > 0 then 'Y' else 'N' end as exst_yn
+		  from tb_rec_samplecall
+		 where rec_key = #selectRecKey#
+	</select>
+	
+	<!-- <select id="recSample.getSampleCallBaseList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		SELECT 
+		  tenant_id , group_id  , rec_key
+		, media_kind, file_name
+		  FROM tb_rec_samplecall
+		 WHERE tenant_id = #tenantId#
+		 <isNotEmpty property="recKeyList">
+		 	<iterate property="recKeyList" prepend="AND rec_key IN " open="(" conjunction="," close=")">
+		 		#recKeyList[]#
+		 	</iterate>
+		 </isNotEmpty>
+		 <isNotEmpty property="recKey">
+		 	AND rec_key = #recKey#
+		 </isNotEmpty>
+		 ORDER BY rec_key, group_id
+	</select> -->
+	
+	<select id="recSample.getSampleCallCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+        <!-- (2023.08.10)   TB_REC_SAMPLECALL 테이블에 TB_REC_FILE 테이블의 데이터를 넣도록 변경하였으므로 기존 TB_REC_FILE 테이블의 JOIN 삭제 후 
+                            기존 TB_REC_FILE 테이블과 조인하던 항목은 TB_REC_SAMPLECALL 과 조인하도록 변경하였음 (HAGUANGHO) -->
+		/* ID : recSample.getSampleCallCount */
+		SELECT COUNT(*) as cnt
+			FROM tb_rec_samplecall a
+				LEFT OUTER JOIN tb_rec_samplecall_grp b    
+					ON a.tenant_id = b.tenant_id   
+					AND a.group_id = b.group_id
+                    <!-- (2023.08.23) TB_REC_FILE_INDEX 테이블 쪼개기 중 의미 없는 JOIN 같아 삭제 (HAGUANGHO)
+				LEFT OUTER JOIN tb_rec_file_index d	    
+					ON a.rec_key     = d.rec_key 	
+					AND a.media_kind = d.media_kind   
+					AND a.file_name  = d.file_name     -->
+				LEFT OUTER JOIN tb_mng_group e			    
+					ON a.tenant_id = e.tenant_id   
+					AND a.group_id = e.group_id
+				LEFT OUTER JOIN tb_mng_userinfo f		    
+					ON a.tenant_id = f.tenant_id   
+					AND a.user_id  = f.user_id
+		WHERE 1 = 1
+   			<isNotEmpty property="tenantId">	  AND a.tenant_id = #tenantId#	 						</isNotEmpty>
+   			<isNotEmpty property="findDepth">	  AND b.depth like #findDepth# || '%'	 				</isNotEmpty>
+   			<isNotEmpty property="findGroupId">	  AND a.group_id = #findGroupId#		 				</isNotEmpty>
+   			<isNotEmpty property="findUserNameText">   AND f.user_name like '%' || #findUserNameText# || '%' </isNotEmpty>
+            <isNotEmpty property="findInsNameText">   AND a.ins_id like '%' || #findInsNameText# || '%' </isNotEmpty>
+            <isNotEmpty property="reqDtFrom">
+				AND a.rec_time BETWEEN  #reqDtFrom# || '000000' AND #reqDtTo# || '235959'
+			</isNotEmpty>
+	</select>
+	
+	<select id="recSample.getSampleCallList" parameterClass="java.util.HashMap" resultClass="egovMap">
+        <!-- (2023.08.10)   TB_REC_SAMPLECALL 테이블에 TB_REC_FILE 테이블의 데이터를 넣도록 변경하였으므로 기존 TB_REC_FILE 테이블의 JOIN 삭제 후 
+                            기존 TB_REC_FILE 테이블과 조인하던 항목은 TB_REC_SAMPLECALL 과 조인하도록 변경하였음 (HAGUANGHO)	
+             (2023.08.10)   샘플콜 조회 화면에서 중복되는 데이터가 나오는 에러가 있어서 정렬 조건 추가 (HAGUANGHO) -->	
+        /* ID : recSample.getSampleCallList */
+        select * from (
+            select
+                    Row_Number() over (ORDER BY RowNum1 DESC, top_parent_id DESC, group_id DESC) RowNum2, TB_IN.* 
+                from (
+                    select Row_Number() over (ORDER BY a.INS_DATE DESC, b.top_parent_id, b.group_id) RowNum1
+                            , (SELECT group_name FROM tb_rec_samplecall_grp
+                                WHERE tenant_id = a.tenant_id AND group_id = b.top_parent_id) AS top_parent_group_name
+                            , b.top_parent_id , b.group_id, b.group_name AS sp_grp_name, a.media_voice, a.rec_key
+                            , a.user_id, a.dn_no, a.phone_ip, a.rec_time, a.media_scr, a.upload_cnt_voice
+                            , a.upload_cnt_scr, e.group_name, f.user_name, a.end_time, a.tenant_id, a.media_kind, a.content
+                            , fn_getSampleCallGrpNamePath(a.tenant_id, b.depth, 0, 3) as depth_path
+                            , a.call_id, a.cust_tel, a.mfu_ip, a.ins_id
+                        FROM tb_rec_samplecall a
+                            LEFT OUTER JOIN tb_rec_samplecall_grp b 
+                                ON a.tenant_id = b.tenant_id  
+                                AND a.group_id = b.group_id
+                            <!-- (2023.08.23) TB_REC_FILE_INDEX 테이블 쪼개기 중 의미 없는 JOIN 같아 삭제 (HAGUANGHO)
+                            LEFT OUTER JOIN tb_rec_file_index d     
+                                ON a.rec_key = d.rec_key       
+                                AND a.media_kind = d.media_kind  
+                                AND a.file_name  = d.file_name -->
+                            LEFT OUTER JOIN tb_mng_group e              
+                                ON a.tenant_id = e.tenant_id  
+                                AND a.group_id = e.group_id
+                            LEFT OUTER JOIN tb_mng_userinfo f           
+                                ON a.tenant_id = f.tenant_id  
+                                AND a.user_id  = f.user_id
+                    WHERE 1 = 1
+                        <isNotEmpty property="tenantId">        AND a.tenant_id = #tenantId#                        </isNotEmpty>
+                        <isNotEmpty property="findDepth">       AND b.depth like #findDepth# || '%'                 </isNotEmpty>
+                        <isNotEmpty property="findGroupName">   AND b.group_name like '%' || #findGroupName# || '%' </isNotEmpty>
+                        <isNotEmpty property="findUserNameText">   AND f.user_name like '%' || #findUserNameText# || '%' </isNotEmpty>
+                        <isNotEmpty property="findInsNameText">   AND a.ins_id like '%' || #findInsNameText# || '%' </isNotEmpty>
+                        <isNotEmpty property="reqDtFrom">
+							AND a.rec_time BETWEEN  #reqDtFrom# || '000000' AND #reqDtTo# || '235959'
+						</isNotEmpty>
+                    ) TB_IN
+                WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+                ORDER BY RowNum1 DESC
+            ) TB_OUT 
+        WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+        ORDER BY RowNum2 DESC, top_parent_id, group_id
+	</select>
+	
+	<!-- <select id="recSample.getSampleCallExcelList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recSample.getSampleCallExcelList */
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY group_id asc) as 번호
+			,tenant_id AS 회사 
+			,top_parent_group_name AS 분류
+			,sp_grp_name AS 그룹
+			,user_id AS 상담원id
+			,user_name AS 상담원명
+			,dn_no AS 내선번호
+			,CAST(rec_time AS VARCHAR(30))  AS 통화일자
+		FROM
+		(
+			select * from (
+				select
+					Row_Number() over (ORDER BY top_parent_id DESC, group_id DESC) RowNum2,* 
+				from (
+					select 
+						Row_Number() over (ORDER BY b.top_parent_id, b.group_id) RowNum1,
+				  (SELECT group_name FROM tb_rec_samplecall_grp
+				    WHERE tenant_id = a.tenant_id
+				      AND group_id = b.top_parent_id) AS top_parent_group_name
+				, b.top_parent_id                , b.group_id
+				, b.group_name AS sp_grp_name    , c.media_voice, c.rec_key
+				, c.user_id                      , c.dn_no      , c.phone_ip
+				, c.rec_time                     , c.media_scr  , c.upload_cnt_voice
+				, c.upload_cnt_scr               , e.group_name , f.user_name
+				, c.end_time					 , a.tenant_id  , a.media_kind, a.content
+				, dbo.fn_getSampleCallGrpNamePath(a.tenant_id, b.depth, 0, 3) as depth_path
+				  FROM tb_rec_samplecall a
+				  JOIN tb_rec_samplecall_grp b	    ON a.tenant_id  = b.tenant_id   AND a.group_id   = b.group_id
+				  JOIN tb_rec_file c			    ON a.tenant_id  = c.tenant_id   AND a.rec_key    = c.rec_key				  
+				  JOIN tb_rec_file_index d		    ON a.rec_key    = d.rec_key	   	AND a.media_kind = d.media_kind	 AND a.file_name  = d.file_name
+				  JOIN tb_mng_group e			    ON a.tenant_id  = e.tenant_id   AND c.group_id   = e.group_id				  
+				  JOIN tb_mng_userinfo f		    ON c.tenant_id  = f.tenant_id   AND c.user_id    = f.user_id
+				 WHERE a.tenant_id = ''+#tenantId#+''
+				 
+		   		<isNotEmpty property="findDepth">
+				 	AND b.depth like #findDepth# +'%'
+				 </isNotEmpty>
+				 
+		   		<isNotEmpty property="findGroupName">
+				 	AND b.group_name like '%' + #findGroupName# +'%'
+				 </isNotEmpty>
+				) TB_IN
+				WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+			) TB_OUT 
+			WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+		) tbl2
+		ORDER BY top_parent_id, group_id
+	</select> -->
+	
+	<delete id="recSample.setRecSampleCallDelete" parameterClass="java.util.HashMap">
+		/* ID : recSample.setRecSampleCallDelete */
+		DELETE 
+			FROM tb_rec_samplecall
+		WHERE tenant_id  = #tenantId#  
+			AND group_id = #groupId#   
+			AND rec_key  = #recKey#
+	</delete>
+	
+	<update id="recSample.setRecSampleCallUpdate" parameterClass="java.util.HashMap">
+		/* ID : recSample.setRecSampleCallUpdate */
+		UPDATE tb_rec_samplecall SET 
+			CONTENT   = #findContent#
+		WHERE rec_key = #findRecKey#
+	</update>
+	
+	
+	<select id="recSample.getSampleCallGrpList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recSample.getSampleCallGrpList */
+		SELECT 
+				ROW_NUMBER() OVER(ORDER BY a.tenant_id asc) as recid
+				, a.tenant_id, RTRIM(CAST(a.group_id as char(20))) as group_id , a.group_name
+				, RTRIM(CAST(a.top_parent_id as char(20))) as top_parent_id, RTRIM(CAST(a.parent_id as char(20))) as parent_id, a.depth
+				, lpad(' ', length(a.depth) -3, ' ') head, length(a.depth) depth_len
+				, group_desc
+				, to_char(a.top_parent_id) || CASE WHEN a.top_parent_id=a.parent_id THEN a.group_id ELSE to_char(a.parent_id) END as sort_col
+				, CASE WHEN nvl(b.group_id, 0) = 0 THEN 'NONE' ELSE 'EXIST' END AS is_exist
+				, RTRIM(CAST( LENGTH(depth)/3 as char(20))) as "level"
+				, fn_getSampleCallGrpNamePath(a.tenant_id, a.depth, -1, 3) as depth_path
+			FROM tb_rec_samplecall_grp a 
+				LEFT JOIN (
+					SELECT tenant_id, group_id
+						FROM tb_rec_samplecall
+					WHERE tenant_id = #tenantId#
+ 					group by tenant_id, group_id
+					) b 
+					ON a.tenant_id = b.tenant_id 
+					AND a.group_id  = b.group_id
+		where a.tenant_id  = #tenantId#				
+			<isNotEmpty property="findDepth">		AND a.depth like #findDepth# || '%'			 		</isNotEmpty>
+			<isNotEmpty property="findGroupName">	AND a.group_name Like '%' || #findGroupName# || '%'	</isNotEmpty>
+		order by a.top_parent_id, a.depth
+	</select>
+	
+	<select id="recSample.getMaxRecSampleCallGrpId" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recSample.getMaxRecSampleCallGrpId */
+		SELECT to_char(nvl(MAX(TO_NUMBER(group_id)), 0) + 1) as group_id
+			FROM tb_rec_samplecall_grp
+		WHERE tenant_id = #tenantId#
+	</select>
+	
+	<insert id="recSample.setSampleCallGrpInsert" parameterClass="java.util.HashMap">
+		/* ID : recSample.setSampleCallGrpInsert */
+		INSERT INTO tb_rec_samplecall_grp 
+			(
+		  	tenant_id, group_id , group_name, top_parent_id, parent_id, depth, group_desc, ins_id, ins_date, upt_id, upt_date
+			)
+		SELECT
+		  		tenant_id, group_id , group_name, top_parent_id, parent_id, depth, group_desc, ins_id, ins_date, upt_id, upt_date
+			FROM(
+	        	SELECT
+			    		1 AS gb, tenant_id, #groupId# AS group_id, #groupName# AS group_name
+			    		, (CASE WHEN nvl(top_parent_id, '0') = '0' THEN group_id ELSE top_parent_id END) AS top_parent_id
+			        	, group_id AS parent_id, #depth# AS depth, #groupDesc# AS group_desc
+			        	, #insId# AS ins_id, sysdate AS ins_date, null AS upt_id, null AS upt_date
+					FROM tb_rec_samplecall_grp
+		    	WHERE tenant_id = #tenantId# 
+		    		AND top_parent_id = #topParentId# 
+		    		AND parent_id     = #parentId# 
+		    		AND group_id      = #newGroupId#
+		    	UNION ALL
+		    	SELECT
+						2 AS gb, #tenantId# AS tenant_id, #groupId# AS group_id, #groupName# AS group_name
+						<!-- , to_number(#topParentId#) AS top_parent_id, to_number(#parentId#) AS parent_id -->
+						, #topParentId# AS top_parent_id, #parentId# AS parent_id
+						, #depth# AS depth, #groupDesc# AS group_desc
+		        		, #insId# AS ins_id, sysdate AS ins_date, null AS upt_id, null AS upt_date
+		        	FROM dual
+				) A
+		WHERE <![CDATA[ ROWNUM < 2 ]]>
+		ORDER BY gb
+	</insert>
+	
+	<update id="recSample.setSampleCallGrpUpdate" parameterClass="java.util.HashMap">
+		/* ID : recSample.setSampleCallGrpUpdate */
+		UPDATE tb_rec_samplecall_grp SET
+			group_name   = #groupName#
+			, group_desc = #groupDesc#
+			, upt_id     = #uptId#
+			, upt_date   = sysdate
+		WHERE tenant_id  = #tenantId#
+			AND group_id = #groupId#
+	</update>
+	
+	<!-- <select id="recSample.getRecSampleCallSubDepth" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recSample.getRecSampleCallSubDepth */
+		SELECT
+		  group_id
+		, ISNULL(top_parent_id, 0) AS top_parent_id
+		, depth
+		, SUBSTRING(depth, 1, LEN(depth)-1) AS depth1
+		, RIGHT(depth, 1) AS depth2
+		  FROM tb_rec_samplecall_grp
+		 WHERE tenant_id     = #tenantId#
+		   AND top_parent_id = #topParentId#
+		   AND depth LIKE ''+#depth#+'%'
+		   AND LEN(depth)    = LEN(''+#depth#+'')+1
+		 ORDER BY depth DESC
+	</select> -->
+	
+	<delete id="recSample.setRecSampleCallGroupDelete" parameterClass="java.util.HashMap">
+		/* ID : recSample.setRecSampleCallGroupDelete */
+		DELETE 
+			FROM tb_rec_samplecall_grp
+		WHERE tenant_id  = #tenantId#
+			AND group_id = #groupId#
+	</delete>
+
+	<!-- <select id="recSample.getRecSampleCallDepth" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recSample.getRecSampleCallDepth" */
+		select to_char(depth) as depth
+			from(
+				select 
+						depth as s
+			  			, substr(depth, 1, length(depth)-3) as pre
+			  			, case when length(depth) = 3 then depth 
+				   			else substr(depth, length(depth)-(length(depth)-(3*(#level#-1)))+1, length(depth)) end + 1 as depth                
+					from(
+						select nvl(MAX(depth), nvl((select depth from tb_rec_samplecall_grp
+						   							where tenant_id=#tenantId# and group_id=#parentId#), '')
+						 						|| lpad('100', 3, '100')) as depth
+							from tb_rec_samplecall_grp
+						where length(depth)/3 = #level#
+							and depth like nvl((select depth from tb_rec_samplecall_grp
+						   						where tenant_id=#tenantId# 
+						   							and group_id=#parentId#), '') || '%'
+						group by depth
+					) tbl1
+			) tbl2
+	</select> -->
+	
+	<select id="recSample.getRecSampleCallDepth" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : recSample.getRecSampleCallDepth" */
+		select NVL(TO_CHAR(depth), '101') as depth
+			from(
+				select   
+						depth as s
+			  			, SUBSTR(depth, 1, LENGTH(depth)-3) as pre
+			  			, CASE WHEN LENGTH(depth) = 3 THEN depth
+				   				ELSE SUBSTR(depth, LENGTH(depth)-(LENGTH(depth)-(3*(#level#-1)))+1, LENGTH(depth)) END + 1 as depth               
+					from(
+						SELECT MAX(
+									CASE WHEN 
+										(
+										SELECT MAX(depth) 
+											FROM tb_rec_samplecall_grp
+                                        WHERE LENGTH(depth)/3 = #level#
+                                        	AND depth LIKE NVL((SELECT depth FROM tb_rec_samplecall_grp
+                                                               WHERE tenant_id=#tenantId# and group_id=#parentId#), '')||'%'
+                              		  	) IS NOT NULL 
+									THEN 
+										(
+										SELECT MAX(depth) 
+                              				FROM tb_rec_samplecall_grp
+                                       	WHERE LENGTH(depth)/3 = #level#
+                                   			AND depth LIKE NVL((SELECT depth FROM tb_rec_samplecall_grp
+                                                            	WHERE tenant_id=#tenantId# and group_id=#parentId#), '')||'%'
+                              			)
+                      				ELSE 
+                      					NVL((select depth from tb_rec_samplecall_grp 
+                      						where tenant_id=#tenantId# and group_id=#parentId#),'') || RPAD('100', 3, '100')
+									END 
+									) depth
+							FROM tb_rec_samplecall_grp
+					) tbl1
+			) tbl2
+	</select>
+</sqlMap>

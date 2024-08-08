@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="EUC-KR"?><!-- 수정 2014-09-25 EXCEL 출력시 한글이 깨져 UTF-8 -> EUC-KR 로 변경 -->
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="errCode">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="errCode.getErrLogCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : errCode.getErrLogCount */
+		SELECT COUNT(*) AS CNT
+		  FROM TB_ERR_ERRLOG a 
+		  JOIN TB_SYS_SYSINFO b
+			ON a.SYSTEM_ID = b.SYSTEM_ID
+		  LEFT OUTER JOIN TB_SYS_PROCINFO c
+			ON a.SYSTEM_ID = c.SYSTEM_ID	
+		   AND a.PROCESS_ID = c.PROCESS_ID
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="findText">
+				<isEqual property="findKey" compareValue="a.err_code">
+					a.ERR_CODE LIKE CONCAT('%', #findText#, '%')
+				</isEqual>
+				<isEqual property="findKey" compareValue="a.err_msg">
+					a.ERR_MSG LIKE CONCAT('%', #findText#, '%')
+				</isEqual>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findSystemId">
+				a.SYSTEM_ID = #findSystemId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findProcessId">
+				a.PROCESS_ID = #findProcessId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findErrType">
+				a.ERR_TYPE = #findErrType#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findErrGrade">
+				a.ERR_GRADE = #findErrGrade#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findSErrDate">
+				a.ERR_DATE BETWEEN #findSErrDate# AND #findEErrDate# 
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="errCode.getErrLogList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : errCode.getErrLogList */
+		SELECT ERR_KEY, ERR_INDEX, ERR_CODE, ERR_TYPE, ERR_GRADE
+			 , SYSTEM_ID, PROCESS_ID, ERR_DATE, ERR_MSG, SYSTEM_NAME
+			 , PROCESS_NAME, ERR_TYPE_NAME, ERR_GRADE_NAME
+		  FROM (
+			SELECT * FROM (
+				SELECT TB_IN.* 
+				  FROM (
+					SELECT a.ERR_KEY, a.ERR_INDEX, a.ERR_CODE, a.ERR_TYPE, a.ERR_GRADE
+						 , a.SYSTEM_ID, a.PROCESS_ID, a.ERR_DATE, a.ERR_MSG, b.SYSTEM_NAME
+						 , c.PROCESS_NAME, d.CODE_NAME AS ERR_TYPE_NAME, e.CODE_NAME AS ERR_GRADE_NAME
+					  FROM TB_ERR_ERRLOG a 
+					  JOIN TB_SYS_SYSINFO b
+						ON a.SYSTEM_ID = b.SYSTEM_ID
+					  LEFT OUTER JOIN TB_SYS_PROCINFO c
+						ON a.SYSTEM_ID = c.SYSTEM_ID	
+					   AND a.PROCESS_ID = c.PROCESS_ID
+					  LEFT OUTER JOIN TB_MNG_BASECODE d
+						ON a.ERR_TYPE = d.CODE_ID
+					   AND d.CLASS_ID = 'errtype_class'
+					  LEFT OUTER JOIN TB_MNG_BASECODE e
+						ON a.ERR_GRADE = e.CODE_ID
+					   AND e.CLASS_ID = 'errgrade_class'
+					<dynamic prepend="WHERE">
+						<isNotEmpty prepend="AND" property="findText">
+							<isEqual property="findKey" compareValue="a.err_code">
+								a.ERR_CODE LIKE CONCAT('%', #findText#, '%')
+							</isEqual>
+							<isEqual property="findKey" compareValue="a.err_msg">
+								a.ERR_MSG LIKE CONCAT('%', #findText#, '%')
+							</isEqual>
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findSystemId">
+							a.SYSTEM_ID = #findSystemId#
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findProcessId">
+							a.PROCESS_ID = #findProcessId#
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findErrType">
+							a.ERR_TYPE = #findErrType#
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findErrGrade">
+							a.ERR_GRADE = #findErrGrade#
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findSErrDate">
+							a.ERR_DATE BETWEEN #findSErrDate# AND #findEErrDate# 
+						</isNotEmpty>
+					</dynamic>
+					 ORDER BY a.ERR_DATE DESC, a.SYSTEM_ID, a.PROCESS_ID
+					 LIMIT $iEPageNo$
+				  ) TB_IN
+				 ORDER BY ERR_DATE , SYSTEM_ID DESC, PROCESS_ID DESC
+				 LIMIT $iSPageNo$
+			) TB_OUT 
+		  ) tbl2
+		ORDER BY ERR_DATE DESC, SYSTEM_ID , PROCESS_ID
+	</select>
+
+	<select id="errCode.getCurErrCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : errCode.getCurErrCount */
+		SELECT COUNT(*) AS CNT
+			FROM TB_ERR_CURERR a 
+				JOIN TB_SYS_SYSINFO b
+					ON a.SYSTEM_ID = b.SYSTEM_ID
+				LEFT OUTER JOIN TB_SYS_PROCINFO c
+					ON a.SYSTEM_ID	= c.SYSTEM_ID	
+					AND a.PROCESS_ID	= c.PROCESS_ID
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="findText">
+				<isEqual property="findKey" compareValue="a.err_code">
+					a.ERR_CODE LIKE CONCAT('%', #findText#, '%')
+				</isEqual>
+				<isEqual property="findKey" compareValue="a.err_msg">
+					a.ERR_MSG LIKE CONCAT('%', #findText#, '%')
+				</isEqual>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findSystemId">
+				a.SYSTEM_ID = #findSystemId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findProcessId">
+				a.PROCESS_ID = #findProcessId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findErrType">
+				a.ERR_TYPE = #findErrType#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findErrGrade">
+				a.ERR_GRADE = #findErrGrade#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findSErrDate">
+				a.ERR_DATE BETWEEN #findSErrDate# AND #findEErrDate#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="errCode.getCurErrList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : errCode.getCurErrList */
+		SELECT 
+				ERR_KEY, ERR_CODE, ERR_TYPE, ERR_GRADE
+				, SYSTEM_ID, PROCESS_ID, ERR_DATE, ERR_MSG, SYSTEM_NAME
+				, PROCESS_NAME, ERR_TYPE_NAME, ERR_GRADE_NAME
+			FROM(
+				SELECT * FROM (
+					SELECT
+							TB_IN.* 
+						FROM (
+							SELECT 
+									a.ERR_KEY, a.ERR_CODE, a.ERR_TYPE, a.ERR_GRADE
+									, a.SYSTEM_ID, a.PROCESS_ID, a.ERR_DATE, a.ERR_MSG, b.SYSTEM_NAME
+									, c.PROCESS_NAME, d.CODE_NAME AS ERR_TYPE_NAME, e.CODE_NAME AS ERR_GRADE_NAME
+								FROM TB_ERR_CURERR a 
+									JOIN TB_SYS_SYSINFO b
+										ON a.SYSTEM_ID = b.SYSTEM_ID
+									LEFT OUTER JOIN TB_SYS_PROCINFO c
+										ON a.SYSTEM_ID	= c.SYSTEM_ID	
+										AND a.PROCESS_ID	= c.PROCESS_ID
+									LEFT OUTER JOIN TB_MNG_BASECODE d
+										ON a.ERR_TYPE	= d.CODE_ID
+										AND d.CLASS_ID	= 'errtype_class'
+									LEFT OUTER JOIN TB_MNG_BASECODE e
+										ON a.ERR_GRADE	= e.CODE_ID
+										AND e.CLASS_ID	= 'errgrade_class'
+							<dynamic prepend="WHERE">
+								<isNotEmpty prepend="AND" property="findText">
+									<isEqual property="findKey" compareValue="a.err_code">
+										a.ERR_CODE LIKE CONCAT('%', #findText#, '%')
+									</isEqual>
+									<isEqual property="findKey" compareValue="a.err_msg">
+										a.ERR_MSG LIKE CONCAT('%', #findText#, '%')
+									</isEqual>
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findSystemId">
+									a.SYSTEM_ID = #findSystemId#
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findProcessId">
+									a.PROCESS_ID = #findProcessId#
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findErrType">
+									a.ERR_TYPE = #findErrType#
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findErrGrade">
+									a.ERR_GRADE = #findErrGrade#
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findSErrDate">
+									a.ERR_DATE BETWEEN #findSErrDate# AND #findEErrDate# 
+								</isNotEmpty>
+							</dynamic>
+								ORDER BY a.ERR_DATE DESC, a.SYSTEM_ID, a.PROCESS_ID
+								LIMIT $iEPageNo$
+							) TB_IN
+						ORDER BY ERR_DATE , SYSTEM_ID DESC, PROCESS_ID DESC
+						LIMIT $iSPageNo$
+					) TB_OUT 
+			) tbl2
+		ORDER BY ERR_DATE DESC, SYSTEM_ID , PROCESS_ID
+	</select>
+
+</sqlMap>

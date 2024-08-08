@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="resMon">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="resMon.getMaxResId" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resMon.getMaxResId */
+		SELECT IFNULL(MAX(RES_ID),0)+1 AS RES_ID
+		  FROM TB_SYS_RESMON
+		 WHERE SYSTEM_ID = #systemId#
+	</select>
+
+	<select id="resMon.getResMonCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resMon.getResMonCount */
+		SELECT COUNT(*) AS CNT
+		  FROM TB_SYS_RESMON a 
+		  JOIN TB_SYS_SYSINFO b
+			ON a.SYS_GROUP_ID = b.SYS_GROUP_ID
+		   AND a.SYSTEM_ID = b.SYSTEM_ID
+		  JOIN TB_SYS_SYSGROUP c
+			ON a.SYS_GROUP_ID = c.SYS_GROUP_ID
+		  JOIN TB_MNG_BASECODE d
+			ON a.RES_CLASS = d.CLASS_ID
+		   AND a.RES_CODE = d.CODE_ID
+		   AND d.CLASS_ID = 'res_class'
+		  JOIN TB_SYS_RESMON_DEF e
+			ON a.RES_CLASS = e.RES_CLASS
+		   AND a.RES_CODE = e.RES_CODE
+		   AND a.RES_NAME = e.RES_NAME
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND"  property="findText">
+				<isEqual property="findKey" compareValue="a.res_name">  e.RES_DESC  </isEqual>
+				LIKE CONCAT('%', #findText#, '%')
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findSystemId">
+				a.SYSTEM_ID = #findSystemId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findResCode">
+				a.RES_CODE = #findResCode#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+
+	<select id="resMon.getResMonList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resMon.getResMonList */
+		SELECT RTRIM(CAST(SYS_GROUP_ID AS CHAR(10))) AS SYS_GROUP_ID, RTRIM(CAST(SYSTEM_ID AS CHAR(10))) AS SYSTEM_ID
+			 , RES_CLASS, RES_CODE, RES_NAME, CAST(RES_ID AS CHAR(10)) AS RES_ID
+			 , CAST(RES_MAX AS CHAR(10)) AS RES_MAX, CAST(RES_USED AS CHAR(10)) AS RES_USED
+			 , RTRIM(CAST(ALARM_CRITICAL AS CHAR(10))) AS ALARM_CRITICAL, RTRIM(CAST(ALARM_MAJOR AS CHAR(10))) AS ALARM_MAJOR
+			 , RTRIM(CAST(ALARM_MINOR AS CHAR(10))) AS ALARM_MINOR, DATE_FORMAT(LAST_UPDATE, '%Y-%m-%d %H:%i:%s') AS LAST_UPDATE
+			 , SYSTEM_NAME, RES_CODE_NAME, SYS_GROUP_NAME, RES_DESC
+		  FROM (
+			SELECT * FROM (
+				SELECT TB_IN.* 
+				  FROM (
+					SELECT a.SYS_GROUP_ID, a.SYSTEM_ID, a.RES_CLASS, a.RES_CODE, a.RES_NAME, a.RES_ID
+						 , IFNULL(RES_MAX,0) AS RES_MAX, IFNULL(RES_USED,0) AS RES_USED, IFNULL(ALARM_CRITICAL,0) AS ALARM_CRITICAL
+						 , IFNULL(ALARM_MAJOR,0) AS ALARM_MAJOR, IFNULL(ALARM_MINOR,0) AS ALARM_MINOR
+						 , LAST_UPDATE, b.SYSTEM_NAME, d.CODE_NAME AS RES_CODE_NAME, c.SYS_GROUP_NAME, e.RES_DESC
+					  FROM TB_SYS_RESMON a 
+					  JOIN TB_SYS_SYSINFO b
+						ON a.SYS_GROUP_ID = b.SYS_GROUP_ID
+					   AND a.SYSTEM_ID = b.SYSTEM_ID
+					  JOIN TB_SYS_SYSGROUP c
+						ON a.SYS_GROUP_ID = c.SYS_GROUP_ID
+					  JOIN TB_MNG_BASECODE d
+						ON a.RES_CLASS = d.CLASS_ID
+						AND a.RES_CODE = d.CODE_ID
+						AND d.CLASS_ID = 'res_class'
+					  JOIN TB_SYS_RESMON_DEF e
+						ON a.RES_CLASS = e.RES_CLASS
+					   AND a.RES_CODE = e.RES_CODE
+					   AND a.RES_NAME = e.RES_NAME
+					<dynamic prepend="WHERE">
+						<isNotEmpty prepend="AND"  property="findText">
+							<isEqual property="findKey" compareValue="a.res_name">  e.RES_DESC  </isEqual>
+								LIKE CONCAT('%', #findText#, '%')
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findSystemId">
+							a.SYSTEM_ID = #findSystemId#
+						</isNotEmpty>
+						<isNotEmpty prepend="AND" property="findResCode">
+							a.RES_CODE = #findResCode#
+						</isNotEmpty>
+					</dynamic>
+					 ORDER BY a.SYS_GROUP_ID, a.SYSTEM_ID, a.RES_CLASS, a.RES_CODE, a.RES_NAME
+					 LIMIT $iEPageNo$
+				  ) TB_IN
+				 ORDER BY SYS_GROUP_ID DESC, SYSTEM_ID DESC, RES_CLASS DESC, RES_CODE DESC, RES_NAME DESC
+				 LIMIT $iSPageNo$
+			) TB_OUT 
+		  ) tbl2
+		 ORDER BY SYS_GROUP_ID, SYSTEM_ID, RES_CLASS, RES_CODE, RES_NAME
+	</select>
+
+	<insert id="resMon.setResMonInsert" parameterClass="java.util.HashMap">
+		/* ID : resMon.setResMonInsert */
+		INSERT INTO TB_SYS_RESMON (
+			SYS_GROUP_ID, SYSTEM_ID, RES_CLASS, RES_CODE, RES_NAME, RES_ID
+			, RES_MAX, RES_USED, ALARM_CRITICAL, ALARM_MAJOR, ALARM_MINOR
+		) VALUES (
+			NULLIF(#sysGroupId#, ''), NULLIF(#systemId#, ''), NULLIF(#resClass#, ''), NULLIF(#resCode#, ''), NULLIF(#resName#, ''), NULLIF(#resId#, '')
+			, NULLIF(#resMax#, ''), NULLIF(#resUsed#, ''), NULLIF(#alarmCritical#, ''), NULLIF(#alarmMajor#, ''), NULLIF(#alarmMinor#, '')
+		)
+	</insert>
+
+	<update id="resMon.setResMonUpdate" parameterClass="java.util.HashMap">
+		/* ID : resMon.setResMonUpdate */
+		UPDATE TB_SYS_RESMON
+		   SET RES_MAX        = NULLIF(#resMax#, '')
+			 , RES_USED       = NULLIF(#resUsed#, '')
+			 , ALARM_CRITICAL = NULLIF(#alarmCritical#, '')
+			 , ALARM_MAJOR    = NULLIF(#alarmMajor#, '')
+			 , ALARM_MINOR    = NULLIF(#alarmMinor#, '')
+		 WHERE SYS_GROUP_ID   = #sysGroupId#
+		   AND SYSTEM_ID      = #systemId#
+		   AND RES_CLASS      = #resClass#
+		   AND RES_CODE       = #resCode#
+		   AND RES_NAME       = #resName#
+	</update>
+	
+	<delete id="resMon.setResMonDelete" parameterClass="java.util.HashMap" >
+		/* ID : resMon.setResMonDelete */
+		DELETE FROM TB_SYS_RESMON
+		 WHERE SYS_GROUP_ID = #sysGroupId#
+		   AND SYSTEM_ID = #systemId#
+	 	   AND RES_CLASS = #resClass#
+	 	   AND RES_CODE = #resCode#
+	 	   AND RES_NAME = #resName#
+	</delete>
+
+	<select id="resMon.getResComboList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resMon.getResComboList */
+		SELECT RES_NAME AS CODE, RES_DESC AS CODE_NM 
+		  FROM TB_SYS_RESMON_DEF
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="resCode">
+				RES_CODE = #resCode#
+			</isNotEmpty>
+		</dynamic>
+		 ORDER BY RES_DESC ASC
+	</select>
+	
+</sqlMap>

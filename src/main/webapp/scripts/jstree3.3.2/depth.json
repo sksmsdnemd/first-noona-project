@@ -1,0 +1,42 @@
+{
+    "data": "전체 브랜드 - (117)",
+    "attr": {
+        "id": "1",
+        "data-type": "1"
+    },
+    "state": "open",
+    "children": [
+        {
+            "data": "브랜드 A - (45)",
+            "attr": {
+                "id": "2435",
+                "data-type": "2"
+            },
+            "state": "closed"
+        },
+        {
+            "data": "브랜드 B - (3)",
+            "attr": {
+                "id": "2337",
+                "data-type": "2"
+            },
+            "state": "closed"
+        },
+        {
+            "data": "브랜드 C - (10)",
+            "attr": {
+                "id": "2298",
+                "data-type": "2"
+            },
+            "state": "closed"
+        },
+        {
+            "data": "브랜드 D - (59)",
+            "attr": {
+                "id": "2280",
+                "data-type": "2"
+            },
+            "state": "closed"
+        }
+    ]
+} 

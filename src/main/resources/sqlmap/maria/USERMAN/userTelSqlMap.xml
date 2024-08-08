@@ -1,0 +1,1418 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="userTel">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	
+	<select id="userTel.getUserTelNoCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getUserTelNoCount*/
+		
+		select count(*) as cnt
+		from (select 
+		    TB_DN.TENANT_ID        
+			, TB_DN.DN_NO      
+			, TB_DN.USER_ID    
+			, TB_USER.USER_NAME         
+			, TB_USER.AGENT_STATUS           
+			, TB_DN.PHONE_IP          
+			, TB_DN.USER_IP      
+			, CASE IFNULL(TB_DN.DN_STATUS,'00') WHEN '' THEN '00' ELSE DN_STATUS END DN_STATUS   
+			, TB_STCD.DN_STATUS_NAME   
+			, DATE_FORMAT(LAST_UPT_DATE, '%Y-%m-%d %H:%i:%s') LAST_UPT_DATE      
+			, IFNULL(NULLIF(TB_USER.GROUP_ID,''),'') GROUP_ID
+			, '' AS GROUP_NAME         
+			<!-- , IFNULL(ROUND((SYSDATE() - LAST_UPT_DATE)*24*60*60),0) ELAPSED_TIME -->      
+			, IFNULL(ROUND(TIMESTAMPDIFF(SECOND, last_upt_date, sysdate())),0) ELAPSED_TIME      
+			, IFNULL(TB_DN.SYSTEM_ID,0) SYSTEM_ID, IFNULL(TB_DN.PROCESS_ID,0) PROCESS_ID    
+			, E.SYSTEM_NAME          
+			, F.PROCESS_NAME    
+			, DN_NO_REF   
+			, TB_DN.USE_FLAG   
+				FROM tb_mng_usertelno TB_DN
+				<isEmpty  property="findUserNameText"> left outer join tb_mng_userinfo </isEmpty> 					
+				<isNotEmpty  property="findUserNameText">
+					join (
+					 	select tenant_id, group_id, user_id, user_name, IFNULL(agent_status,'99') agent_status 
+					 		from tb_mng_userinfo
+					 	where tenant_id = #findTenantId#
+							<isNotEmpty  property="findGroupId"> 
+					 			and group_id in (
+						 			select group_id 
+						 				from tb_mng_group
+						 			where tenant_id = #findTenantId# 
+						 				and depth between substr(#findGroupId#, instr(#findGroupId#, '_')+1,10)
+						 							and CONCAT(substr(#findGroupId#, instr(#findGroupId#, '_')+1,10), CHAR(127))
+						 			) 
+						 	</isNotEmpty>
+						 	<isEmpty property="findGroupId">
+								<isNotEqual property="grantId" compareValue="GroupManager">
+									<isNotEmpty property="controlAuth">
+										and group_id in (
+											select g.group_id
+												from tb_mng_group g,
+													(
+													select depth 
+														from tb_mng_group g, tb_mng_userinfo u
+													where g.tenant_id = u.tenant_id
+														and instr(concat(concat(',',control_auth),','),concat(concat(',',g.depth),',')) > 0
+														and u.user_id = #userId#
+														and u.tenant_id = #findTenantId#
+													) c
+											where g.depth LIKE CONCAT(c.depth, '%')
+												and tenant_id = #findTenantId#
+											) 
+									</isNotEmpty>
+								</isNotEqual>
+								<isEqual property="grantId" compareValue="GroupManager">
+									and group_id in (
+										select g.group_id
+											from tb_mng_group g,
+												(
+												select depth 
+													from tb_mng_group g, tb_mng_userinfo u
+												where g.tenant_id = u.tenant_id
+													and g.group_id = u.group_id
+													and u.user_id = #userId#
+													and u.tenant_id = #findTenantId#
+												) c
+										where g.depth LIKE CONCAT(c.depth, '%')
+										and tenant_id = #findTenantId#
+										)
+								</isEqual>
+							</isEmpty> 
+							and (user_id like CONCAT('%', #findUserNameText#, '%') or user_name like CONCAT('%', #findUserNameText#, '%'))
+						)
+		    	</isNotEmpty> 	
+				TB_USER 
+					on TB_DN.tenant_id = TB_USER.tenant_id	
+					and TB_DN.user_id = TB_USER.user_id
+				left outer join	(
+					select 
+							class_id dn_status_class, code_id dn_status_cd, code_name dn_status_name 
+						from tb_mng_basecode 
+					where class_id = 'dn_status'
+					) TB_STCD	
+					on IFNULL(TB_DN.dn_status,'00') = TB_STCD.dn_status_cd
+				left outer join tb_mng_group tb_group		
+					on TB_USER.tenant_id = tb_group.tenant_id 
+					and TB_USER.group_id = tb_group.group_id
+				left outer join tb_sys_sysinfo E 			
+					on TB_DN.system_id = E.system_id
+				left outer join tb_sys_procinfo F			
+					on TB_DN.system_id = F.system_id 
+					and TB_DN.process_id = F.process_id
+		where TB_DN.tenant_id = #findTenantId#		
+			<isNotEmpty  property="findGroupId"> 
+				and TB_USER.group_id in (
+					select group_id 
+						from tb_mng_group
+					where tenant_id = #findTenantId# 
+						and depth between substr(#findGroupId#, instr(#findGroupId#, '_')+1,10)
+									and CONCAT(substr(#findGroupId#, instr(#findGroupId#, '_')+1,10), CHAR(127))
+					) 
+			</isNotEmpty>
+			<isEmpty property="findGroupId">
+				<isNotEqual property="grantId" compareValue="GroupManager">
+					<isNotEmpty property="controlAuth">
+						and TB_USER.group_id in (
+							select g.group_id
+								from tb_mng_group g,
+									(
+									select depth 
+										from tb_mng_group g, tb_mng_userinfo u
+									where g.tenant_id = u.tenant_id
+										and instr(concat(concat(',',control_auth),','),concat(concat(',',g.depth),',')) > 0
+										and u.user_id = #userId#
+										and u.tenant_id = #findTenantId#
+									) c
+							where g.depth LIKE CONCAT(c.depth, '%')
+								and tenant_id = #findTenantId#
+							) 
+					</isNotEmpty>
+				</isNotEqual>
+				<isEqual property="grantId" compareValue="GroupManager">
+					and TB_USER.group_id in (
+						select g.group_id
+							from tb_mng_group g,
+								(
+								select depth 
+									from tb_mng_group g, tb_mng_userinfo u
+								where g.tenant_id = u.tenant_id
+									and g.group_id = u.group_id
+									and u.user_id = #userId#
+									and u.tenant_id = #findTenantId#
+								) c
+						where g.depth LIKE CONCAT(c.depth, '%')
+							and tenant_id = #findTenantId#
+						)
+				</isEqual>
+			</isEmpty> 				
+			<isNotEmpty property="findDnText">		and TB_DN.dn_no Like CONCAT('%', #findDnText#, '%')		</isNotEmpty>
+			<isNotEmpty property="findPhoneIp">		and TB_DN.phone_ip Like CONCAT('%', #findPhoneIp#, '%')	</isNotEmpty>
+			<isNotEmpty property="findSystemId">	and TB_DN.system_id = #findSystemId#					</isNotEmpty>
+			<isNotEmpty property="findProcessId">	and TB_DN.process_id = #findProcessId#					</isNotEmpty>
+			<isEmpty property="findStatusWait">
+				<isEmpty property="findStatusRec">
+					<isEmpty property="findStatusNone"></isEmpty>
+					<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(dn_status,''),'00') in ('00')			</isNotEmpty>
+				</isEmpty>
+				<isNotEmpty property="findStatusRec">
+					<isEmpty property="findStatusNone">		and IFNULL(NULLIF(dn_status,''),'00') in ('10') 			</isEmpty>
+					<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(dn_status,''),'00') in ('10', '00')		</isNotEmpty>				
+				</isNotEmpty>
+			</isEmpty>
+			<isNotEmpty property="findStatusWait">
+				<isEmpty property="findStatusRec">
+					<isEmpty property="findStatusNone">		and IFNULL(NULLIF(dn_status,''),'00') in ('01')			</isEmpty>
+					<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(dn_status,''),'00') in ('00', '01')		</isNotEmpty>
+				</isEmpty>
+				<isNotEmpty property="findStatusRec">
+					<isEmpty property="findStatusNone">		and IFNULL(NULLIF(dn_status,''),'00') in ('01', '10') 		</isEmpty>
+					<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(dn_status,''),'00') in ('00', '01', '10')</isNotEmpty>				
+				</isNotEmpty>
+			</isNotEmpty>		
+			<isNotEmpty property="findLogin">				
+				<isEmpty 	property="findLogout">			and IFNULL(NULLIF(agent_status,''),'99') in ('01')			</isEmpty>
+				<isNotEmpty property="findLogout">			and IFNULL(NULLIF(agent_status,''),'99') in ('01','99')	</isNotEmpty>
+			</isNotEmpty>
+			<isEmpty property="findLogin">				
+				<isEmpty 	property="findLogout">			and IFNULL(NULLIF(agent_status,''),'99') not in ('01','99')	</isEmpty>
+				<isNotEmpty property="findLogout">			and IFNULL(NULLIF(agent_status,''),'99') in ('99')			</isNotEmpty>
+			</isEmpty>
+			<isNotEqual property="callFrmTm" compareValue="000000">	
+				<!-- <![CDATA[	AND	IFNULL(round((SYSDATE() - last_upt_date)*24*60*60),0) >= -->  
+				<![CDATA[	AND	IFNULL(round(TIMESTAMPDIFF(SECOND, last_upt_date, sysdate())),0) >=  
+								substr(#callFrmTm#,1,2) * 3600 + substr(#callFrmTm#,3,2) * 60 + substr(#callFrmTm#,5,2)		
+				]]>		
+			</isNotEqual>
+			<isNotEqual property="callEndTm" compareValue="000000">	
+				<!-- <![CDATA[	AND	IFNULL(round((SYSDATE() - last_upt_date)*24*60*60),0) <= -->  
+				<![CDATA[	AND	IFNULL(round(TIMESTAMPDIFF(SECOND, last_upt_date, sysdate())),0) <=  
+								substr(#callEndTm#,1,2) * 3600 + substr(#callEndTm#,3,2) * 60 + substr(#callEndTm#,5,2) 		
+				]]>		
+			</isNotEqual>
+			<isEmpty  property="findUserNameText">
+				UNION  
+							
+					     SELECT  
+					      TB_DN.TENANT_ID 
+						    , TB_DN.DN_NO
+						    , TB_DN.USER_ID
+						    , TB_USER.USER_NAME
+						    , TB_USER.AGENT_STATUS         
+						    , TB_DN.PHONE_IP
+						    , TB_DN.USER_IP          
+						    , CASE IFNULL(TB_DN.DN_STATUS,'00') WHEN '' THEN '00' ELSE DN_STATUS END DN_STATUS         
+						    , TB_STCD.DN_STATUS_NAME
+						    , DATE_FORMAT(LAST_UPT_DATE, '%Y-%m-%d %H:%i:%s') LAST_UPT_DATE         
+						    , IFNULL(NULLIF(TB_USER.GROUP_ID,''),'') GROUP_ID
+						    , '' AS GROUP_NAME 
+						    <!-- , IFNULL(ROUND((SYSDATE() - LAST_UPT_DATE)*24*60*60),0) ELAPSED_TIME -->         
+						    , IFNULL(ROUND(TIMESTAMPDIFF(SECOND, last_upt_date, sysdate())),0) ELAPSED_TIME         
+						    , IFNULL(TB_DN.SYSTEM_ID,0) SYSTEM_ID, IFNULL(TB_DN.PROCESS_ID,0) PROCESS_ID         
+						    , E.SYSTEM_NAME
+						    , F.PROCESS_NAME
+						    , DN_NO_REF
+						    , TB_DN.USE_FLAG        
+						    FROM tb_mng_usertelno TB_DN 
+   						    LEFT OUTER JOIN tb_mng_userinfo TB_USER
+						   	 ON TB_DN.USER_ID = TB_USER.USER_ID 
+						   	 AND TB_DN.TENANT_ID = TB_USER.TENANT_ID          
+						      LEFT OUTER JOIN (         
+						                   SELECT CLASS_ID DN_STATUS_CLASS
+						                            , CODE_ID DN_STATUS_CD
+						                            , CODE_NAME DN_STATUS_NAME            
+						                    FROM tb_mng_basecode          
+						                    WHERE CLASS_ID = 'dn_status'          ) TB_STCD           
+						     ON IFNULL(TB_DN.DN_STATUS,'00') = TB_STCD.DN_STATUS_CD         
+						    LEFT OUTER JOIN tb_sys_sysinfo E
+						     ON TB_DN.SYSTEM_ID = E.SYSTEM_ID
+						     LEFT OUTER JOIN tb_sys_procinfo F
+						     ON TB_DN.SYSTEM_ID = F.SYSTEM_ID
+						     AND TB_DN.PROCESS_ID = F.PROCESS_ID
+						     WHERE TB_DN.TENANT_ID =  #findTenantId#
+						     AND TB_DN.USER_ID IS NULL
+			     			<isNotEmpty property="findDnText">		and TB_DN.dn_no Like CONCAT('%', #findDnText#, '%')		</isNotEmpty>
+     						<isNotEmpty property="findPhoneIp">		and TB_DN.phone_ip Like CONCAT('%', #findPhoneIp#, '%')	</isNotEmpty>
+							<isNotEmpty property="findSystemId">	and TB_DN.system_id = #findSystemId#			</isNotEmpty>
+							<isNotEmpty property="findProcessId">	and TB_DN.process_id = #findProcessId#			</isNotEmpty>
+							<isEmpty property="findStatusWait">
+								<isEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone"></isEmpty>
+									<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('00')				</isNotEmpty>
+								</isEmpty>
+								<isNotEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone">		and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('10') 				</isEmpty>
+									<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('10', '00')			</isNotEmpty>				
+								</isNotEmpty>
+							</isEmpty>
+							<isNotEmpty property="findStatusWait">
+								<isEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone">		and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('01')				</isEmpty>
+									<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('00', '01')			</isNotEmpty>
+								</isEmpty>
+								<isNotEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone">		and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('01', '10') 		</isEmpty>
+									<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('00', '01', '10')	</isNotEmpty>				
+								</isNotEmpty>
+							</isNotEmpty>	
+							
+							<isNotEmpty property="findLogin">				
+								<isEmpty 	property="findLogout">		and IFNULL(NULLIF(agent_status,''),'99') in ('01')				</isEmpty>
+								<isNotEmpty property="findLogout">		and IFNULL(NULLIF(agent_status,''),'99') in ('01','99')			</isNotEmpty>
+							</isNotEmpty>
+							<isEmpty property="findLogin">				
+								<isEmpty 	property="findLogout">		and IFNULL(NULLIF(agent_status,''),'99') not in ('01','99')		</isEmpty>
+								<isNotEmpty property="findLogout">		and IFNULL(NULLIF(agent_status,''),'99') in ('99')				</isNotEmpty>
+							</isEmpty>
+							<isNotEqual property="callFrmTm" compareValue="000000">	
+								<!-- <![CDATA[	AND	IFNULL(round((SYSDATE() - last_upt_date)*24*60*60),0) >= -->  
+								<![CDATA[	AND	IFNULL(round(TIMESTAMPDIFF(SECOND, last_upt_date, sysdate())),0) >=  
+												substr(#callFrmTm#,1,2) * 3600 + substr(#callFrmTm#,3,2) * 60 + substr(#callFrmTm#,5,2)		
+								]]>		
+							</isNotEqual>
+							<isNotEqual property="callEndTm" compareValue="000000">	
+								<!-- <![CDATA[	AND	IFNULL(round((SYSDATE() - last_upt_date)*24*60*60),0) <= -->  
+								<![CDATA[	AND	IFNULL(round(TIMESTAMPDIFF(SECOND, last_upt_date, sysdate())),0) <=  
+												substr(#callEndTm#,1,2) * 3600 + substr(#callEndTm#,3,2) * 60 + substr(#callEndTm#,5,2) 		
+								]]>		
+							</isNotEqual>
+				     </isEmpty>
+					     ) CNT
+							
+	</select>
+	
+	<select id="userTel.getUserTelNoList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getUserTelNoList */ 
+		SELECT * FROM (
+		select 
+				Row_Number() over (order by tenant_id desc, CAST(dn_no AS UNSIGNED) desc) RowNum2
+				, TB_OUT.*
+			from(
+				select
+						Row_Number() over (order by CAST(dn_no AS UNSIGNED)) RowNum1
+						, TB_IN.* 
+					from(
+						select 
+								
+						TB_DN.tenant_id , TB_DN.dn_no, TB_DN.user_id, user_name, agent_status
+								, phone_ip, TB_DN.user_ip 
+								, case IFNULL(dn_status,'00') when '' then '00' else dn_status end dn_status
+								, dn_status_name, DATE_FORMAT(last_upt_date, '%Y-%m-%d %H:%i:%s') last_upt_date
+								, IFNULL(NULLIF(tb_user.group_id,''),'') group_id, IFNULL(NULLIF(group_name,''),'') group_name
+								<!-- , IFNULL(round((SYSDATE() - last_upt_date)*24*60*60),0) elapsed_time -->
+								, IFNULL(round(TIMESTAMPDIFF(SECOND, last_upt_date, sysdate())),0) elapsed_time
+								, IFNULL(TB_DN.system_id,0) system_id, IFNULL(TB_DN.process_id,0) process_id
+								, e.system_name, f.process_name, dn_no_ref, TB_DN.use_flag
+							FROM tb_mng_usertelno TB_DN
+								<isEmpty  property="findUserNameText">left outer join tb_mng_userinfo </isEmpty> 					
+								<isNotEmpty  property="findUserNameText">
+									join (
+					 					select 
+					 							tenant_id, group_id, user_id, user_name, IFNULL(agent_status,'99') agent_status 
+					 						from tb_mng_userinfo
+					 					where tenant_id = #findTenantId#
+							 			<isNotEmpty property="findGroupId"> 
+							 				and group_id in (
+							 				with recursive re_cate AS (
+											select 1 level
+												 , row_number() over() as top_order
+												 , a.*
+												 , a.group_id as id_path
+											 from tb_mng_group a
+											 where tenant_id = #findTenantId#
+											 and parent_id = '0'
+											 union all
+											 select c.level + 1
+												 , c.top_order AS top_order
+												 , b.*
+												 , concat(c.id_path, '>', b.group_id)
+											  from tb_mng_group b
+											 inner join re_cate c
+												on b.tenant_id = #findTenantId#
+												AND b.GROUP_ID =  #findGroupId#
+											   and c.group_id = b.parent_id
+											)
+											select 
+												group_id
+											from re_cate
+											order by top_order, id_path
+										) 
+							 			</isNotEmpty>
+							 			<isEmpty property="findGroupId">
+						                <isEqual property="grantId" compareValue="GroupManager">
+						                    and group_id in (
+												with recursive re_cate AS (
+													select 1 level
+														 , row_number() over() as top_order
+														 , a.*
+														 , a.group_id as id_path
+													 from tb_mng_group a
+													 where tenant_id = #findTenantId#
+													 and parent_id = '0'
+													 union all
+													 select c.level + 1
+														 , c.top_order AS top_order
+														 , b.*
+														 , concat(c.id_path, '>', b.group_id)
+													  from tb_mng_group b
+													 inner join re_cate c
+														on b.tenant_id = #findTenantId#
+													 AND (b.GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID =  #userId# and tenant_id =#findTenantId#)
+														<isNotEmpty property="controlAuth">
+														OR b.group_id in  (
+															select g.GROUP_ID
+															from tb_mng_group g, tb_mng_userinfo u
+															where g.tenant_id = u.tenant_id 
+															and instr(concat(',' , control_auth , ','), concat(',' , g.GROUP_ID , ',')) > 0
+															and u.USER_ID =  #userId#
+															and u.tenant_id = #findTenantId#
+														)
+														</isNotEmpty>
+													)
+													and c.group_id = b.parent_id
+												)
+												select 
+													group_id
+												from re_cate
+												order by top_order, id_path
+						                    )
+						                </isEqual>
+						                <isEqual property="grantId" compareValue="Manager">
+						                    and group_id in (
+												with recursive re_cate AS (
+													select 1 level
+														 , row_number() over() as top_order
+														 , a.*
+														 , a.group_id as id_path
+													 from tb_mng_group a
+													 where tenant_id = #findTenantId#
+													 and parent_id = '0'
+													 union all
+													 select c.level + 1
+														 , c.top_order AS top_order
+														 , b.*
+														 , concat(c.id_path, '>', b.group_id)
+													  from tb_mng_group b
+													 inner join re_cate c
+														on b.tenant_id = #findTenantId#
+													 AND (b.GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID =  #userId# and tenant_id =#findTenantId#)
+														<isNotEmpty property="controlAuth">
+														OR b.group_id in  (
+															select g.GROUP_ID
+															from tb_mng_group g, tb_mng_userinfo u
+															where g.tenant_id = u.tenant_id 
+															and instr(concat(',' , control_auth , ','), concat(',' , g.GROUP_ID , ',')) > 0
+															and u.USER_ID =  #userId#
+															and u.tenant_id = #findTenantId#
+														)
+														</isNotEmpty>
+													)
+													and c.group_id = b.parent_id
+												)
+												select 
+													group_id
+												from re_cate
+												order by top_order, id_path
+						                    )
+						                </isEqual>
+											</isEmpty> 
+											and (user_id like CONCAT('%', #findUserNameText#, '%') or user_name like CONCAT('%', #findUserNameText#, '%'))
+										)
+		    					</isNotEmpty> 	
+								tb_user 
+									on TB_DN.tenant_id = tb_user.tenant_id	
+									and TB_DN.user_id = tb_user.user_id
+								left outer join	(
+									select class_id dn_status_class, code_id dn_status_cd, code_name dn_status_name 
+										from tb_mng_basecode 
+									where class_id = 'dn_status'
+									) tb_stcd	
+									on IFNULL(TB_DN.dn_status,'00') = tb_stcd.dn_status_cd
+								left outer join tb_mng_group tb_group		
+									on tb_user.tenant_id = tb_group.tenant_id 
+									and tb_user.group_id = tb_group.group_id
+								left outer join tb_sys_sysinfo e 			
+									on TB_DN.system_id = e.system_id
+								left outer join tb_sys_procinfo f			
+									on TB_DN.system_id = f.system_id 
+									and TB_DN.process_id = f.process_id
+						where TB_DN.tenant_id = #findTenantId#		
+							
+						 			<isNotEmpty property="findGroupId"> 
+						 				and tb_user.group_id in (
+						 				with recursive re_cate AS (
+										select 1 level
+											 , row_number() over() as top_order
+											 , a.*
+											 , a.group_id as id_path
+										 from tb_mng_group a
+										 where tenant_id = #findTenantId#
+										 and parent_id = '0'
+										 union all
+										 select c.level + 1
+											 , c.top_order AS top_order
+											 , b.*
+											 , concat(c.id_path, '>', b.group_id)
+										  from tb_mng_group b
+										 inner join re_cate c
+											on b.tenant_id = #findTenantId#
+											AND b.GROUP_ID =  #findGroupId#
+										   and c.group_id = b.parent_id
+										)
+										select 
+											group_id
+										from re_cate
+										order by top_order, id_path
+									) 
+						 			</isNotEmpty>
+						 			<isEmpty property="findGroupId">
+					                <isEqual property="grantId" compareValue="GroupManager">
+					                    and tb_user.group_id in (
+											with recursive re_cate AS (
+												select 1 level
+													 , row_number() over() as top_order
+													 , a.*
+													 , a.group_id as id_path
+												 from tb_mng_group a
+												 where tenant_id = #findTenantId#
+												 and parent_id = '0'
+												 union all
+												 select c.level + 1
+													 , c.top_order AS top_order
+													 , b.*
+													 , concat(c.id_path, '>', b.group_id)
+												  from tb_mng_group b
+												 inner join re_cate c
+													on b.tenant_id = #findTenantId#
+												 AND (b.GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID =  #userId# and tenant_id =#findTenantId#)
+													<isNotEmpty property="controlAuth">
+													OR b.group_id in  (
+														select g.GROUP_ID
+														from tb_mng_group g, tb_mng_userinfo u
+														where g.tenant_id = u.tenant_id 
+														and instr(concat(',' , control_auth , ','), concat(',' , g.GROUP_ID , ',')) > 0
+														and u.USER_ID =  #userId#
+														and u.tenant_id = #findTenantId#
+													)
+													</isNotEmpty>
+												)
+												and c.group_id = b.parent_id
+											)
+											select 
+												group_id
+											from re_cate
+											order by top_order, id_path
+					                    )
+					                </isEqual>
+					                <isEqual property="grantId" compareValue="Manager">
+					                    and tb_user.group_id in (
+											with recursive re_cate AS (
+												select 1 level
+													 , row_number() over() as top_order
+													 , a.*
+													 , a.group_id as id_path
+												 from tb_mng_group a
+												 where tenant_id = #findTenantId#
+												 and parent_id = '0'
+												 union all
+												 select c.level + 1
+													 , c.top_order AS top_order
+													 , b.*
+													 , concat(c.id_path, '>', b.group_id)
+												  from tb_mng_group b
+												 inner join re_cate c
+													on b.tenant_id = #findTenantId#
+												 AND (b.GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID =  #userId# and tenant_id =#findTenantId#)
+													<isNotEmpty property="controlAuth">
+													OR b.group_id in  (
+														select g.GROUP_ID
+														from tb_mng_group g, tb_mng_userinfo u
+														where g.tenant_id = u.tenant_id 
+														and instr(concat(',' , control_auth , ','), concat(',' , g.GROUP_ID , ',')) > 0
+														and u.USER_ID =  #userId#
+														and u.tenant_id = #findTenantId#
+													)
+													</isNotEmpty>
+												)
+												and c.group_id = b.parent_id
+											)
+											select 
+												group_id
+											from re_cate
+											order by top_order, id_path
+					                    )
+					                </isEqual>
+							</isEmpty> 	
+							<isNotEmpty property="findDnText">		and TB_DN.dn_no Like CONCAT('%', #findDnText#, '%')		</isNotEmpty>
+							<isNotEmpty property="findPhoneIp">		and TB_DN.phone_ip Like CONCAT('%', #findPhoneIp#, '%')	</isNotEmpty>
+							<isNotEmpty property="findSystemId">	and TB_DN.system_id = #findSystemId#			</isNotEmpty>
+							<isNotEmpty property="findProcessId">	and TB_DN.process_id = #findProcessId#			</isNotEmpty>
+							<isEmpty property="findStatusWait">
+								<isEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone"></isEmpty>
+									<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(dn_status,''),'00') in ('00')				</isNotEmpty>
+								</isEmpty>
+								<isNotEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone">		and IFNULL(NULLIF(dn_status,''),'00') in ('10') 				</isEmpty>
+									<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(dn_status,''),'00') in ('10', '00')			</isNotEmpty>				
+								</isNotEmpty>
+							</isEmpty>
+							<isNotEmpty property="findStatusWait">
+								<isEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone">		and IFNULL(NULLIF(dn_status,''),'00') in ('01')				</isEmpty>
+									<isNotEmpty property="findStatusNone">	and IFNULL(dn_status,''),'00') in ('00', '01')			</isNotEmpty>
+								</isEmpty>
+								<isNotEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone">		and IFNULL(NULLIF(dn_status,''),'00') in ('01', '10') 		</isEmpty>
+									<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(dn_status,''),'00') in ('00', '01', '10')	</isNotEmpty>				
+								</isNotEmpty>
+							</isNotEmpty>
+							<isNotEmpty property="findLogin">				
+								<isEmpty 	property="findLogout">		and IFNULL(NULLIF(agent_status,''),'99') in ('01')				</isEmpty>
+								<isNotEmpty property="findLogout">		and IFNULL(NULLIF(agent_status,''),'99') in ('01','99')			</isNotEmpty>
+							</isNotEmpty>
+							<isEmpty property="findLogin">				
+								<isEmpty 	property="findLogout">		and IFNULL(NULLIF(agent_status,''),'99') not in ('01','99')		</isEmpty>
+								<isNotEmpty property="findLogout">		and IFNULL(NULLIF(agent_status,''),'99') in ('99')				</isNotEmpty>
+							</isEmpty>
+							<isNotEqual property="callFrmTm" compareValue="000000">	
+								<!-- <![CDATA[	AND	IFNULL(round((SYSDATE() - last_upt_date)*24*60*60),0) >= -->  
+								<![CDATA[	AND	IFNULL(round(TIMESTAMPDIFF(SECOND, last_upt_date, sysdate())),0) >=  
+												substr(#callFrmTm#,1,2) * 3600 + substr(#callFrmTm#,3,2) * 60 + substr(#callFrmTm#,5,2)		
+								]]>		
+							</isNotEqual>
+							<isNotEqual property="callEndTm" compareValue="000000">	
+								<!-- <![CDATA[	AND	IFNULL(round((SYSDATE() - last_upt_date)*24*60*60),0) <= -->  
+								<![CDATA[	AND	IFNULL(round(TIMESTAMPDIFF(SECOND, last_upt_date, sysdate())),0) <=  
+												substr(#callEndTm#,1,2) * 3600 + substr(#callEndTm#,3,2) * 60 + substr(#callEndTm#,5,2) 		
+								]]>		
+							</isNotEqual>
+							
+							
+							<isEmpty  property="findUserNameText">
+							UNION  
+							     SELECT         
+								      TB_DN.TENANT_ID 
+								    , TB_DN.DN_NO
+								    , TB_DN.USER_ID
+								    , TB_USER.USER_NAME
+								    , TB_USER.AGENT_STATUS         
+								    , TB_DN.PHONE_IP
+								    , TB_DN.USER_IP          
+								    , CASE IFNULL(TB_DN.DN_STATUS,'00') WHEN '' THEN '00' ELSE DN_STATUS END DN_STATUS         
+								    , TB_STCD.DN_STATUS_NAME
+								    , DATE_FORMAT(LAST_UPT_DATE, '%Y-%m-%d %H:%i:%s') LAST_UPT_DATE         
+								    , IFNULL(NULLIF(TB_USER.GROUP_ID,''),'') GROUP_ID
+								    , '' AS GROUP_NAME
+								    <!-- , IFNULL(ROUND((SYSDATE() - LAST_UPT_DATE)*24*60*60),0) ELAPSED_TIME -->         
+								    , IFNULL(ROUND(TIMESTAMPDIFF(SECOND, last_upt_date, sysdate())),0) ELAPSED_TIME         
+								    , IFNULL(TB_DN.SYSTEM_ID,0) SYSTEM_ID, IFNULL(TB_DN.PROCESS_ID,0) PROCESS_ID         
+								    , E.SYSTEM_NAME
+								    , F.PROCESS_NAME
+								    , DN_NO_REF
+								    , TB_DN.USE_FLAG        
+								    FROM tb_mng_usertelno TB_DN 
+								    LEFT OUTER JOIN tb_mng_userinfo TB_USER
+								   	 ON TB_DN.USER_ID = TB_USER.USER_ID 
+								   	 AND TB_DN.TENANT_ID = TB_USER.TENANT_ID     
+								      LEFT OUTER JOIN (         
+								                   SELECT CLASS_ID AS DN_STATUS_CLASS
+								                            , CODE_ID AS DN_STATUS_CD
+								                            , CODE_NAME AS DN_STATUS_NAME            
+								                    FROM tb_mng_basecode          
+								                    WHERE CLASS_ID = 'dn_status'          ) TB_STCD           
+								     ON IFNULL(TB_DN.DN_STATUS,'00') = TB_STCD.DN_STATUS_CD         
+								    LEFT OUTER JOIN tb_sys_sysinfo E
+								     ON TB_DN.SYSTEM_ID = E.SYSTEM_ID
+								     LEFT OUTER JOIN tb_sys_procinfo F
+								     ON TB_DN.SYSTEM_ID = F.SYSTEM_ID
+								     AND TB_DN.PROCESS_ID = F.PROCESS_ID
+								     WHERE TB_DN.TENANT_ID =  #findTenantId#
+								     AND TB_DN.USER_ID IS NULL
+					     			<isNotEmpty property="findDnText">		and TB_DN.dn_no Like CONCAT('%', #findDnText#, '%')		</isNotEmpty>
+									<isNotEmpty property="findPhoneIp">		and TB_DN.phone_ip Like CONCAT('%', #findPhoneIp#, '%')	</isNotEmpty>
+									<isNotEmpty property="findSystemId">	and TB_DN.system_id = #findSystemId#			</isNotEmpty>
+									<isNotEmpty property="findProcessId">	and TB_DN.process_id = #findProcessId#			</isNotEmpty>
+									<isEmpty property="findStatusWait">
+										<isEmpty property="findStatusRec">
+											<isEmpty property="findStatusNone"></isEmpty>
+											<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('00')				</isNotEmpty>
+										</isEmpty>
+										<isNotEmpty property="findStatusRec">
+											<isEmpty property="findStatusNone">		and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('10') 				</isEmpty>
+											<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('10', '00')			</isNotEmpty>				
+										</isNotEmpty>
+									</isEmpty>
+									<isNotEmpty property="findStatusWait">
+										<isEmpty property="findStatusRec">
+											<isEmpty property="findStatusNone">		and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('01')				</isEmpty>
+											<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('00', '01')			</isNotEmpty>
+										</isEmpty>
+										<isNotEmpty property="findStatusRec">
+											<isEmpty property="findStatusNone">		and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('01', '10') 		</isEmpty>
+											<isNotEmpty property="findStatusNone">	and IFNULL(NULLIF(TB_DN.dn_status,''),'00') in ('00', '01', '10')	</isNotEmpty>				
+										</isNotEmpty>
+									</isNotEmpty>	
+									<isNotEmpty property="findLogin">				
+										<isEmpty 	property="findLogout">		and IFNULL(NULLIF(agent_status,''),'99') in ('01')				</isEmpty>
+										<isNotEmpty property="findLogout">		and IFNULL(NULLIF(agent_status,''),'99') in ('01','99')			</isNotEmpty>
+									</isNotEmpty>
+									<isEmpty property="findLogin">				
+										<isEmpty 	property="findLogout">		and IFNULL(NULLIF(agent_status,''),'99') not in ('01','99')		</isEmpty>
+										<isNotEmpty property="findLogout">		and IFNULL(NULLIF(agent_status,''),'99') in ('99')				</isNotEmpty>
+									</isEmpty>
+									<isNotEqual property="callFrmTm" compareValue="000000">	
+										<!-- <![CDATA[	AND	IFNULL(round((SYSDATE() - last_upt_date)*24*60*60),0) >= -->  
+										<![CDATA[	AND	IFNULL(round(TIMESTAMPDIFF(SECOND, last_upt_date, sysdate())),0) >=  
+														substr(#callFrmTm#,1,2) * 3600 + substr(#callFrmTm#,3,2) * 60 + substr(#callFrmTm#,5,2)		
+										]]>		
+									</isNotEqual>
+									<isNotEqual property="callEndTm" compareValue="000000">	
+										<!-- <![CDATA[	AND	IFNULL(round((SYSDATE() - last_upt_date)*24*60*60),0) <= -->  
+										<![CDATA[	AND	IFNULL(round(TIMESTAMPDIFF(SECOND, last_upt_date, sysdate())),0) <=  
+														substr(#callEndTm#,1,2) * 3600 + substr(#callEndTm#,3,2) * 60 + substr(#callEndTm#,5,2) 		
+										]]>		
+									</isNotEqual>
+								</isEmpty>
+							
+							
+						) TB_IN
+				) TB_OUT 
+  				WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>  
+		) CNT
+  		WHERE <![CDATA[ CNT.RowNum2 <= #iSPageNo# ]]>
+		order by CNT.tenant_id, CAST(CNT.dn_no AS UNSIGNED)
+	</select>
+	
+	<select id="userTel.getUserTelNoCount_org" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getUserTelNoCount*/
+
+		select count(*) as cnt
+		from (select
+		    TB_DN.TENANT_ID
+			, TB_DN.DN_NO
+			, TB_DN.USER_ID
+			, TB_USER.USER_NAME
+			, TB_USER.AGENT_STATUS
+			, TB_DN.PHONE_IP
+			, TB_DN.USER_IP
+			, CASE ifnull(TB_DN.DN_STATUS,'00') WHEN '' THEN '00' ELSE DN_STATUS END DN_STATUS
+			, TB_STCD.DN_STATUS_NAME
+			, date_format(LAST_UPT_DATE, '%Y-%m-%d %H:%i:%s') LAST_UPT_DATE
+			, TB_USER.GROUP_ID           , ''  AS GROUP_NAME
+			, ifnull(ROUND((sysdate() - LAST_UPT_DATE)*24*60*60),0) ELAPSED_TIME
+			, ifnull(TB_DN.SYSTEM_ID,0) SYSTEM_ID, ifnull(TB_DN.PROCESS_ID,0) PROCESS_ID
+			, E.SYSTEM_NAME
+			, F.PROCESS_NAME
+			, DN_NO_REF
+			, TB_DN.USE_FLAG
+				FROM tb_mng_usertelno tb_dn
+				<isEmpty  property="findUserNameText"> left outer join TB_MNG_USERINFO </isEmpty>
+				<isNotEmpty  property="findUserNameText">
+					join (
+					 	select tenant_id, group_id, user_id, user_name, ifnull(agent_status,'99') agent_status
+					 		from tb_mng_userinfo
+					 	where tenant_id = #findTenantId#
+							<isNotEmpty  property="findGroupId">
+					 			and group_id in (
+						 			select group_id
+						 				from tb_mng_group
+						 			where tenant_id = #findTenantId#
+						 				and depth between substr(#findGroupId#, instr(#findGroupId#, '_')+1,10)
+						 							and substr(#findGroupId#, concat(instr(#findGroupId#, '_')+1,10) , cast(char(127) as char))
+						 			)
+						 	</isNotEmpty>
+						 	<isEmpty property="findGroupId">
+								<isNotEqual property="grantId" compareValue="GroupManager">
+									<isNotEmpty property="controlAuth">
+										and group_id in (
+											select g.group_id
+												from tb_mng_group g,
+													(
+													select depth
+														from tb_mng_group g, tb_mng_userinfo u
+													where g.tenant_id = u.tenant_id
+														and instr(concat(concat(',',control_auth),','),concat(concat(',',g.depth),',')) > 0
+														and u.user_id = #userId#
+														and u.tenant_id = #findTenantId#
+													) c
+											where g.depth LIKE concat(c.depth , '%')
+												and tenant_id = #findTenantId#
+											)
+									</isNotEmpty>
+								</isNotEqual>
+								<isEqual property="grantId" compareValue="GroupManager">
+									and group_id in (
+										select g.group_id
+											from tb_mng_group g,
+												(
+												select depth
+													from tb_mng_group g, tb_mng_userinfo u
+												where g.tenant_id = u.tenant_id
+													and g.group_id = u.group_id
+													and u.user_id = #userId#
+													and u.tenant_id = #findTenantId#
+												) c
+										where g.depth LIKE concat(c.depth , '%')
+										and tenant_id = #findTenantId#
+										)
+								</isEqual>
+							</isEmpty>
+							and (user_id like concat(concat('%' , #findUserNameText#), '%') or user_name like concat(concat('%' , #findUserNameText#) , '%'))
+						)
+		    	</isNotEmpty>
+				tb_user
+					on tb_dn.tenant_id = tb_user.tenant_id
+					and tb_dn.user_id = tb_user.user_id
+				left outer join	(
+					select
+							class_id dn_status_class, code_id dn_status_cd, code_name dn_status_name
+						from tb_mng_basecode
+					where class_id = 'dn_status'
+					) tb_stcd
+					on ifnull(tb_dn.dn_status,'00') = tb_stcd.dn_status_cd
+				left outer join tb_mng_group tb_group
+					on tb_user.tenant_id = tb_group.tenant_id
+					and tb_user.group_id = tb_group.group_id
+				left outer join tb_sys_sysinfo e
+					on tb_dn.system_id = e.system_id
+				left outer join tb_sys_procinfo f
+					on tb_dn.system_id = f.system_id
+					and tb_dn.process_id = f.process_id
+		where tb_dn.tenant_id = #findTenantId#
+			<isNotEmpty  property="findGroupId">
+				and tb_user.group_id in (
+					select group_id
+						from tb_mng_group
+					where tenant_id = #findTenantId#
+						and depth between substr(#findGroupId#, instr(#findGroupId#, '_')+1,10)
+									and substr(#findGroupId#, concat(instr(#findGroupId#, '_')+1,10) , cast(char(127) as char))
+					)
+			</isNotEmpty>
+			<isEmpty property="findGroupId">
+				<isNotEqual property="grantId" compareValue="GroupManager">
+					<isNotEmpty property="controlAuth">
+						and tb_user.group_id in (
+							select g.group_id
+								from tb_mng_group g,
+									(
+									select depth
+										from tb_mng_group g, tb_mng_userinfo u
+									where g.tenant_id = u.tenant_id
+										and instr(concat(concat(',',control_auth),','),concat(concat(',',g.depth),',')) > 0
+										and u.user_id = #userId#
+										and u.tenant_id = #findTenantId#
+									) c
+							where g.depth LIKE concat(c.depth , '%')
+								and tenant_id = #findTenantId#
+							)
+					</isNotEmpty>
+				</isNotEqual>
+				<isEqual property="grantId" compareValue="GroupManager">
+					and tb_user.group_id in (
+						select g.group_id
+							from tb_mng_group g,
+								(
+								select depth
+									from tb_mng_group g, tb_mng_userinfo u
+								where g.tenant_id = u.tenant_id
+									and g.group_id = u.group_id
+									and u.user_id = #userId#
+									and u.tenant_id = #findTenantId#
+								) c
+						where g.depth LIKE concat(c.depth , '%')
+							and tenant_id = #findTenantId#
+						)
+				</isEqual>
+			</isEmpty>
+			<isNotEmpty property="findDnText">		and tb_dn.dn_no Like concat(concat('%' , #findDnText#), '%')		</isNotEmpty>
+			<isNotEmpty property="findPhoneIp">		and tb_dn.phone_ip Like concat(concat('%' , #findPhoneIp# ), '%')	</isNotEmpty>
+			<isNotEmpty property="findSystemId">	and tb_dn.system_id = #findSystemId#			</isNotEmpty>
+			<isNotEmpty property="findProcessId">	and tb_dn.process_id = #findProcessId#			</isNotEmpty>
+			<isEmpty property="findStatusWait">
+				<isEmpty property="findStatusRec">
+					<isEmpty property="findStatusNone"></isEmpty>
+					<isNotEmpty property="findStatusNone">	and ifnull(dn_status,'00') in ('00')				</isNotEmpty>
+				</isEmpty>
+				<isNotEmpty property="findStatusRec">
+					<isEmpty property="findStatusNone">		and ifnull(dn_status,'00') in ('10') 				</isEmpty>
+					<isNotEmpty property="findStatusNone">	and ifnull(dn_status,'00') in ('10', '00')			</isNotEmpty>
+				</isNotEmpty>
+			</isEmpty>
+			<isNotEmpty property="findStatusWait">
+				<isEmpty property="findStatusRec">
+					<isEmpty property="findStatusNone">		and ifnull(dn_status,'00') in ('01')				</isEmpty>
+					<isNotEmpty property="findStatusNone">	and ifnull(dn_status,'00') in ('00', '01')			</isNotEmpty>
+				</isEmpty>
+				<isNotEmpty property="findStatusRec">
+					<isEmpty property="findStatusNone">		and ifnull(dn_status,'00') in ('01', '10') 		</isEmpty>
+					<isNotEmpty property="findStatusNone">	and ifnull(dn_status,'00') in ('00', '01', '10')	</isNotEmpty>
+				</isNotEmpty>
+			</isNotEmpty>
+			<isNotEmpty property="findLogin">
+				<isEmpty 	property="findLogout">			and ifnull(agent_status,'99') in ('01')			</isEmpty>
+				<isNotEmpty property="findLogout">			and ifnull(agent_status,'99') in ('01','99')		</isNotEmpty>
+			</isNotEmpty>
+			<isEmpty property="findLogin">
+				<isEmpty 	property="findLogout">			and ifnull(agent_status,'99') not in ('01','99')	</isEmpty>
+				<isNotEmpty property="findLogout">			and ifnull(agent_status,'99') in ('99')			</isNotEmpty>
+			</isEmpty>
+			<isNotEqual property="callFrmTm" compareValue="000000">
+				<![CDATA[	AND	ifnull(round((sysdate() - last_upt_date)*24*60*60),0) >=
+								substr(#callFrmTm#,1,2) * 3600 + substr(#callFrmTm#,3,2) * 60 + substr(#callFrmTm#,5,2)
+				]]>
+			</isNotEqual>
+			<isNotEqual property="callEndTm" compareValue="000000">
+				<![CDATA[	AND	ifnull(round((sysdate() - last_upt_date)*24*60*60),0) <=
+								substr(#callEndTm#,1,2) * 3600 + substr(#callEndTm#,3,2) * 60 + substr(#callEndTm#,5,2)
+				]]>
+			</isNotEqual>
+			<isEmpty  property="findUserNameText">
+				UNION
+
+					     SELECT
+					      TB_DN.TENANT_ID
+						    , TB_DN.DN_NO
+						    , TB_DN.USER_ID
+						    , TB_USER.USER_NAME
+						    , TB_USER.AGENT_STATUS
+						    , TB_DN.PHONE_IP
+						    , TB_DN.USER_IP
+						    , CASE ifnull(TB_DN.DN_STATUS,'00') WHEN '' THEN '00' ELSE DN_STATUS END DN_STATUS
+						    , TB_STCD.DN_STATUS_NAME
+						    , date_format(LAST_UPT_DATE,'%Y-%m-%d %H:%i:%s') LAST_UPT_DATE
+						    , TB_USER.GROUP_ID
+						    , ''  AS GROUP_NAME
+						    , ifnull(ROUND((sysdate() - LAST_UPT_DATE)*24*60*60),0) ELAPSED_TIME
+						    , ifnull(TB_DN.SYSTEM_ID,0) SYSTEM_ID, ifnull(TB_DN.PROCESS_ID,0) PROCESS_ID
+						    , E.SYSTEM_NAME
+						    , F.PROCESS_NAME
+						    , DN_NO_REF
+						    , TB_DN.USE_FLAG
+						    FROM TB_MNG_USERTELNO TB_DN
+   						    LEFT OUTER JOIN TB_MNG_USERINFO TB_USER
+						   	 ON TB_DN.USER_ID = TB_USER.USER_ID
+						   	 AND TB_DN.TENANT_ID = TB_USER.TENANT_ID
+						      LEFT OUTER JOIN (
+						                   SELECT CLASS_ID DN_STATUS_CLASS
+						                            , CODE_ID DN_STATUS_CD
+						                            , CODE_NAME DN_STATUS_NAME
+						                    FROM TB_MNG_BASECODE
+						                    WHERE CLASS_ID = 'dn_status'          ) TB_STCD
+						     ON ifnull(TB_DN.DN_STATUS,'00') = TB_STCD.DN_STATUS_CD
+						    LEFT OUTER JOIN TB_SYS_SYSINFO E
+						     ON TB_DN.SYSTEM_ID = E.SYSTEM_ID
+						     LEFT OUTER JOIN TB_SYS_PROCINFO F
+						     ON TB_DN.SYSTEM_ID = F.SYSTEM_ID
+						     AND TB_DN.PROCESS_ID = F.PROCESS_ID
+						     WHERE TB_DN.TENANT_ID =  #findTenantId#
+						     AND TB_DN.USER_ID IS NULL
+			     			<isNotEmpty property="findDnText">		and tb_dn.dn_no Like concat(concat('%' , #findDnText#) , '%')		</isNotEmpty>
+     						<isNotEmpty property="findPhoneIp">		and tb_dn.phone_ip Like concat(concat('%' , #findPhoneIp#), '%')	</isNotEmpty>
+							<isNotEmpty property="findSystemId">	and tb_dn.system_id = #findSystemId#			</isNotEmpty>
+							<isNotEmpty property="findProcessId">	and tb_dn.process_id = #findProcessId#			</isNotEmpty>
+							<isEmpty property="findStatusWait">
+								<isEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone"></isEmpty>
+									<isNotEmpty property="findStatusNone">	and ifnull(tb_dn.dn_status,'00') in ('00')				</isNotEmpty>
+								</isEmpty>
+								<isNotEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone">		and ifnull(tb_dn.dn_status,'00') in ('10') 				</isEmpty>
+									<isNotEmpty property="findStatusNone">	and ifnull(tb_dn.dn_status,'00') in ('10', '00')			</isNotEmpty>
+								</isNotEmpty>
+							</isEmpty>
+							<isNotEmpty property="findStatusWait">
+								<isEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone">		and ifnull(tb_dn.dn_status,'00') in ('01')				</isEmpty>
+									<isNotEmpty property="findStatusNone">	and ifnull(tb_dn.dn_status,'00') in ('00', '01')			</isNotEmpty>
+								</isEmpty>
+								<isNotEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone">		and ifnull(tb_dn.dn_status,'00') in ('01', '10') 		</isEmpty>
+									<isNotEmpty property="findStatusNone">	and ifnull(tb_dn.dn_status,'00') in ('00', '01', '10')	</isNotEmpty>
+								</isNotEmpty>
+							</isNotEmpty>
+
+							<isNotEmpty property="findLogin">
+								<isEmpty 	property="findLogout">		and ifnull(agent_status,'99') in ('01')				</isEmpty>
+								<isNotEmpty property="findLogout">		and ifnull(agent_status,'99') in ('01','99')			</isNotEmpty>
+							</isNotEmpty>
+							<isEmpty property="findLogin">
+								<isEmpty 	property="findLogout">		and ifnull(agent_status,'99') not in ('01','99')		</isEmpty>
+								<isNotEmpty property="findLogout">		and ifnull(agent_status,'99') in ('99')				</isNotEmpty>
+							</isEmpty>
+							<isNotEqual property="callFrmTm" compareValue="000000">
+								<![CDATA[	AND	ifnull(round((sysdate() - last_upt_date)*24*60*60),0) >=
+												substr(#callFrmTm#,1,2) * 3600 + substr(#callFrmTm#,3,2) * 60 + substr(#callFrmTm#,5,2)
+								]]>
+							</isNotEqual>
+							<isNotEqual property="callEndTm" compareValue="000000">
+								<![CDATA[	AND	ifnull(round((sysdate() - last_upt_date)*24*60*60),0) <=
+												substr(#callEndTm#,1,2) * 3600 + substr(#callEndTm#,3,2) * 60 + substr(#callEndTm#,5,2)
+								]]>
+							</isNotEqual>
+				     </isEmpty>
+					     )org
+
+	</select>
+	
+	<select id="userTel.getUserTelNoList_org" parameterClass="java.util.HashMap" resultClass="egovMap">
+	/* ID : userTel.getUserTelNoList */
+		SELECT * FROM (
+		select
+				Row_Number() over (order by tenant_id desc, cast(dn_no as int) desc) RowNum2
+				, TB_OUT.*
+			from(
+				select
+						Row_Number() over (order by cast(dn_no as int)) RowNum1
+						, TB_IN.*
+					from(
+						select
+
+								 tb_dn.tenant_id , tb_dn.dn_no, tb_dn.user_id, user_name, agent_status
+								, phone_ip, tb_dn.user_ip
+								, case ifnull(dn_status,'00') when '' then '00' else dn_status end dn_status
+								, dn_status_name, date_format(last_upt_date, '%Y-%m-%d %H:%i:%s') last_upt_date
+								, ifnull(tb_user.group_id,'') group_id, group_name
+								, ifnull(round((sysdate() - last_upt_date)*24*60*60),0) elapsed_time
+								, ifnull(tb_dn.system_id,0) system_id, ifnull(tb_dn.process_id,0) process_id
+								, e.system_name, f.process_name, dn_no_ref, tb_dn.use_flag
+							FROM tb_mng_usertelno tb_dn
+								<isNotEmpty  property="findUserNameText">
+									join (
+					 					select
+					 							tenant_id, group_id, user_id, user_name, ifnull(agent_status,'99') agent_status
+					 						from tb_mng_userinfo
+					 					where tenant_id = #findTenantId#
+					 						<isNotEmpty  property="findGroupId">
+					 							and group_id in (
+					 								select group_id
+					 									from tb_mng_group
+					 								where tenant_id = #findTenantId#
+					 									and depth between substr(#findGroupId#, instr(#findGroupId#, '_')+1,10)
+					 												and concat(substr(#findGroupId#, instr(#findGroupId#, '_')+1,10) , cast(char(127) as char))
+					 								)
+					 						</isNotEmpty>
+					 						<isEmpty property="findGroupId">
+												<isNotEqual property="grantId" compareValue="GroupManager">
+													<isNotEmpty property="controlAuth">
+														and group_id in (
+															select g.group_id
+																from tb_mng_group g,
+																	(
+																	select depth
+																		from tb_mng_group g, tb_mng_userinfo u
+																	where g.tenant_id = u.tenant_id
+																		and instr(concat(concat(',',control_auth),','),concat(concat(',',g.depth),',')) > 0
+																		and u.user_id = #userId#
+																		and u.tenant_id = #findTenantId#
+																	) c
+															where g.depth LIKE concat(c.depth , '%')
+																and tenant_id = #findTenantId#
+															)
+													</isNotEmpty>
+												</isNotEqual>
+												<isEqual property="grantId" compareValue="GroupManager">
+													and group_id in (
+														select g.group_id
+															from tb_mng_group g,
+																(
+																select depth
+																	from tb_mng_group g, tb_mng_userinfo u
+																where g.tenant_id = u.tenant_id
+																	and g.group_id = u.group_id
+																	and u.user_id = #userId#
+																	and u.tenant_id = #findTenantId#
+																) c
+														where g.depth LIKE concat(c.depth , '%')
+															and tenant_id = #findTenantId#
+														)
+												</isEqual>
+											</isEmpty>
+											and (user_id like concat(concat('%' , #findUserNameText# ), '%') or user_name like concat(concat('%' , #findUserNameText#), '%'))
+										)
+		    					</isNotEmpty>
+								tb_user
+									on tb_dn.tenant_id = tb_user.tenant_id
+									and tb_dn.user_id = tb_user.user_id
+								left outer join	(
+									select class_id dn_status_class, code_id dn_status_cd, code_name dn_status_name
+										from tb_mng_basecode
+									where class_id = 'dn_status'
+									) tb_stcd
+									on ifnull(tb_dn.dn_status,'00') = tb_stcd.dn_status_cd
+								left outer join tb_mng_group tb_group
+									on tb_user.tenant_id = tb_group.tenant_id
+									and tb_user.group_id = tb_group.group_id
+								left outer join tb_sys_sysinfo e
+									on tb_dn.system_id = e.system_id
+								left outer join tb_sys_procinfo f
+									on tb_dn.system_id = f.system_id
+									and tb_dn.process_id = f.process_id
+						where tb_dn.tenant_id = #findTenantId#
+							<isNotEmpty  property="findGroupId">
+								and tb_user.group_id in (
+									select group_id from tb_mng_group
+									where tenant_id = #findTenantId#
+										and depth between substr(#findGroupId#, instr(#findGroupId#, '_')+1,10)
+													and concat(substr(#findGroupId#, instr(#findGroupId#, '_')+1,10) ,cast(char(127) as char))
+									)
+							</isNotEmpty>
+							<isEmpty property="findGroupId">
+								<isNotEqual property="grantId" compareValue="GroupManager">
+									<isNotEmpty property="controlAuth">
+										and tb_user.group_id in (
+											select g.group_id
+												from tb_mng_group g,
+													(
+													select depth
+														from tb_mng_group g, tb_mng_userinfo u
+													where g.tenant_id = u.tenant_id
+														and instr(concat(concat(',',control_auth),','),concat(concat(',',g.depth),',')) > 0
+														and u.user_id = #userId#
+														and u.tenant_id = #findTenantId#
+													) c
+											where g.depth LIKE concat(c.depth , '%')
+												and tenant_id = #findTenantId#
+											)
+									</isNotEmpty>
+								</isNotEqual>
+								<isEqual property="grantId" compareValue="GroupManager">
+									and tb_user.group_id in (
+										select g.group_id
+											from tb_mng_group g,
+												(
+												select depth from tb_mng_group g, tb_mng_userinfo u
+												where g.tenant_id = u.tenant_id
+													and g.group_id = u.group_id
+													and u.user_id = #userId#
+													and u.tenant_id = #findTenantId#
+												) c
+										where g.depth LIKE concat(c.depth , '%')
+											and tenant_id = #findTenantId#
+										)
+								</isEqual>
+							</isEmpty>
+							<isNotEmpty property="findDnText">		and tb_dn.dn_no Like concat(concat('%' , #findDnText# ), '%')		</isNotEmpty>
+							<isNotEmpty property="findPhoneIp">		and tb_dn.phone_ip Like concat(concat('%' , #findPhoneIp# ), '%')	</isNotEmpty>
+							<isNotEmpty property="findSystemId">	and tb_dn.system_id = #findSystemId#			</isNotEmpty>
+							<isNotEmpty property="findProcessId">	and tb_dn.process_id = #findProcessId#			</isNotEmpty>
+							<isEmpty property="findStatusWait">
+								<isEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone"></isEmpty>
+									<isNotEmpty property="findStatusNone">	and ifnull(dn_status,'00') in ('00')				</isNotEmpty>
+								</isEmpty>
+								<isNotEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone">		and ifnull(dn_status,'00') in ('10') 				</isEmpty>
+									<isNotEmpty property="findStatusNone">	and ifnull(dn_status,'00') in ('10', '00')			</isNotEmpty>
+								</isNotEmpty>
+							</isEmpty>
+							<isNotEmpty property="findStatusWait">
+								<isEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone">		and ifnull(dn_status,'00') in ('01')				</isEmpty>
+									<isNotEmpty property="findStatusNone">	and ifnull(dn_status,'00') in ('00', '01')			</isNotEmpty>
+								</isEmpty>
+								<isNotEmpty property="findStatusRec">
+									<isEmpty property="findStatusNone">		and ifnull(dn_status,'00') in ('01', '10') 		</isEmpty>
+									<isNotEmpty property="findStatusNone">	and ifnull(dn_status,'00') in ('00', '01', '10')	</isNotEmpty>
+								</isNotEmpty>
+							</isNotEmpty>
+							<isNotEmpty property="findLogin">
+								<isEmpty 	property="findLogout">		and ifnull(agent_status,'99') in ('01')				</isEmpty>
+								<isNotEmpty property="findLogout">		and ifnull(agent_status,'99') in ('01','99')			</isNotEmpty>
+							</isNotEmpty>
+							<isEmpty property="findLogin">
+								<isEmpty 	property="findLogout">		and ifnull(agent_status,'99') not in ('01','99')		</isEmpty>
+								<isNotEmpty property="findLogout">		and ifnull(agent_status,'99') in ('99')				</isNotEmpty>
+							</isEmpty>
+							<isNotEqual property="callFrmTm" compareValue="000000">
+								<![CDATA[	AND	ifnull(round((sysdate() - last_upt_date)*24*60*60),0) >=
+												substr(#callFrmTm#,1,2) * 3600 + substr(#callFrmTm#,3,2) * 60 + substr(#callFrmTm#,5,2)
+								]]>
+							</isNotEqual>
+							<isNotEqual property="callEndTm" compareValue="000000">
+								<![CDATA[	AND	ifnull(round((sysdate() - last_upt_date)*24*60*60),0) <=
+												substr(#callEndTm#,1,2) * 3600 + substr(#callEndTm#,3,2) * 60 + substr(#callEndTm#,5,2)
+								]]>
+							</isNotEqual>
+
+
+							<isEmpty  property="findUserNameText">
+							UNION
+							     SELECT
+								      TB_DN.TENANT_ID
+								    , TB_DN.DN_NO
+								    , TB_DN.USER_ID
+								    , TB_USER.USER_NAME
+								    , TB_USER.AGENT_STATUS
+								    , TB_DN.PHONE_IP
+								    , TB_DN.USER_IP
+								    , CASE ifnull(TB_DN.DN_STATUS,'00') WHEN '' THEN '00' ELSE DN_STATUS END DN_STATUS
+								    , TB_STCD.DN_STATUS_NAME
+								    , date_format(LAST_UPT_DATE, '%Y-%m-%d %H:%i:%s') LAST_UPT_DATE
+								    , TB_USER.GROUP_ID
+								    , ''  AS GROUP_NAME
+								    , ifnull(ROUND((sysdate() - LAST_UPT_DATE)*24*60*60),0) ELAPSED_TIME
+								    , ifnull(TB_DN.SYSTEM_ID,0) SYSTEM_ID, ifnull(TB_DN.PROCESS_ID,0) PROCESS_ID
+								    , E.SYSTEM_NAME
+								    , F.PROCESS_NAME
+								    , DN_NO_REF
+								    , TB_DN.USE_FLAG
+								    FROM TB_MNG_USERTELNO TB_DN
+								    LEFT OUTER JOIN TB_MNG_USERINFO TB_USER
+								   	 ON TB_DN.USER_ID = TB_USER.USER_ID
+								   	 AND TB_DN.TENANT_ID = TB_USER.TENANT_ID
+								      LEFT OUTER JOIN (
+								                   SELECT CLASS_ID AS DN_STATUS_CLASS
+								                            , CODE_ID AS DN_STATUS_CD
+								                            , CODE_NAME AS DN_STATUS_NAME
+								                    FROM TB_MNG_BASECODE
+								                    WHERE CLASS_ID = 'dn_status'          ) TB_STCD
+								     ON ifnull(TB_DN.DN_STATUS,'00') = TB_STCD.DN_STATUS_CD
+								    LEFT OUTER JOIN TB_SYS_SYSINFO E
+								     ON TB_DN.SYSTEM_ID = E.SYSTEM_ID
+								     LEFT OUTER JOIN TB_SYS_PROCINFO F
+								     ON TB_DN.SYSTEM_ID = F.SYSTEM_ID
+								     AND TB_DN.PROCESS_ID = F.PROCESS_ID
+								     WHERE TB_DN.TENANT_ID =  #findTenantId#
+								     AND TB_DN.USER_ID IS NULL
+					     			<isNotEmpty property="findDnText">		and tb_dn.dn_no Like concat(concat('%' , #findDnText# ), '%')		</isNotEmpty>
+									<isNotEmpty property="findPhoneIp">		and tb_dn.phone_ip Like concat(concat('%' , #findPhoneIp# ), '%')	</isNotEmpty>
+									<isNotEmpty property="findSystemId">	and tb_dn.system_id = #findSystemId#			</isNotEmpty>
+									<isNotEmpty property="findProcessId">	and tb_dn.process_id = #findProcessId#			</isNotEmpty>
+									<isEmpty property="findStatusWait">
+										<isEmpty property="findStatusRec">
+											<isEmpty property="findStatusNone"></isEmpty>
+											<isNotEmpty property="findStatusNone">	and ifnull(tb_dn.dn_status,'00') in ('00')				</isNotEmpty>
+										</isEmpty>
+										<isNotEmpty property="findStatusRec">
+											<isEmpty property="findStatusNone">		and ifnull(tb_dn.dn_status,'00') in ('10') 				</isEmpty>
+											<isNotEmpty property="findStatusNone">	and ifnull(tb_dn.dn_status,'00') in ('10', '00')			</isNotEmpty>
+										</isNotEmpty>
+									</isEmpty>
+									<isNotEmpty property="findStatusWait">
+										<isEmpty property="findStatusRec">
+											<isEmpty property="findStatusNone">		and ifnull(tb_dn.dn_status,'00') in ('01')				</isEmpty>
+											<isNotEmpty property="findStatusNone">	and ifnull(tb_dn.dn_status,'00') in ('00', '01')			</isNotEmpty>
+										</isEmpty>
+										<isNotEmpty property="findStatusRec">
+											<isEmpty property="findStatusNone">		and ifnull(tb_dn.dn_status,'00') in ('01', '10') 		</isEmpty>
+											<isNotEmpty property="findStatusNone">	and ifnull(tb_dn.dn_status,'00') in ('00', '01', '10')	</isNotEmpty>
+										</isNotEmpty>
+									</isNotEmpty>
+									<isNotEmpty property="findLogin">
+										<isEmpty 	property="findLogout">		and ifnull(agent_status,'99') in ('01')				</isEmpty>
+										<isNotEmpty property="findLogout">		and ifnull(agent_status,'99') in ('01','99')			</isNotEmpty>
+									</isNotEmpty>
+									<isEmpty property="findLogin">
+										<isEmpty 	property="findLogout">		and ifnull(agent_status,'99') not in ('01','99')		</isEmpty>
+										<isNotEmpty property="findLogout">		and ifnull(agent_status,'99') in ('99')				</isNotEmpty>
+									</isEmpty>
+									<isNotEqual property="callFrmTm" compareValue="000000">
+										<![CDATA[	AND	ifnull(round((sysdate() - last_upt_date)*24*60*60),0) >=
+														substr(#callFrmTm#,1,2) * 3600 + substr(#callFrmTm#,3,2) * 60 + substr(#callFrmTm#,5,2)
+										]]>
+									</isNotEqual>
+									<isNotEqual property="callEndTm" compareValue="000000">
+										<![CDATA[	AND	ifnull(round((sysdate() - last_upt_date)*24*60*60),0) <=
+														substr(#callEndTm#,1,2) * 3600 + substr(#callEndTm#,3,2) * 60 + substr(#callEndTm#,5,2)
+										]]>
+									</isNotEqual>
+								</isEmpty>
+
+
+						) TB_IN
+				) TB_OUT
+  				WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+		)org
+  		WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+		order by tenant_id, cast(dn_no as int)
+	</select>
+	
+	<select id="userTel.getDnPtrnCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getDnPtrnCount */
+		SELECT COUNT(*) AS CNT
+		FROM TB_MNG_DNPTRN PTRN
+				 LEFT OUTER JOIN TB_SYS_PROCINFO PROC
+								 ON PTRN.PROCESS_ID = PROC.PROCESS_ID
+				 LEFT OUTER JOIN TB_SYS_SYSINFO SYS
+								 ON PROC.SYSTEM_ID = SYS.SYSTEM_ID
+
+				 WHERE 1=1
+				<isNotEmpty property="findSystemId">    AND PROC.SYSTEM_ID = #findSystemId#			</isNotEmpty>
+				<isNotEmpty property="findProcessId">	AND PROC.PROCESS_ID = #findProcessId#			</isNotEmpty>
+				<isNotEmpty property="findTenantId">	AND PTRN.TENANT_ID = #findTenantId#			</isNotEmpty>
+	</select>
+	
+	
+	<insert id="userTel.setUserTelNoInsert" parameterClass="java.util.HashMap">
+		/* ID : userTel.setUserTelNoInsert */ 
+		insert into tb_mng_usertelno
+			(
+			tenant_id, dn_no, phone_ip, dn_no_ref, system_id, process_id
+			, use_flag, dn_status, ins_id, ins_date, upt_id, upt_date
+			) 
+		values 
+			(
+			NULLIF(#tenantId#, ''), NULLIF(#dnNo#, ''), NULLIF(#phoneIp#, ''), NULLIF(#dnNoRef#, ''), NULLIF(#findSystemId#, ''), NULLIF(#findProcessId#, '')
+			, NULLIF(#useFlag#, ''), '00', NULLIF(#insId#, ''), SYSDATE(), NULLIF(#uptId#, ''), SYSDATE()
+			)
+	</insert>
+	
+	<select id="userTel.getUserTelNoCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getUserTelNoCnt */
+		SELECT COUNT(*) CNT   
+			FROM TB_MNG_USERTELNO 
+		WHERE 
+			<isNotEmpty property="eDnNo">cast(DN_NO as int) BETWEEN #sDnNo# AND #eDnNo#</isNotEmpty>
+			<isEmpty property="eDnNo">DN_NO = #sDnNo#</isEmpty>
+	</select>
+	
+	<select id="userTel.getDnPtrnList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getDnPtrnList */
+		SELECT *
+		FROM (
+				 select Row_Number() over (order by TENANT_ID desc, PTRN_ID desc) RowNum2
+				, TB_OUT.*
+				 from (
+						  select Row_Number() over (order by PTRN_ID) RowNum1
+						, TB_IN.*
+						  from (
+								   SELECT PTRN.TENANT_ID
+										, PTRN.PTRN_ID
+										, PTRN.PROCESS_ID
+										, PROC.PROCESS_NAME
+										, PROC.SYSTEM_ID
+										, SYS.SYSTEM_NAME
+										, PTRN.START_IP
+										, PTRN.END_IP
+										, PTRN.START_DN_NO
+										, PTRN.END_DN_NO
+										, PTRN.EXCP_PTRN_AT
+										, PTRN.STATE_IP 
+								   FROM TB_MNG_DNPTRN PTRN
+									LEFT OUTER JOIN TB_SYS_PROCINFO PROC
+													ON PTRN.PROCESS_ID = PROC.PROCESS_ID
+									LEFT OUTER JOIN TB_SYS_SYSINFO SYS
+													ON PROC.SYSTEM_ID = SYS.SYSTEM_ID
+													       WHERE 1=1
+									<isNotEmpty property="findSystemId">	AND PROC.SYSTEM_ID = #findSystemId#			</isNotEmpty>
+									<isNotEmpty property="findProcessId">	AND PROC.PROCESS_ID = #findProcessId#			</isNotEmpty>
+									<isNotEmpty property="findTenantId">	AND PTRN.TENANT_ID = #findTenantId#			</isNotEmpty>
+							   ) TB_IN
+					  ) TB_OUT
+				 WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+		)org
+		WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+		order by TENANT_ID, PTRN_ID
+	</select>
+	
+	<update id="userTel.setUserTelNoUpdate" parameterClass="java.util.HashMap">
+		/* ID : userTel.setUserTelNoUpdate */ 
+		update tb_mng_usertelno
+		   set phone_ip   = NULLIF(#phoneIp#, '')
+			 , dn_no_ref  = NULLIF(#dnNoRef#, '')
+			 , user_id 	  = RTRIM(NULLIF(#findUserId#, ''))
+			 , system_id  = NULLIF(#findSystemId#, '')
+			 , process_id = NULLIF(#findProcessId#, '')
+			 , use_flag   = NULLIF(#useFlag#, '')
+			 , upt_id     = NULLIF(#uptId#, '')
+			 , upt_date   = SYSDATE()
+		 where tenant_id  = #tenantId#
+		   and dn_no      = #dnNo#
+	</update>
+	
+	<delete id="userTel.setUserTelNoDelete" parameterClass="java.util.HashMap" >
+		/* ID : userTel.setUserTelNoDelete */ 
+		delete 
+			from tb_mng_usertelno
+		where tenant_id = #tenantId#
+			and dn_no   = #dnNo#
+	</delete>
+	
+	<select id="userTel.getUserPhoneIpCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getUserPhoneIpCnt */
+		SELECT COUNT(*) CNT   
+			FROM tb_mng_usertelno 
+			WHERE TENANT_ID = #tenantId#
+		<isEmpty property="phoneIpArr" prepend="AND ">PHONE_IP = #phoneIp#</isEmpty>
+		<isNotEmpty property="phoneIpArr" prepend="AND">
+			<iterate open="(" close=")" conjunction="," property="phoneIpArr" prepend="PHONE_IP IN">
+    			#phoneIpArr[]#
+		  	</iterate>
+		</isNotEmpty>
+	</select>
+	
+	<insert id="userTel.setDnPtrnInsert" parameterClass="java.util.HashMap">
+		INSERT INTO TB_MNG_DNPTRN (TENANT_ID, PROCESS_ID, START_IP, END_IP, START_DN_NO, END_DN_NO, EXCP_PTRN_AT,STATE_IP)
+		VALUES ( #tenantId#, #processId#, #startIp#, #endIp#, #startDnNo#, #endDnNo#, #excpPtrnAt# ,#stateIp#)
+	</insert>
+	
+	<update id="userTel.setDnPtrnUpdate"  parameterClass="java.util.HashMap">
+		UPDATE TB_MNG_DNPTRN SET
+								 TENANT_ID 		= #tenantId#
+							   , PROCESS_ID 	= #processId#
+							   , EXCP_PTRN_AT 	= #excpPtrnAt#
+							   <isEqual property="stateIp" compareValue="N">
+							   , START_IP 		= NULL
+							   , END_IP 		= NULL
+							   , START_DN_NO 	= #startDnNo#
+							   , END_DN_NO 		= #endDnNo#
+								</isEqual>
+								<isEqual property="stateIp" compareValue="I">
+							   , START_IP 		= #startIp#
+							   , END_IP 		= #endIp#
+							   , START_DN_NO 	= NULL
+							   , END_DN_NO 		= NULL
+								</isEqual>
+								<isEmpty property="stateIp">
+							   , START_IP 		= NULL
+							   , END_IP 		= NULL
+							   , START_DN_NO 	= NULL
+							   , END_DN_NO 		= NULL
+								</isEmpty>
+							   , STATE_IP = #stateIp#
+		WHERE PTRN_ID 		= #ptrnId#
+	</update>
+	
+	<delete id="userTel.deleteDnPtrn"  parameterClass="java.util.HashMap">
+		DELETE FROM TB_MNG_DNPTRN
+		WHERE PTRN_ID = #ptrnId#
+	</delete>
+	
+	<select id="userTel.getExcpPtrnCnt" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : userTel.getExcpPtrnCnt */
+		SELECT COUNT(*) AS CNT
+		FROM TB_MNG_DNPTRN PTRN
+		WHERE PTRN.TENANT_ID = #tenantId#
+			AND PTRN.EXCP_PTRN_AT = '1'
+		<isNotEmpty property="ptrnId">
+			AND PTRN.PTRN_ID != #ptrnId#
+		</isNotEmpty>
+
+	</select>
+	
+	<select id="userTel.selectDnPtrnOverlapCheck" remapResults="true"  parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : userTel.selectDnPtrnOverlapCheck */
+		SELECT 
+		    COUNT(*) AS CNT
+		FROM TB_MNG_DNPTRN PTRN
+		WHERE PTRN.TENANT_ID = #tenantId#
+		<isNotEmpty property="ptrnId">
+			AND PTRN.PTRN_ID != #ptrnId#
+		</isNotEmpty>
+		<isEqual property="stateIp" compareValue="I">
+			AND PTRN.STATE_IP = 'I' 
+	        AND  <![CDATA[INET_ATON(PTRN.END_IP)   >= INET_ATON(#startIp#)  ]]>
+	        AND  <![CDATA[INET_ATON(PTRN.START_IP) <=  INET_ATON(#endIp#) ]]>  
+		</isEqual>
+		<isEqual property="stateIp" compareValue="N">
+			AND PTRN.STATE_IP='N'
+		    AND  <![CDATA[ #startDnNo# <= PTRN.END_DN_NO]]>
+		    AND  <![CDATA[ #endDnNo# >= PTRN.START_DN_NO]]>
+		</isEqual>
+	</select>
+	
+	
+</sqlMap>

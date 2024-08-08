@@ -1,0 +1,6 @@
+1. 64비트
+msg723_64bit.reg 실행후에 msg723.acm을 C:\Windows\SysWOW64 로 복사하고
+msg723acm.inf 을 마우스 오른쪽 버튼을 클릭하고 설치한다.
+
+2. 32비트
+msg723acm.inf 을 마우스 오른쪽 버튼을 클릭하고 설치한다.

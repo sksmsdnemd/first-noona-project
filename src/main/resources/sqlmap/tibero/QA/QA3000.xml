@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "https://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="QA3000">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap"/>
+
+	<!-- 평가승인 관리 조회 -->
+	<procedure id="QA.SP_QA3020M01_01" parameterClass="java.util.HashMap" resultClass="egovMap" remapResults="true">
+		{ CALL SP_QA3020M01_01(#glo_tenantId#,#glo_groupId#,#glo_userId#, #timesId#, #txtDate1_From#, #txtDate1_To#, #sheetId#, #dept1Id#, #user1Id#, #qaValueStatus#, #notiYn#, #approvalYn#,#qaaId#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+	
+	<!-- 평가승인 관리 (승인, 반려, 공지, 공지취소) 처리 -->
+	<procedure id="QA.SP_QA3020M01_02" parameterClass="java.util.HashMap">
+    	{ CALL SP_QA3020M01_02(#glo_tenantId#, #sheetkey#, #comment#, #glo_agentId#, #gbn#) }
+	</procedure>
+	
+	<procedure id="QA.SP_QA3020S02_01" parameterClass="java.util.HashMap">
+    	{ CALL SP_QA3020S02_01(#tenantId#, #sheetkey#, #convertRate#) }
+	</procedure>
+	
+	<!-- 평가 결과 조회 QA3030M-->
+	<procedure id="QA.SP_QA3030M01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	{ CALL SP_QA3030M01_01(#glo_tenantId#, #glo_groupId#, #timesId#, #txtDate1_From#, #txtDate1_To#, #dept1Id#, #user1Id#, #notiYn#, #qaaId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+	
+	<!-- 상담사 확인 업데이트 -->
+	<procedure id="QA.SP_QA3030S01_01" parameterClass="java.util.HashMap">
+    	{ CALL SP_QA3030S01_01(#glo_tenantId#, #sheetkey#) }
+	</procedure>
+	
+</sqlMap>

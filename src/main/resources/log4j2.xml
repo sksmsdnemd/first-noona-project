@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Configuration>
+	<Properties>
+<!-- 		<Property name="filePath">C:/00_JYS79/00_BT/logs/BT-VELOCE</Property> -->
+		<Property name="filePath">/sw/bridgetec/veloce/bin/LOG</Property>
+		<Property name="fileName">MWS</Property>
+		
+		
+<!-- 		<Property name="logPattern">%d{yyyy-MM-dd HH:mm:ss} %5p [%c] %m%n</Property> -->
+<!-- 		<Property name="logPattern">[%d{yyyy-MM-dd HH:mm:ss}][%p][%c{1}][%M][%L]%m %n</Property> -->
+		<Property name="logPattern">%d{yyyy-MM-dd HH:mm:ss} | %-5.5p | %-150l | %m%n</Property>
+	</Properties>
+	
+	<!-- Appender, Layout --> 
+    <Appenders>
+    	<!-- console -->
+    	<Console name="console" target="SYSTEM_OUT">
+    		<PatternLayout pattern="${logPattern}" />
+    	</Console>
+    	
+    	<!-- file -->
+		<RollingFile name="fileout" fileName="${filePath}/${fileName}.log" filePattern="${filePath}/${fileName}_%d{yyyyMMdd}.log">
+			<PatternLayout pattern="${logPattern}" />
+			<Policies>
+				<TimeBasedTriggeringPolicy/>
+			</Policies>
+			
+			<DefaultRolloverStrategy>
+                <Delete basePath="${filePath}/" maxDepth="1">
+                    <IfFileName glob="*.log"/>   
+                    <IfLastModified age="90d"/>   
+                </Delete>
+            </DefaultRolloverStrategy>
+			
+		</RollingFile>
+    </Appenders>
+    
+    <!-- Logger -->
+	<Loggers>
+		<Logger name="egovframework" level="DEBUG" additivity="false">
+ 			<AppenderRef ref="console" /> 
+			<AppenderRef ref="fileout" />
+		</Logger>
+		<Logger name="org.springframework" level="DEBUG" additivity="false">
+ 			<AppenderRef ref="console" /> 
+			<AppenderRef ref="fileout" />
+		</Logger>
+		<Logger name="java.sql" level="DEBUG" additivity="false">
+ 			<AppenderRef ref="console" /> 
+			<AppenderRef ref="fileout" />
+		</Logger>
+		<Logger name="jdbc.sqltiming" level="DEBUG" additivity="false">
+			<AppenderRef ref="console" /> 
+			<AppenderRef ref="fileout" />
+		</Logger>
+		<Logger name="jdbc.sqlonly" level="DEBUG" additivity="false">
+ 			<AppenderRef ref="console" /> 
+			<AppenderRef ref="fileout" />
+		</Logger>
+		<Logger name="java.sql.ResultSet" level="DEBUG" additivity="false">
+ 			<AppenderRef ref="console" /> 
+			<AppenderRef ref="fileout" />
+		</Logger>
+		<Root level="INFO">
+			<AppenderRef ref="console" />
+			<AppenderRef ref="fileout" />
+		</Root>
+	</Loggers>
+</Configuration>

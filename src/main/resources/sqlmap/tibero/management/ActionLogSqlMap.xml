@@ -1,0 +1,388 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="actionLog">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<!-- <select id="actionLog.getRecCheckList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : actionLog.getRecCheckList */
+
+		select top 50 left(rec_time,8) rec_date, right(rec_time,6) rec_time, dn_no, ux.user_id, ux.user_name, end_time, 
+			case search_visible when 0 then 'X' else 'O' end search_visible 
+		from (	
+			select * from TB_REC_FILE with (nolock)
+			where rec_time > convert(varchar, getdate(), 112)  
+			and search_visible = 0 and tenant_id = convert(varchar, #findTenantId#)
+			and end_time > 10
+			and dn_no in (
+				select dn_no 
+				from tb_rec_file f  with (nolock) , TB_REC_FILE_INDEX i with (nolock)
+				where f.rec_key = i.rec_key 
+				and rec_time > convert(varchar, getdate(), 112)   
+				and f.search_visible = 0 and tenant_id = convert(varchar, #findTenantId#)
+				and upload_kind > 2
+				and RxRtpCnt = 0 and TxRtpCnt = 0
+				and end_time > 10
+				group by dn_no
+			)
+		) tb_x left outer join tb_mng_userinfo ux with (nolock) on tb_x.tenant_id = ux.tenant_id and tb_x.user_id = ux.user_id
+		union all 
+		select top 50 left(rec_time,8) rec_date, right(rec_time,6) rec_time, dn_no, uo.user_id, uo.user_name, end_time, 
+			case search_visible when 0 then 'X' else 'O' end search_visible 
+		from 
+		(
+			select * from TB_REC_FILE with (nolock)
+			where rec_time > convert(varchar, getdate(), 112)  
+			and search_visible = 1 and tenant_id = convert(varchar, #findTenantId#)
+			and end_time > 10
+			and dn_no in (
+				select dn_no 
+				from tb_rec_file f  with (nolock) , TB_REC_FILE_INDEX i with (nolock)
+				where f.rec_key = i.rec_key 
+				and rec_time > convert(varchar, getdate(), 112)   
+				and f.search_visible = 0 and tenant_id = convert(varchar, #findTenantId#)
+				and upload_kind > 2
+				and RxRtpCnt = 0 and TxRtpCnt = 0
+				and end_time > 10
+				group by dn_no
+			)
+		) tb_o left outer join tb_mng_userinfo uo with (nolock) on tb_o.tenant_id = uo.tenant_id and tb_o.user_id = uo.user_id
+		order by rec_time desc
+		
+	</select> -->
+
+	<select id="actionLog.getActionLogCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : actionLog.getActionLogCount */
+		select count(*) cnt
+			FROM tb_mng_actionlog a 
+				<isEmpty property="findUserNameText">	left outer join tb_mng_userinfo b </isEmpty>
+				<isNotEmpty property="findUserNameText">
+					join (
+						select tenant_id, group_id, user_id, user_name 
+							from tb_mng_userinfo
+						where tenant_id = #findTenantId#
+					<isNotEmpty property="findGroupId">
+						and	tb_user.group_id in (
+						SELECT group_id
+						FROM tb_mng_group
+						START WITH (tenant_id = #findTenantId#
+						AND GROUP_ID = #findGroupId#)
+						CONNECT BY parent_id = PRIOR group_id
+						AND tenant_id = #findTenantId#
+						)
+					</isNotEmpty>
+					<isEmpty property="findGroupId">
+						<isEqual property="grantId" compareValue="GroupManager">
+							and group_id in (
+								SELECT group_id
+								FROM tb_mng_group
+								START WITH (tenant_id = #findTenantId#
+								AND (GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID = #userId# and tenant_id = #findTenantId#)
+							<isNotEmpty property="controlAuth">
+								OR group_id in  (
+								select g.GROUP_ID
+								from tb_mng_group g, tb_mng_userinfo u
+								where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+								and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+								and u.user_id = #userId#
+								and u.tenant_id = #findTenantId#
+								)
+							</isNotEmpty>
+							))
+							CONNECT BY parent_id = PRIOR group_id
+							AND tenant_id = #findTenantId#
+							)
+						</isEqual>
+						<isEqual property="grantId" compareValue="Manager">
+							and group_id in (
+							SELECT group_id
+							FROM tb_mng_group
+							START WITH (tenant_id = #findTenantId#
+							AND (GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID = #userId# and tenant_id = #findTenantId#)
+							<isNotEmpty property="controlAuth">
+								OR group_id in  (
+								select g.GROUP_ID
+								from tb_mng_group g, tb_mng_userinfo u
+								where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+								and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+								and u.user_id = #userId#
+								and u.tenant_id = #findTenantId#
+								)
+							</isNotEmpty>
+							))
+							CONNECT BY parent_id = PRIOR group_id
+							AND tenant_id = #findTenantId#
+							)
+						</isEqual>
+					</isEmpty>
+							<isNotEmpty property="findUserId"> and user_id = #findUserId# 	</isNotEmpty>
+							<isNotEmpty property="findUserNameText"> and (user_id like '%' || #findUserNameText# || '%' 
+														 or user_name like '%' || #findUserNameText# || '%') </isNotEmpty>
+					) b
+				</isNotEmpty> 
+					on a.tenant_id = b.tenant_id 
+					and a.user_id = b.user_id
+		where a.tenant_id = #findTenantId#
+			and	<![CDATA[ log_date >= to_date(#txtDate1_From#||'000000','YYYYMMDDHH24MISS') ]]> 
+			and <![CDATA[ log_date <= to_date(#txtDate1_To#||'235959','YYYYMMDDHH24MISS') ]]> 
+			<isNotEmpty property="findGroupId"> and group_id = lpad(#findGroupId#, instr(#findGroupId#, '_') - 1)	</isNotEmpty>
+			<isNotEmpty property="findUserId"> 	and a.user_id = #findUserId# 	</isNotEmpty>
+			<isNotEmpty property="findMenu"> 	and work_menu = #findMenu# 	</isNotEmpty>
+			<isNotEmpty property="findContent"> and work_log LIKE '%'|| #findContent# || '%' </isNotEmpty>
+	</select>
+	<select id="actionLog.getActionLogCount_org" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : actionLog.getActionLogCount */
+		select count(*) cnt
+			FROM tb_mng_actionlog a
+				<isEmpty property="findUserNameText">	left outer join tb_mng_userinfo b </isEmpty>
+				<isNotEmpty property="findUserNameText">
+					join (
+						select tenant_id, group_id, user_id, user_name
+							from tb_mng_userinfo
+						where tenant_id = #findTenantId#
+							<isNotEmpty property="findGroupId"> and group_id = lpad(#findGroupId#, instr(#findGroupId#, '_') - 1) </isNotEmpty>
+							<isNotEmpty property="findUserId"> and user_id = #findUserId# 	</isNotEmpty>
+							<isNotEmpty property="findUserNameText"> and (user_id like '%' || #findUserNameText# || '%'
+														 or user_name like '%' || #findUserNameText# || '%') </isNotEmpty>
+					) b
+				</isNotEmpty>
+					on a.tenant_id = b.tenant_id
+					and a.user_id = b.user_id
+		where a.tenant_id = #findTenantId#
+			and	<![CDATA[	to_char(log_date, 'YYYY-MM-DD HH24:MI:SS') >= to_char(to_date(#txtDate1_From#,'YYYY-MM-DD'),'YYYY-MM-DD')||' 00:00:00'	]]>
+			and <![CDATA[	to_char(log_date, 'YYYY-MM-DD HH24:MI:SS') <= to_char(to_date(#txtDate1_To#,'YYYY-MM-DD'),'YYYY-MM-DD')  ||' 23:59:59' ]]>
+			<isNotEmpty property="findGroupId"> and group_id = lpad(#findGroupId#, instr(#findGroupId#, '_') - 1)	</isNotEmpty>
+			<isNotEmpty property="findUserId"> 	and a.user_id = #findUserId# 	</isNotEmpty>
+			<isNotEmpty property="findMenu"> 	and work_menu = #findMenu# 	</isNotEmpty>
+			<isNotEmpty property="findContent"> and work_log LIKE '%'|| #findContent# || '%' </isNotEmpty>
+	</select>
+
+	<!-- <select id="actionLog.getActionLogListRec" parameterClass="java.util.HashMap" resultClass="egovMap">
+		<isNotEqual property="grantId" compareValue="Agent">
+   		select 0 RowNum1, 0 RowNum2, s.tenant_id, convert(char(19),getdate(),21) log_date, isnull(u.user_name, s.dn_no) user_id, '' log_key, '' action_class
+				, '' action_code, phone_ip work_ip, '내선녹취오류' work_menu 
+				, isnull(u.user_name, s.dn_no) + '(' + s.dn_no + ',' + phone_ip + ') 녹취  오류' work_log
+				, isnull(u.user_name, s.dn_no) user_name 
+		from (
+			select tenant_id, rec_time, user_id, dn_no, case when RxRtpCnt = 0 or TxRtpCnt = 0 then 1 else 0 end state_x, case when RxRtpCnt > 0 and TxRtpCnt > 0 then 1 else 0 end state_o
+			from tb_rec_file f, tb_rec_file_index i
+			where rec_time > convert(varchar, getdate()-3.0/24, 112)
+			and f.rec_key = i.rec_key
+			and f.search_visible in (0,1)
+			and upload_kind > 2
+		) s
+		left outer join tb_mng_userinfo u on s.tenant_id = u.tenant_id and s.user_id = u.user_id
+		left outer join tb_mng_usertelno d on s.tenant_id = d.tenant_id and s.dn_no = d.dn_no
+		
+		group by s.tenant_id, s.dn_no, s.user_id, user_name, phone_ip
+		having sum(state_x) > 0 and sum(state_o) = 0
+			
+		union all
+		</isNotEqual>	
+		
+	</select> -->
+
+	<!-- <select id="actionLog.getActionLogList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : actionLog.getActionLogList */
+		select * from (
+			select
+					Row_Number() over (order by log_date asc) RowNum2, TB_IN.* , b.user_name
+				from (
+					select 
+							Row_Number() over (order by log_date desc) RowNum1
+							, a.tenant_id, to_char(a.log_date,'YYYY-MM-DD HH24:MI:SS') log_date, a.user_id
+							, a.log_key, a.action_class, a.action_code, a.work_ip, a.work_menu, a.work_log
+						FROM tb_mng_actionlog a 
+					where a.tenant_id = #findTenantId#
+						<isNotEmpty property="txtDate1_From">
+							and	<![CDATA[	to_char(log_date,'YYYY-MM-DD HH24:MI:SS') >= to_char(to_date(#txtDate1_From#),'YYYY-MM-DD')||' 00:00:00' ]]> 
+							and <![CDATA[	to_char(log_date,'YYYY-MM-DD HH24:MI:SS') <= to_char(to_date(#txtDate1_To#),'YYYY-MM-DD')  ||' 23:59:59' ]]> 
+						</isNotEmpty>
+						<isEmpty property="txtDate1_From">
+							and	<![CDATA[	to_char(log_date,'YYYY-MM-DD HH24:MI:SS') >= to_char(sysdate, 'YYYY-MM-DD') || ' 00:00:00' ]]> 
+							and <![CDATA[	to_char(log_date,'YYYY-MM-DD HH24:MI:SS') <= to_char(sysdate, 'YYYY-MM-DD') || ' 23:59:59' ]]> 
+						</isEmpty>			
+						<isNotEmpty property="findGroupId"> and group_id = lpad(#findGroupId#, instr(#findGroupId#, '_') - 1) 	</isNotEmpty>
+						<isNotEmpty property="findUserId"> 	and a.user_id = #findUserId# 	</isNotEmpty>
+						<isNotEmpty property="findMenu"> 	and work_menu = #findMenu# 	</isNotEmpty>
+						<isNotEmpty property="findContent"> and work_log LIKE '%' || #findContent# || '%' </isNotEmpty>
+
+					) TB_IN
+					<isEmpty property="findUserNameText">	left outer join tb_mng_userinfo b </isEmpty>
+					<isNotEmpty property="findUserNameText">
+						join (
+							select tenant_id, group_id, user_id, user_name 
+								from tb_mng_userinfo
+							where tenant_id = #findTenantId#
+								<isNotEmpty property="findGroupId"> and group_id = lpad(#findGroupId#, instr(#findGroupId#, '_') - 1) </isNotEmpty>
+								<isNotEmpty property="findUserId"> and user_id = #findUserId# 	</isNotEmpty>
+								<isNotEmpty property="findUserNameText"> and (user_id like '%' || #findUserNameText# || '%' 
+						 										or user_name like '%' || #findUserNameText# || '%') </isNotEmpty>
+						) b
+					</isNotEmpty> 
+						on TB_IN.tenant_id = b.tenant_id 
+						and TB_IN.user_id = b.user_id	
+				WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+					<isNotEmpty property="findGroupId"> and b.group_id = lpad(#findGroupId#, instr(#findGroupId#, '_') - 1) </isNotEmpty>
+			) TB_OUT 
+		WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+		order by tenant_id desc, log_date desc
+	</select> -->
+	
+	<select id="actionLog.getActionLogList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : actionLog.getActionLogList */
+		select tenant_id, to_char(log_date,'YYYY-MM-DD HH24:MI:SS') log_date, user_id, user_name
+			 , log_key, action_class, action_code, work_ip, work_menu, work_log
+		  from (
+				select
+						Row_Number() over (order by log_date asc) RowNum2, TB_IN.*
+					from (
+						select 
+								Row_Number() over (order by log_date desc) RowNum1
+								, a.tenant_id, a.log_date, a.user_id, b.user_name
+								, a.log_key, a.action_class, a.action_code, a.work_ip, a.work_menu, a.work_log
+							FROM tb_mng_actionlog a 
+							<isEmpty property="findUserNameText">	left outer join tb_mng_userinfo b </isEmpty>
+							<isNotEmpty property="findUserNameText">
+								join (
+									select tenant_id, group_id, user_id, user_name 
+										from tb_mng_userinfo
+									where tenant_id = #findTenantId#
+								<isNotEmpty property="findGroupId">
+									and	tb_user.group_id in (
+									SELECT group_id
+									FROM tb_mng_group
+									START WITH (tenant_id = #findTenantId#
+									AND GROUP_ID = #findGroupId#)
+									CONNECT BY parent_id = PRIOR group_id
+									AND tenant_id = #findTenantId#
+									)
+								</isNotEmpty>
+								<isEmpty property="findGroupId">
+									<isEqual property="grantId" compareValue="GroupManager">
+										and group_id in (
+										SELECT group_id
+										FROM tb_mng_group
+										START WITH (tenant_id = #findTenantId#
+										AND (GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID = #userId# and tenant_id = #findTenantId#)
+										<isNotEmpty property="controlAuth">
+											OR group_id in  (
+											select g.GROUP_ID
+											from tb_mng_group g, tb_mng_userinfo u
+											where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+											and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+											and u.user_id = #userId#
+											and u.tenant_id = #findTenantId#
+											)
+										</isNotEmpty>
+										))
+										CONNECT BY parent_id = PRIOR group_id
+										AND tenant_id = #findTenantId#
+										)
+									</isEqual>
+									<isEqual property="grantId" compareValue="Manager">
+										and group_id in (
+										SELECT group_id
+										FROM tb_mng_group
+										START WITH (tenant_id = #findTenantId#
+										AND (GROUP_ID = (select group_id from TB_MNG_USERINFO  where USER_ID = #userId# and tenant_id = #findTenantId#)
+										<isNotEmpty property="controlAuth">
+											OR group_id in  (
+											select g.GROUP_ID
+											from tb_mng_group g, tb_mng_userinfo u
+											where g.tenant_id = u.tenant_id /*and instr(','||g.depth||',',','||control_auth||',') > 0*/
+											and instr(',' || control_auth || ',', ',' || g.GROUP_ID || ',') > 0
+											and u.user_id = #userId#
+											and u.tenant_id = #findTenantId#
+											)
+										</isNotEmpty>
+										))
+										CONNECT BY parent_id = PRIOR group_id
+										AND tenant_id = #findTenantId#
+										)
+									</isEqual>
+								</isEmpty>
+										<isNotEmpty property="findUserId"> and user_id = #findUserId# 	</isNotEmpty>
+										<isNotEmpty property="findUserNameText"> and (user_id like '%' || #findUserNameText# || '%' 
+						 											or user_name like '%' || #findUserNameText# || '%') </isNotEmpty>
+									) b
+							</isNotEmpty> 
+								on a.tenant_id = b.tenant_id 
+								and a.user_id = b.user_id			
+						where a.tenant_id = #findTenantId#
+							<isNotEmpty property="txtDate1_From">
+								and	<![CDATA[ log_date >= to_date(#txtDate1_From# || '000000', 'YYYYMMDDHH24MISS') ]]> 
+								and <![CDATA[ log_date <= to_date(#txtDate1_To# || '235959', 'YYYYMMDDHH24MISS') ]]> 
+							</isNotEmpty>
+							<isEmpty property="txtDate1_From">
+								and	<![CDATA[ log_date >= to_date(to_char(sysdate, 'YYYYMMDD') || '000000', 'YYYYMMDDHH24MISS') ]]> 
+								and <![CDATA[ log_date <= to_date(to_char(sysdate, 'YYYYMMDD') || '235959', 'YYYYMMDDHH24MISS') ]]> 
+							</isEmpty>			
+							<isNotEmpty property="findGroupId"> and group_id = lpad(#findGroupId#, instr(#findGroupId#, '_') - 1) 	</isNotEmpty>
+							<isNotEmpty property="findUserId"> 	and a.user_id = #findUserId# 	</isNotEmpty>
+							<isNotEmpty property="findMenu"> 	and work_menu = #findMenu# 	</isNotEmpty>
+							<isNotEmpty property="findContent"> and work_log LIKE '%' || #findContent# || '%' </isNotEmpty>
+						) TB_IN
+				WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+			) TB_OUT 
+		WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+		order by tenant_id desc, log_date desc
+	</select>
+
+	<select id="actionLog.getActionLogList_org" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : actionLog.getActionLogList */
+		select * from (
+				select
+						Row_Number() over (order by log_date asc) RowNum2, TB_IN.*
+					from (
+						select
+								Row_Number() over (order by log_date desc) RowNum1
+								, a.tenant_id, to_char(a.log_date,'YYYY-MM-DD HH24:MI:SS') log_date, a.user_id, b.user_name
+								, a.log_key, a.action_class, a.action_code, a.work_ip, a.work_menu, a.work_log
+							FROM tb_mng_actionlog a
+							<isEmpty property="findUserNameText">	left outer join tb_mng_userinfo b </isEmpty>
+							<isNotEmpty property="findUserNameText">
+								join (
+									select tenant_id, group_id, user_id, user_name
+										from tb_mng_userinfo
+									where tenant_id = #findTenantId#
+										<isNotEmpty property="findGroupId"> and group_id = lpad(#findGroupId#, instr(#findGroupId#, '_') - 1) </isNotEmpty>
+										<isNotEmpty property="findUserId"> and user_id = #findUserId# 	</isNotEmpty>
+										<isNotEmpty property="findUserNameText"> and (user_id like '%' || #findUserNameText# || '%'
+						 											or user_name like '%' || #findUserNameText# || '%') </isNotEmpty>
+									) b
+							</isNotEmpty>
+								on a.tenant_id = b.tenant_id
+								and a.user_id = b.user_id
+						where a.tenant_id = #findTenantId#
+							<isNotEmpty property="txtDate1_From">
+								and	<![CDATA[	to_char(log_date,'YYYY-MM-DD HH24:MI:SS') >= to_char(to_date(#txtDate1_From#,'YYYY-MM-DD'),'YYYY-MM-DD')||' 00:00:00' ]]>
+								and <![CDATA[	to_char(log_date,'YYYY-MM-DD HH24:MI:SS') <= to_char(to_date(#txtDate1_To#,'YYYY-MM-DD'),'YYYY-MM-DD')  ||' 23:59:59' ]]>
+							</isNotEmpty>
+							<isEmpty property="txtDate1_From">
+								and	<![CDATA[	to_char(log_date,'YYYY-MM-DD HH24:MI:SS') >= to_char(sysdate, 'YYYY-MM-DD') || ' 00:00:00' ]]>
+								and <![CDATA[	to_char(log_date,'YYYY-MM-DD HH24:MI:SS') <= to_char(sysdate, 'YYYY-MM-DD') || ' 23:59:59' ]]>
+							</isEmpty>
+							<isNotEmpty property="findGroupId"> and group_id = lpad(#findGroupId#, instr(#findGroupId#, '_') - 1) 	</isNotEmpty>
+							<isNotEmpty property="findUserId"> 	and a.user_id = #findUserId# 	</isNotEmpty>
+							<isNotEmpty property="findMenu"> 	and work_menu = #findMenu# 	</isNotEmpty>
+							<isNotEmpty property="findContent"> and work_log LIKE '%' || #findContent# || '%' </isNotEmpty>
+						) TB_IN
+				WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+			) TB_OUT
+		WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+		order by tenant_id desc, log_date desc
+	</select>
+
+	<insert id="actionLog.setActionLogInsert" parameterClass="java.util.HashMap">
+		/* ID : actionLog.setActionLogInsert */
+		insert into tb_mng_actionlog
+			(
+			log_key, tenant_id, log_date, user_id, action_class, action_code, work_ip, work_menu, work_log
+			)
+		values
+			(
+			tb_mng_actionlog_log_key_seq.nextval, #tenantId#, sysdate, #userId#, #actionClass#, #actionCode#, #workIp#, #workMenu#, #workLog#
+			)
+	</insert>
+</sqlMap>

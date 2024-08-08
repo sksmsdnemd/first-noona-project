@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="sysInfo">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="sysInfo.getMaxSystemId" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysInfo.getMaxSystemId */
+		select CAST(IFNULL(max(system_id),1000) AS UNSIGNED)+1 system_id
+			FROM tb_sys_sysinfo
+	</select>
+	
+	<select id="sysInfo.getSysInfoCount" parameterClass="java.util.HashMap"	resultClass="egovMap">
+		/* ID : sysInfo.getSysInfoCount */
+		select count(*) as cnt
+			FROM tb_sys_sysinfo a 
+				join tb_sys_sysgroup b
+					on a.sys_group_id = b.sys_group_id
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND"  property="findText">
+				<isEqual property="findKey" compareValue="system_id">  		system_id  		</isEqual>
+				<isEqual property="findKey" compareValue="system_name">  	system_name 	</isEqual>
+				Like CONCAT('%', #findText#, '%')
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findSysGroupId">
+				a.sys_group_id = #findSysGroupId#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+
+	<select id="sysInfo.getSysInfoList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysInfo.getSysInfoList */
+		select RTRIM(CAST(sys_group_id AS CHAR(10))) as sys_group_id, RTRIM(CAST(system_id AS CHAR(10))) as system_id
+				, system_name, system_class, system_code, use_flag
+				, alarm_flag, setup_date, system_desc, ins_id, DATE_FORMAT(ins_date, '%Y-%m-%d %H:%i:%s') as ins_date, upt_id
+				, DATE_FORMAT(upt_date, '%Y-%m-%d %H:%i:%s') as upt_date , sys_group_name
+				, CASE WHEN use_flag = '0' THEN '예' ELSE '아니오' END AS use_flag_name
+			from(
+				select * from (
+					select Row_Number() over (order by sys_group_id desc, system_id desc) RowNum2, TB_IN.* 
+						from (
+							select 
+									Row_Number() over (order by a.sys_group_id, a.system_id) RowNum1
+									, a.sys_group_id, a.system_id, a.system_name, a.system_class, a.system_code, a.use_flag
+									, a.alarm_flag, a.setup_date, a.system_desc, a.ins_id, a.ins_date, a.upt_id
+									, a.upt_date , b.sys_group_name
+								FROM tb_sys_sysinfo a 
+									join tb_sys_sysgroup b
+										on a.sys_group_id = b.sys_group_id
+							<dynamic prepend="WHERE">
+								<isNotEmpty prepend="AND"  property="findText">
+									<isEqual property="findKey" compareValue="system_id">  		system_id  		</isEqual>
+									<isEqual property="findKey" compareValue="system_name">  	system_name 	</isEqual>
+									Like CONCAT('%', #findText#, '%')
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findSysGroupId">
+									a.sys_group_id = #findSysGroupId#
+								</isNotEmpty>
+							</dynamic>
+							) TB_IN
+						WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+					) TB_OUT 
+				WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+			) tbl2
+		order by sys_group_id, system_id
+	</select>
+
+	<insert id="sysInfo.setSysInfoInsert" parameterClass="java.util.HashMap">
+		/* ID : sysInfo.setSysInfoInsert */
+		insert into tb_sys_sysinfo
+			(
+			sys_group_id, system_id, system_name, system_class, system_code
+			, use_flag, alarm_flag, setup_date, system_desc, ins_id, ins_date
+			) 
+		values 
+			(
+			nullif(#sysGroupId#, ''), nullif(#systemId#, ''), nullif(#systemName#, ''), nullif(#systemClass#, ''), nullif(#systemCode#, '')
+			, nullif(#useFlag#, ''), nullif(#alarmFlag#, ''), nullif(#setupDate#, ''), nullif(#systemDesc#, ''), nullif(#insId#, ''), SYSDATE()
+			)
+	</insert>
+
+	<update id="sysInfo.setSysInfoUpdate" parameterClass="java.util.HashMap">
+		/* ID : sysInfo.setSysInfoUpdate */
+		update tb_sys_sysinfo
+		   set system_name  = NULLIF(#systemName#, '')
+			 , system_class = NULLIF(#systemClass#, '')
+			 , system_code  = NULLIF(#systemCode#, '')
+			 , use_flag     = NULLIF(#useFlag#, '')
+			 , alarm_flag   = NULLIF(#alarmFlag#, '')
+			 , setup_date   = NULLIF(#setupDate#, '')
+			 , system_desc  = NULLIF(#systemDesc#, '')
+			 , upt_id       = NULLIF(#uptId#, '')
+			 , upt_date     = SYSDATE()
+		 where sys_group_id = #sysGroupId# 
+		   and system_id    = #systemId#
+	</update>
+	
+	<delete id="sysInfo.setSysInfoDelete" parameterClass="java.util.HashMap" >
+		/* ID : sysInfo.setSysInfoDelete */
+		delete from tb_sys_sysinfo
+		where sys_group_id = #sysGroupId#
+			and system_id  = #systemId#
+	</delete>
+
+	<select id="sysInfo.getSysInfoByProcCbList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysInfo.getSysInfoByProcCbList */
+		select 
+				a.sys_group_id, a.system_id as code, a.system_name as code_nm, a.system_class, a.system_code, a.use_flag
+				, a.alarm_flag, a.setup_date, a.system_desc, b.sys_group_name 
+			FROM tb_sys_sysinfo a 
+				join tb_sys_sysgroup b
+					on a.sys_group_id = b.sys_group_id
+				join (
+					select sys_group_id, system_id  
+						from tb_sys_procinfo
+					<dynamic prepend="WHERE">
+						<isNotEmpty prepend="AND" property="findProcessCode">
+							process_class = 'process_class'
+							and process_code in (#findProcessCode#)
+						</isNotEmpty>
+					</dynamic>
+					group by sys_group_id, system_id) c
+					on a.sys_group_id = c.sys_group_id
+					and a.system_id = c.system_id
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="findSysGroupId">
+				a.sys_group_id = #findSysGroupId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="systemId">
+				a.system_id = #systemId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="useFlag">
+				trim(a.use_flag) = #useFlag#
+			</isNotEmpty>
+		</dynamic>
+		order by a.sys_group_id, a.system_id
+	</select>
+	
+	
+	<select id="sysInfo.getSysinfoIpList" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		select 
+		    sin.sys_group_id ,
+		    sin.system_id,
+		    sin.system_name,
+		    iin.system_ip
+		from tb_sys_sysinfo sin 
+		inner join tb_sys_procinfo pin
+		    on sin.sys_group_id = pin.sys_group_id and sin.system_id = pin.system_id
+		inner join tb_sys_ipinfo iin
+		    on sin.sys_group_id = iin.sys_group_id and sin.system_id = iin.system_id
+		where pin.process_code = '81'
+	</select>
+	
+	<select id="sysInfo.getRestoreSysIpList" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		select 
+		    sin.sys_group_id ,
+		    sin.system_id,
+		    sin.system_name,
+		    iin.system_ip
+		from tb_sys_sysinfo sin 
+		inner join tb_sys_procinfo pin
+		    on sin.sys_group_id = pin.sys_group_id and sin.system_id = pin.system_id  and pin.process_code = '41'
+		inner join tb_sys_ipinfo iin
+		    on sin.sys_group_id = iin.sys_group_id and sin.system_id = iin.system_id
+	</select>
+
+	<select id="sysInfo.getLicenseOverlapCnt" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		select
+		    count(*) cnt
+		from tb_mng_enckey a
+		where a.enc_key = #encKey#
+		and a.GUBUN = #findGubun#
+	</select>
+	
+	<select id="sysInfo.getLicenseListCnt" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		select
+		    count(*) cnt
+		from tb_mng_enckey a
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="txtDate1_From">
+				<![CDATA[ a.LIC_TIME >= to_date(replace(#txtDate1_From#,'-','')||replace(#recFrmTm#,':',''),'YYYYMMDDHH24MISS') ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="txtDate1_To">
+				<![CDATA[ a.LIC_TIME <= to_date(replace(#txtDate1_To#,'-','')||replace(#recEndTm#,':',''),'YYYYMMDDHH24MISS') ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="txtDate2_From">
+				<![CDATA[ a.LIC_TIME >= to_date(replace(#txtDate2_From#,'-','')||replace(#recFrmTm2#,':',''),'YYYYMMDDHH24MISS') ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="txtDate2_To">
+				<![CDATA[ a.LIC_TIME <= to_date(replace(#txtDate2_To#,'-','')||replace(#recEndTm2#,':',''),'YYYYMMDDHH24MISS') ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findGubun">
+				a.GUBUN = #findGubun#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="sysInfo.getLicenseList" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		select 
+ 		    to_char(LIC_TIME,'YYYY-MM-DD HH24:MI:SS') as LIC_TIME , to_char(LIC_TIME_END,'YYYY-MM-DD HH24:MI:SS') as LIC_TIME_END 
+ 		    ,GUBUN,INS_ID,ENC_KEY
+		from ( 
+			select 
+				Row_Number() over (order by GUBUN, LIC_TIME) RowNum2, TB_IN.*
+			from (
+				select
+				    Row_Number() over (order by a.GUBUN, a.LIC_TIME) RowNum1
+				    ,a.LIC_TIME,a.GUBUN,a.INS_ID,a.ENC_KEY,a.LIC_TIME_END
+				from tb_mng_enckey a
+				<dynamic prepend="WHERE">
+					<isNotEmpty prepend="AND" property="txtDate1_From">
+						<![CDATA[ a.LIC_TIME >= to_date(replace(#txtDate1_From#,'-','')||replace(#recFrmTm#,':',''),'YYYYMMDDHH24MISS') ]]>
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="txtDate1_To">
+						<![CDATA[ a.LIC_TIME <= to_date(replace(#txtDate1_To#,'-','')||replace(#recEndTm#,':',''),'YYYYMMDDHH24MISS') ]]>
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="txtDate2_From">
+						<![CDATA[ a.LIC_TIME >= to_date(replace(#txtDate2_From#,'-','')||replace(#recFrmTm2#,':',''),'YYYYMMDDHH24MISS') ]]>
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="txtDate2_To">
+						<![CDATA[ a.LIC_TIME <= to_date(replace(#txtDate2_To#,'-','')||replace(#recEndTm2#,':',''),'YYYYMMDDHH24MISS') ]]>
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findGubun">
+						a.GUBUN = #findGubun#
+					</isNotEmpty>
+				</dynamic>
+			) TB_IN
+			WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+		)TB_OUT 
+		WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+		order by  GUBUN, LIC_TIME desc
+	</select>
+	
+	<update id="sysInfo.getLicenseTimeEndUpdate" parameterClass="java.util.HashMap">
+		update tb_mng_enckey
+		set lic_time_end = to_date(#licTime#,'YYYYMMDDHH24MISS')
+        where lic_time = (
+                select max(lic_time) from tb_mng_enckey
+                where GUBUN= #findGubun#
+            )
+	</update>
+	
+	<insert id="sysInfo.getLicenseInsert" parameterClass="java.util.HashMap">
+		insert into tb_mng_enckey
+			(
+			LIC_TIME
+			,GUBUN
+			,INS_ID
+			,ENC_KEY
+			) 
+		values 
+			(
+			to_date(#licTime#,'YYYYMMDDHH24MISS')
+			,#findGubun#
+			,#userId#
+			,#encKey#
+			)
+	</insert>
+	
+	
+</sqlMap>

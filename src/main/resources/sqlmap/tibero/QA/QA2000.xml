@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "https://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="QA2000">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap"/>
+  
+	<procedure id="QA.SP_QA2010M01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	{ CALL SP_QA2010M01_01(#glo_tenantId#, #stdMonth#, #timesId#, #qaaId#, #glo_groupId#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+	
+	<!-- <procedure id="QA.SP_QA2010M01_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	{ CALL SP_QA2010M01_02(#glo_tenantId#, #timesId#, #qaaId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure> -->
+	
+	
+	<select id="QA.SP_QA2010M01_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	SELECT A.QAA_INFO
+    			,A.DEPT_INFO
+    			,A.AGENT_NM
+    			,A.SABUN
+    			,A.AGENT_ID
+    			,A.VALUE_CNT
+    			,A.AVG_SCORE
+    			,A.SHEETKEY
+    			,A.RECORD_ID
+    			,A.QA_VALUE_STATUS
+    			,A.SCORE
+    			,A.TOTAL_COMMENT
+    			,A.QAA_ID
+    			,A.RECORD_TIME
+    			,A.QA_PROGRESS
+    			,FN_CM_GET_AGENT_INFO(#glo_tenantId#, A.NOTME_QAA_ID) AS NOTME_QAA_ID
+    	FROM(		
+    	
+	    	SELECT FN_CM_GET_AGENT_INFO(A.TENANT_ID, #qaaId#) AS QAA_INFO 
+		        ,FN_CM_GET_DEPT_INFO(A.TENANT_ID, A.GROUP_ID) AS DEPT_INFO 
+		        ,FN_CM_GET_AGENT_NM(A.TENANT_ID,A.USER_ID) AS AGENT_NM 
+		        ,A.USER_ID AS SABUN 
+		        ,A.USER_ID AS AGENT_ID 
+		        ,B.VALUE_CNT 
+		        ,NVL(B.AVG_SCORE,0) AS AVG_SCORE 
+		        ,B.SHEETKEY 
+		        ,B.RECORD_ID 
+		        ,B.QA_VALUE_STATUS 
+		        ,B.SCORE 
+		        ,B.TOTAL_COMMENT 
+		        ,#qaaId# AS QAA_ID 
+		        ,B.RECORD_TIME 
+		        ,(SELECT CASE WHEN COUNT(*) = 0 THEN 'N' ELSE 'Y' END FROM TB_QA_VALUE_RESULT_HEADER C WHERE C.TIMES_ID = #timesId# AND C.VALUE_MEMB != #qaaId# AND C.TENANT_ID = #glo_tenantId# AND C.AGENT_ID = B.AGENT_ID ) AS QA_PROGRESS
+	            ,(SELECT C.VALUE_MEMB FROM TB_QA_VALUE_RESULT_HEADER C WHERE C.TIMES_ID = #timesId# AND C.VALUE_MEMB != #qaaId# AND C.TENANT_ID = #glo_tenantId# AND C.AGENT_ID = B.AGENT_ID AND ROWNUM = 1  ) AS NOTME_QAA_ID
+		    FROM TB_MNG_USERINFO A 
+		    INNER JOIN ( 
+		      SELECT AVG(B.TOTAL_SCORE) AS AVG_SCORE 
+		          ,COUNT(B.SHEETKEY) AS VALUE_CNT 
+		          ,LISTAGG(B.SHEETKEY, '||') WITHIN GROUP (ORDER BY B.SHEETKEY) AS SHEETKEY 
+		          ,LISTAGG(B.RECORD_ID, '||') WITHIN GROUP (ORDER BY B.SHEETKEY) AS RECORD_ID 
+		          ,LISTAGG(FN_CM_GET_CODE_NM(A.TENANT_ID, 'QA_VALUE_STATUS', B.QA_VALUE_STATUS), '||') WITHIN GROUP (ORDER BY B.SHEETKEY) AS QA_VALUE_STATUS 
+		          ,LISTAGG(NVL(TO_CHAR(B.TOTAL_SCORE, 'FM990.00'), ' '), '||') WITHIN GROUP (ORDER BY B.SHEETKEY) AS SCORE 
+		          ,A.AGENT_ID 
+		          ,LISTAGG(NVL(B.TOTAL_COMMENT, ' '), '||') WITHIN GROUP (ORDER BY B.SHEETKEY) AS TOTAL_COMMENT 
+		       	  ,LISTAGG(
+		          CASE WHEN REC_TIME IS NULL THEN ' ' 
+		          ELSE SUBSTR(NVL(REC_TIME, ' '),0,4) || '-' || 
+			          SUBSTR(NVL(REC_TIME, ' '),5,2) || '-' || 
+			          NVL(RTRIM(SUBSTR(REC_TIME, 7, 2)), '00') || ' ' || 
+			          SUBSTR(REC_TIME,9,2)||':' || 
+			          NVL(RTRIM(SUBSTR(REC_TIME, 11, 2)), '00')|| ':' ||NVL(RTRIM(SUBSTR(REC_TIME, 13, 2)), '00') 
+		          END , '||') 
+		          WITHIN GROUP (ORDER BY B.SHEETKEY) AS RECORD_TIME
+		      FROM TB_QA_VALUE_ALLOC_AGENT A 
+		      LEFT JOIN TB_QA_VALUE_RESULT_HEADER B  
+		      ON (A.TENANT_ID = B.TENANT_ID AND A.TIMES_ID = B.TIMES_ID AND A.QAA_ID= B.VALUE_MEMB AND A.AGENT_ID = B.AGENT_ID)
+		      LEFT JOIN $tableNm$ C
+		      ON B.RECORD_ID = C.REC_KEY 
+		      WHERE A.TENANT_ID = #glo_tenantId# 
+		        AND A.TIMES_ID= #timesId# 
+		        AND A.QAA_ID = #qaaId# 
+		        AND b.REVALUE_SHEETKEY is null 
+		      GROUP BY A.AGENT_ID
+		      ORDER BY SHEETKEY 
+		      ) B 
+		    ON A.USER_ID = B.AGENT_ID 
+		    ORDER BY A.GROUP_ID
+	    ) A
+	</select>
+	
+	<!-- <procedure id="QA.SP_QA2010M02_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	{ CALL SP_QA2010M02_01(#glo_tenantId#,#timesId#, #user1Id#, #glo_agentId#, #recFrmDt#, #recEndDt#, #recFrmTm#, #recEndTm#, #talkFrmTm#, #talkEndTm#, #valueYn#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure> -->
+	
+	<select id="QA.SP_QA2010M02_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	WITH TB_QA_AUDIO_LOG AS(
+		SELECT
+	        A.TENANT_ID,
+	        A.REC_KEY AS RECORD_ID,                                                                      
+	        A.DN_NO,                                                                         
+	        TO_CHAR(TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS'), 'YYYYMMDDHH24MISS') AS START_TIME,                                         
+	        TO_CHAR(TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS') + CAST(A.END_TIME AS NUMBER)/(24*60*60), 'YYYYMMDDHH24MISS') AS END_TIME,  
+	        SUBSTR(A.REC_TIME,0,8) AS REC_YMD,                                                        
+	        SUBSTR(A.REC_TIME,9,6) AS REC_TM,                                                         
+	        SUBSTR('000000' || A.END_TIME, -6) AS TALK_TM,                                              
+	        A.END_TIME,
+	        A.USER_ID AS AGENT_ID,      
+	        RTRIM(A.CALL_KIND) AS CALL_KIND,                                                                 
+	        (CASE WHEN RTRIM(A.CALL_KIND) = '1' THEN 'Inbound' WHEN RTRIM(A.CALL_KIND) = '2' THEN 'Outbound' ELSE RTRIM(A.CALL_KIND) END) AS INOUT_KIND, 
+	        A.REC_KEY,
+	        A.MEDIA_SCR
+	   FROM $tableNm$ A
+	   WHERE SUBSTR(A.REC_TIME,0,8) BETWEEN #recFrmDt# AND #recEndDt# 
+	)
+    SELECT COUNT(RECORD_ID) AS CNT 
+	  FROM TB_QA_AUDIO_LOG A 
+	 WHERE TENANT_ID = #glo_tenantId# 
+	   	AND A.REC_YMD BETWEEN #recFrmDt# AND #recEndDt# 
+     	AND A.REC_TM BETWEEN #recFrmTm#||'00' AND #recEndTm#||'59' 
+	   	AND A.AGENT_ID = #user1Id#
+	   	AND ((#callKind# IS NULL AND 1=1) OR (#callKind# IS NOT NULL AND A.CALL_KIND = #callKind#))
+     	AND TALK_TM BETWEEN FN_CM_GET_TIME_DIFF_TO_SECOND('000000', #talkFrmTm#) AND FN_CM_GET_TIME_DIFF_TO_SECOND('000000', #talkEndTm#) 
+	   	AND ((#valueYn# != 1 AND 1=1) OR (#valueYn# = 1 AND NOT EXISTS (SELECT 1 FROM TB_QA_VALUE_RESULT_HEADER S 
+												WHERE S.TENANT_ID = A.TENANT_ID  
+												AND S.RECORD_ID = A.RECORD_ID 
+												AND S.TIMES_ID = #timesId#)) ) 
+    	
+	</select>
+	
+	<!-- <procedure id="QA.SP_QA2010M02_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	{ CALL SP_QA2010M02_02(#glo_tenantId#,#timesId#, #user1Id#, #glo_userId#, #recFrmDt#, #recEndDt#, #recFrmTm#, #recEndTm#, #talkFrmTm#, #talkEndTm#, #startRow#, #endRow#, #valueYn#,
+     		#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure> -->
+	
+	<select id="QA.SP_QA2010M02_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	WITH TB_QA_AUDIO_LOG AS(
+			SELECT
+		        A.TENANT_ID,
+		        A.REC_KEY AS RECORD_ID,                                                                       
+		        A.DN_NO,                                                                         
+		        TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS') AS STARTTIME,
+		        TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS') + CAST(A.END_TIME AS NUMBER)/(24*60*60) AS ENDTIME,
+		        TO_CHAR(TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS'), 'YYYYMMDDHH24MISS') AS START_TIME,                                          
+		        TO_CHAR(TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS') + CAST(A.END_TIME AS NUMBER)/(24*60*60), 'YYYYMMDDHH24MISS') AS END_TIME,  
+		        SUBSTR(A.REC_TIME,0,8) AS REC_YMD,                                                          
+		        SUBSTR(A.REC_TIME,9,6) AS REC_TM,                                                          
+		        SUBSTR('000000' || A.END_TIME, -6) AS TALK_TM,                                              
+		        A.END_TIME,
+		        A.USER_ID AS AGENT_ID,                                                                      
+		        RTRIM(A.CALL_KIND) AS CALL_KIND,                                                                 
+	        	(CASE WHEN RTRIM(A.CALL_KIND) = '1' THEN 'Inbound' WHEN RTRIM(A.CALL_KIND) = '2' THEN 'Outbound' ELSE RTRIM(A.CALL_KIND) END) AS INOUT_KIND, 
+		        A.REC_KEY,
+		        FN_GETMASKING_CUST('CUST_NAME', A.CUST_NAME) AS CUST_NAME,
+		        FN_GETMASKING_CUST('CUST_TEL', A.CUST_TEL) AS CUST_TEL,
+		        A.MEDIA_SCR
+		   FROM $tableNm$ A
+		   WHERE SUBSTR(A.REC_TIME,0,8) BETWEEN #recFrmDt# AND #recEndDt# 
+		)
+		SELECT * 
+	  	FROM( 
+	      SELECT A.* 
+	            ,ROWNUM AS RNUM 
+	      FROM( 
+	        SELECT 
+	          A.TENANT_ID 
+	          ,A.REC_KEY
+	          ,A.RECORD_ID 
+	          ,A.RECORD_ID AS REC_ID 
+	          ,A.AGENT_ID 
+	          ,TO_CHAR(TO_DATE(A.REC_YMD,'yyyymmdd'),'YYYY-MM-DD') AS REC_YMD 
+	          ,TO_CHAR(A.STARTTIME,'HH24:MI:SS') AS STARTTIME 
+	          ,TO_CHAR(A.ENDTIME,'HH24:MI:SS') AS ENDTIME 
+	          ,FN_CM_GET_TIME_FORMAT(A.TALK_TM) AS TALK_TM 
+	          ,FN_CM_STRING_FORMAT(A.REC_TM, '@@:@@:@@') AS REC_TM
+	          ,CASE WHEN C.RECORD_ID IS NULL THEN 0 ELSE 1 END AS VALUE_YN 
+	          ,NVL(C.SHEETKEY,'') AS SHEETKEY 
+	          ,FN_CM_GET_DEPT_INFO(B.TENANT_ID, B.GROUP_ID) AS DEPT_INFO 
+	          ,B.USER_ID AS SABUN 
+	          ,B.USER_NAME AS AGENT_NM 
+	          ,A.DN_NO
+	          ,A.INOUT_KIND
+	          ,A.MEDIA_SCR
+	        FROM TB_QA_AUDIO_LOG A 
+	        INNER JOIN TB_MNG_USERINFO B ON A.TENANT_ID = B.TENANT_ID AND A.AGENT_ID = B.USER_ID 
+	        LEFT OUTER JOIN (SELECT TENANT_ID, VALUE_MEMB, RECORD_ID, SHEETKEY, REVALUE_SHEETKEY, TIMES_ID FROM TB_QA_VALUE_RESULT_HEADER) C ON A.TENANT_ID = C.TENANT_ID AND C.TIMES_ID = #timesId# AND A.RECORD_ID = C.RECORD_ID AND C.VALUE_MEMB = #user1Id# AND C.REVALUE_SHEETKEY IS NULL 
+	        WHERE A.TENANT_ID = #glo_tenantId# 
+	        AND A.REC_YMD BETWEEN #recFrmDt# AND #recEndDt# 
+	        AND A.REC_TM BETWEEN #recFrmTm#||'00' AND #recEndTm#||'59' 
+	        AND ((#callKind# IS NULL AND 1=1) OR (#callKind# IS NOT NULL AND A.CALL_KIND = #callKind#))
+	        AND TALK_TM BETWEEN FN_CM_GET_TIME_DIFF_TO_SECOND('000000', #talkFrmTm#) AND FN_CM_GET_TIME_DIFF_TO_SECOND('000000', #talkEndTm#) 
+	        AND A.AGENT_ID = #user1Id#
+	        AND ((#valueYn# != 1 AND 1=1) OR ( 
+					#valueYn# = 1 AND NOT EXISTS (SELECT 1 FROM TB_QA_VALUE_RESULT_HEADER S 
+													WHERE S.TENANT_ID = A.TENANT_ID  
+													AND S.RECORD_ID = A.RECORD_ID 
+													AND S.TIMES_ID = #timesId#)) ) 
+	        ORDER BY A.REC_YMD , A.REC_TM 
+	      ) A 
+	    ) 
+		WHERE RNUM <![CDATA[ >= ]]> #startRow# AND RNUM <![CDATA[ <= ]]>  #endRow#
+	</select>
+	
+	<procedure id="QA.SP_QA2010M02_03" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	{ CALL SP_QA2010M02_03(#glo_tenantId#,#timesId#, #user1Id#,#glo_agentId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+	
+	<!-- <procedure id="QA.SP_QA2010M03_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	{ CALL SP_QA2010M03_01(#glo_tenantId#,#timesId#,#sheetkey#,#agentId#,#recordId#,
+     		#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure> -->
+
+	<select id="QA.SP_QA2010M03_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+	    WITH TB_QA_AUDIO_LOG AS(
+			SELECT
+		        A.TENANT_ID,
+		        A.REC_KEY AS RECORD_ID,                                                                       
+		        A.DN_NO,                                                                        
+		        TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS') AS STARTTIME,
+		        TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS') + CAST(A.END_TIME AS NUMBER)/(24*60*60) AS ENDTIME,
+		        TO_CHAR(TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS'), 'YYYYMMDDHH24MISS') AS START_TIME,                                       
+		        TO_CHAR(TO_DATE(A.REC_TIME,'YYYYMMDDHH24MISS') + CAST(A.END_TIME AS NUMBER)/(24*60*60), 'YYYYMMDDHH24MISS') AS END_TIME,  
+		        SUBSTR(A.REC_TIME,0,8) AS REC_YMD,                                                          
+		        SUBSTR(A.REC_TIME,9,6) AS REC_TM,                                                          
+		        SUBSTR('000000' || A.END_TIME, -6) AS TALK_TM,                                              
+		        A.END_TIME,
+		        A.USER_ID AS AGENT_ID,                                                                      
+		        (CASE WHEN A.CALL_KIND = '1' THEN 'IN' WHEN A.CALL_KIND = '0' THEN '' ELSE 'OUT' END) AS INOUT_KIND,
+		        A.REC_KEY
+		   FROM $tableNm$ A
+		   WHERE A.REC_KEY = #recordId#
+		), 
+		TB_QA_AUDIO_LOG_CNT AS (
+			SELECT COUNT(A.REC_KEY) AS REC_KEY_CNT
+		   	FROM $tableNm$ A
+		   	WHERE A.REC_KEY = #recordId#
+		),
+		TEMP_RECOED_LIST AS (
+			SELECT
+		        #glo_tenantId# AS TENANT_ID,
+		        'TEMP_REC_KEY' AS RECORD_ID,                                                                       
+		        '' AS DN_NO,                                                                        
+		        '' AS STARTTIME,
+		        '' AS ENDTIME,
+		        '' AS START_TIME,                                       
+		        '' AS END_TIME,  
+		        '' AS REC_YMD,                                                          
+		        '' AS REC_TM,                                                          
+		        '' AS TALK_TM,                                              
+		        '' AS END_TIME,
+		        '' AS AGENT_ID,                                                                      
+		        '' AS INOUT_KIND,
+		        'TEMP_REC_KEY' AS REC_KEY
+		   FROM DUAL
+		)
+	    SELECT *
+	    FROM ( 
+	         SELECT A.TIMES_ID 
+	            ,CASE WHEN G.REC_KEY_CNT = 0 THEN F.RECORD_ID ELSE D.RECORD_ID END AS RECORD_ID
+	            ,A.TIMES_NM 
+	            ,FN_CM_GET_CODE_NM(A.TENANT_ID, 'QA_EVAL_TYPE', A.QA_EVAL_TYPE) AS QA_EVAL_TYPE 
+	            ,FN_CM_STRING_FORMAT(A.VALUE_FRM_DT, '@@@@-@@-@@') AS VALUE_FRM_DT 
+	            ,FN_CM_STRING_FORMAT(A.VALUE_END_DT, '@@@@-@@-@@') AS VALUE_END_DT 
+	            ,B.SHEET_ID 
+	            ,B.SHEET_NM 
+	            ,FN_CM_GET_DEPT_INFO(A.TENANT_ID, C.GROUP_ID) AS DEPT_INFO 
+	            ,C.USER_ID AS AGENT_ID 
+	            ,C.USER_NAME AS AGENT_NM 
+	            ,C.USER_ID AS AGENT_SABUN 
+	            ,CASE WHEN G.REC_KEY_CNT = 0 THEN F.REC_YMD ELSE TO_CHAR(TO_DATE(D.REC_YMD,'yyyymmdd'),'YYYY-MM-DD') END AS REC_YMD 
+	            ,CASE WHEN G.REC_KEY_CNT = 0 THEN F.STARTTIME ELSE TO_CHAR(D.STARTTIME,'HH24:MI:SS') END AS STARTTIME
+	            ,CASE WHEN G.REC_KEY_CNT = 0 THEN F.ENDTIME ELSE TO_CHAR(D.ENDTIME,'HH24:MI:SS') END AS ENDTIME
+	            ,CASE WHEN G.REC_KEY_CNT = 0 THEN F.TALK_TM ELSE FN_CM_GET_TIME_FORMAT(D.TALK_TM) END AS TALK_TM 
+	            ,A.TENANT_ID 
+	            ,CASE WHEN TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN A.VALUE_FRM_DT AND A.VALUE_END_DT THEN 1
+						ELSE 1 END AS MOD_YN
+	            ,0 AS EDU_YN 
+	            ,D.REC_KEY
+	        FROM TB_QA_VALUE_TIMES A 
+	        LEFT JOIN TB_QA_SHEET_HEADER B ON (A.TENANT_ID = B.TENANT_ID AND A.SHEET_ID = B.SHEET_ID) 
+	        INNER JOIN TB_MNG_USERINFO C ON (A.TENANT_ID = C.TENANT_ID)  
+	        LEFT JOIN TB_QA_AUDIO_LOG D ON (1=1) 
+	        LEFT JOIN TEMP_RECOED_LIST F ON (1=1) 
+	        LEFT JOIN TB_QA_AUDIO_LOG_CNT G ON (1=1)
+	        WHERE A.TENANT_ID = #glo_tenantId# 
+	          AND A.TIMES_ID = #timesId#  
+	          AND C.USER_ID = #agentId#
+  		) A LEFT JOIN (SELECT FN_CM_GET_AGENT_SABUN(A.TENANT_ID, A.VALUE_MEMB) AS VALUE_MEMB 
+                ,NVL(FN_CM_GET_AGENT_NM(A.TENANT_ID, A.VALUE_MEMB), '') AS VALUE_MEMB_NM 
+                ,FN_CM_GET_CODE_NM(A.TENANT_ID,'QA_VALUE_STATUS', A.QA_VALUE_STATUS) AS QA_VALUE_NM 
+                ,FN_CM_STRING_FORMAT(A.VALUE_YMD, '@@@@-@@-@@') AS VALUE_YMD 
+                ,A.TOTAL_COMMENT 
+                ,A.QA_VALUE_STATUS 
+                ,FN_CM_GET_AGENT_NM(A.TENANT_ID,A.VALUE_MEMB)AS QAA_NM 
+                ,A.TENANT_ID 
+                ,A.CHECK_YN
+           FROM TB_QA_VALUE_RESULT_HEADER A 
+           WHERE A.TENANT_ID = #glo_tenantId# 
+             AND A.SHEETKEY = #sheetkey# 
+        ) B ON A.TENANT_ID = B.TENANT_ID 
+	</select>
+	
+
+	<!-- 평가표 점수 조회 -->	
+	<procedure id="QA.SP_QA2010M03_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+	    { CALL SP_QA2010M03_02(#glo_tenantId#, #sheetkey#, #sheetId#,
+	     #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+
+	<!-- 평가표 및 점수 조회 -->	
+	<procedure id="QA.SP_QA2010M03_03" parameterClass="java.util.HashMap" resultClass="egovMap">
+	    { CALL SP_QA2010M03_03(#glo_tenantId#, #sheetkey#, #sheetId#,
+	     #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+	
+	<!--  평가표 및 점수 조회 -->
+	<procedure id="QA.SP_QA2010M03_04" parameterClass="java.util.HashMap" resultClass="egovMap">
+	    { CALL SP_QA2010M03_04(#glo_tenantId#, #timesId#,#agentId#,
+	    #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#)}
+	</procedure>
+	
+	<!-- 통화품질 평가 등록 및 수정(HEADER) -->
+	<procedure id="QA.SP_QA2010M03_05" parameterClass="java.util.HashMap" resultClass="egovMap">
+	    { CALL SP_QA2010M03_05(#glo_tenantId#,#sheetkey#, #timesId#, #recordId#, #sheetId#, #qaValueStatus#, #glo_agentId#, #agentId#, #gbn#, #totalComment#,#checkYn#,
+	    #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#)}
+	</procedure>
+	
+	<!-- 통화품질 평가 등록 및 수정(DETAIL) -->
+	<procedure id="QA.SP_QA2010M03_06" parameterClass="java.util.HashMap">
+    	{ CALL SP_QA2010M03_06(#glo_tenantId#,#sheetkey#, #majorCd#, #minorCd#, #qaSebuCd#, #score#, #valueText#,#sheetId#,#checkYn#)}
+	</procedure>
+	
+	<!-- 통화품질 평가 HEADER 총점 및 100점 환상 점수 UPDATE -->
+	<procedure id="QA.SP_QA2010M03_07" parameterClass="java.util.HashMap">
+    	{ CALL SP_QA2010M03_07(#glo_tenantId#,#sheetkey#, #sheetId#)}
+	</procedure>
+	
+	<procedure id="QA.SP_QA2010M03_08" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	{ CALL SP_QA2010M03_08(#glo_tenantId#, #timesId#, #agentId#, #glo_userId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#)}
+	</procedure>
+	
+	
+</sqlMap>

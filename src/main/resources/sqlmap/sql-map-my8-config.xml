@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMapConfig PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-config-2.dtd">
+<sqlMapConfig>
+
+	<!-- COMMON  START -->
+    <sqlMap resource="sqlmap/mysql8/COM/COMMON.xml" />
+    <sqlMap resource="sqlmap/mysql8/COM/CodeList.xml" />
+	<!-- COMMON  END -->
+	
+	<!-- management  START -->
+	<sqlMap resource="sqlmap/mysql8/management/BaseCodeSqlMap.xml" />
+	<sqlMap resource="sqlmap/mysql8/management/MenuSqlMap.xml" />    
+	<sqlMap resource="sqlmap/mysql8/management/ActionLogSqlMap.xml" />
+	<sqlMap resource="sqlmap/mysql8/management/CallTestSqlMap.xml" />
+    <!-- management  END -->
+    
+    <!-- USERMAN  START -->
+    <sqlMap resource="sqlmap/mysql8/USERMAN/userManSqlMap.xml" />
+    <sqlMap resource="sqlmap/mysql8/USERMAN/userTelSqlMap.xml" />
+    <!-- USERMAN  END -->
+    
+    <!-- recording  START -->
+    <sqlMap resource="sqlmap/mysql8/recording/RecSearchSqlMap.xml" />
+    <sqlMap resource="sqlmap/mysql8/recording/RecFileSqlMap.xml" />
+    <!-- recording  END -->
+    
+    <!-- system  START -->
+    <sqlMap resource="sqlmap/mysql8/system/SysGroupSqlMap.xml" />
+    <sqlMap resource="sqlmap/mysql8/system/SysInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/mysql8/system/IpInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/mysql8/system/ProcInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/mysql8/system/ResMonSqlMap.xml" />
+    <sqlMap resource="sqlmap/mysql8/system/ResMonDefSqlMap.xml" />
+    <sqlMap resource="sqlmap/mysql8/system/BkLabelSqlMap.xml" />
+    <sqlMap resource="sqlmap/mysql8/system/BkInfoSqlMap.xml" />
+    <sqlMap resource="sqlmap/mysql8/system/SysCheckingSqlMap.xml" />
+    <sqlMap resource="sqlmap/mysql8/system/StatSqlMap.xml" />
+    <!-- system  END -->
+    
+    <!-- alarm  START -->
+    <sqlMap resource="sqlmap/mysql8/alarm/ErrCodeSqlMap.xml" />
+    <!-- alarm  END -->
+    
+    <!-- GROUPBASE  START -->
+    <sqlMap resource="sqlmap/mysql8/GROUPBASE/GroupSqlMap.xml" />
+    <!-- GROUPBASE  END -->
+    
+    <!-- recManagement  START -->
+    <sqlMap resource="sqlmap/mysql8/recManagement/RecSampleCallSqlMap.xml" />
+    <sqlMap resource="sqlmap/mysql8/recManagement/RecInfoSqlMap.xml" />
+    <!-- recManagement  END -->
+    
+    <!-- Maintenance START 20181031 -->
+    <sqlMap resource="sqlmap/mysql8/Maintenance/maintenanceSqlMap.xml" />
+    <sqlMap resource="sqlmap/mysql8/Maintenance/veloceRestSqlMap.xml" />
+    <!-- Maintenance END -->
+
+</sqlMapConfig>

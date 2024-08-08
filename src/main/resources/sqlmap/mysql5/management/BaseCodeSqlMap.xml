@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="baseCode">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="baseCode.isBaseCodeExist" parameterClass="java.util.HashMap" resultClass="egovMap">
+		SELECT COUNT(*) AS CNT
+		  FROM TB_MNG_BASECODE
+		 WHERE CLASS_ID = #classId#
+		   AND CODE_ID = #codeId#
+	</select> 
+
+	<select id="baseCode.getBaseCodeBaseList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : baseCode.getBaseCodeBaseList */
+		SELECT CLASS_ID, CODE_ID, CLASS_NAME, CODE_NAME, CODE_DESC
+		  FROM TB_MNG_BASECODE
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="classId">
+				CLASS_ID = #classId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="codeId">
+				CODE_ID = #codeId#
+			</isNotEmpty>
+		</dynamic>
+		 ORDER BY CLASS_ID, CODE_ID
+	</select>
+	
+	<select id="baseCode.getBaseComboList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : baseCode.getBaseComboList */
+		SELECT CLASS_ID, CODE_ID AS CODE, CLASS_NAME, CODE_NAME AS CODE_NM, CODE_DESC
+		  FROM TB_MNG_BASECODE
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="classId">
+				CLASS_ID = #classId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="codeId">
+				CODE_ID = #codeId#
+			</isNotEmpty>
+		</dynamic>
+		 ORDER BY CLASS_ID, CODE_ID
+	</select>
+
+	<insert id="baseCode.setBaseCodeInsert" parameterClass="java.util.HashMap">
+		insert into tb_mng_basecode(class_id, code_id, class_name, code_name, code_desc) 
+		values (#classId#, #codeId#, #className#, #codeName#, #codeDesc#)
+	</insert>
+
+	<update id="baseCode.setBaseCodeUpdate" parameterClass="java.util.HashMap">
+		update tb_mng_basecode
+		   set class_name = #className#
+			 , code_name = #codeName#
+			 , code_desc = #codeDesc#
+		 where class_id = #classId#
+		   and code_id = #codeId#
+	</update>
+	
+	<delete id="baseCode.setBaseCodeDelete" parameterClass="java.util.HashMap" >
+		delete from tb_mng_basecode where class_id = #classId# and code_id = #codeId#
+	</delete>
+	
+</sqlMap>

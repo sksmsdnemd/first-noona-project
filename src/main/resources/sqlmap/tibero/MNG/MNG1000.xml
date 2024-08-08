@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "https://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="MNG1000">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap"/>
+
+
+  	<!-- 관리자 페이지 DASHBOARD : License 정보 조회 -->
+	<procedure id="MNG.SP_MNG_DASHBOARD01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	{ CALL SP_MNG_DASHBOARD01_01(#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+  	
+  	<!-- 관리자 페이지 DASHBOARD : License 정보 TENANT 조회 -->
+	<procedure id="MNG.SP_MNG_DASHBOARD01_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	{ CALL SP_MNG_DASHBOARD01_02(#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+  	
+	<!-- 관리자 페이지 DASHBOARD : TABLE SPACE 사용 현황 조회-->
+	<procedure id="MNG.SP_MNG_DASHBOARD02_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	{ CALL SP_MNG_DASHBOARD02_01(#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>  
+	<!-- 관리자 페이지 DASHBOARD : 배치오류목록 조회-->
+	<procedure id="MNG.SP_MNG_DASHBOARD03_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	{ CALL SP_MNG_DASHBOARD03_01(#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>  
+	<!-- 관리자 페이지 DASHBOARD : 프로시져오류목록 조회-->
+	<procedure id="MNG.SP_MNG_DASHBOARD04_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+    	{ CALL SP_MNG_DASHBOARD04_01(#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>  
+	<!-- Dashboard END =================================================================================== -->
+  
+	<!-- 라이센스 정보 조회 -->
+	<procedure id="MNG.SP_MNG1010M01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+    { CALL SP_MNG1010M01_01(#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+	
+	<!-- 테넌트 조회 -->
+	<procedure id="MNG.SP_MNG1010M01_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+    { CALL SP_MNG1010M01_02(#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+	
+	<!-- 데이터 생성 여부 조회 -->
+	<procedure id="MNG.SP_MNG1010S02_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+    { CALL SP_MNG1010S02_01(#tenantId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+	</procedure>
+	
+	<!-- 코드 생성 -->
+	<procedure id="MNG.SP_MNG1010S02_02" parameterClass="java.util.HashMap">
+    { CALL SP_MNG1010S02_02(#tenantId#) }
+	</procedure>
+	
+	<!-- 메뉴 생성 -->
+	<procedure id="MNG.SP_MNG1010S02_03" parameterClass="java.util.HashMap">
+    { CALL SP_MNG1010S02_03(#tenantId#) }
+	</procedure>
+	
+	<!-- 소속 생성 -->
+	<procedure id="MNG.SP_MNG1010S02_04" parameterClass="java.util.HashMap">
+    { CALL SP_MNG1010S02_04(#tenantId#) }
+	</procedure>
+	
+	<!-- 권한 생성 -->
+	<procedure id="MNG.SP_MNG1010S02_05" parameterClass="java.util.HashMap">
+    { CALL SP_MNG1010S02_05(#tenantId#) }
+	</procedure>
+	
+	<!-- 계정 생성 -->
+	<procedure id="MNG.SP_MNG1010S02_06" parameterClass="java.util.HashMap">
+    { CALL SP_MNG1010S02_06(#tenantId#) }
+	</procedure>
+	
+	<!-- MNG1020 배치관리 START =================================================================================== -->
+  		<!-- 배치작업 목록 조회 -->
+		<procedure id="MNG.SP_MNG1020M01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_MNG1020M01_01(#tenantId#, #workGubun#, #workNm#, #hideYn#, #systemGubun#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+
+		<!-- 배치작업 사옹여부 변경 -->
+		<procedure id="MNG.SP_MNG1020M01_02" parameterClass="java.util.HashMap">
+			{ CALL SP_MNG1020M01_02(#tenantId#, #glo_agentId#, #workId#, #scheId#, #hideYn#) }
+		</procedure>
+
+		<!-- 배치작업 삭제 -->
+		<procedure id="MNG.SP_MNG1020M01_03" parameterClass="java.util.HashMap">
+			{ CALL SP_MNG1020M01_03(#tenantId#, #workId#, #scheId#) }
+		</procedure>
+
+		<!-- 배치작업 등록/수정 -->
+		<procedure id="MNG.SP_MNG1020S01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_MNG1020S01_01( #tenantId#, #glo_agentId#, #workId#, #workNm#, #workGubun#, #sourceTyp#, #jdbcDriver#, #jdbcUrl# , #userId#, #userPw#
+			                       , #selQuery#, #filePath#, #fileNm#, #useChk#, #fileEncode#, #fileDelimiter#, #fileDays#, #preExeQuery#, #exeQuery#, #nextExeQuery#, #retryCnt#
+								   , #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+
+		<!-- 배치작업 스케줄 등록/수정 -->
+		<procedure id="MNG.SP_MNG1020S01_02" parameterClass="java.util.HashMap">
+			{ CALL SP_MNG1020S01_02( #tenantId#, #glo_agentId#, #scheId#, #workId#, #scheNm#, #repCycle#, #strDt#, #strTm#, #endDt# , #endTm#, #systemGubun#) }
+		</procedure>
+	<!-- MNG1020 배치관리 END =================================================================================== -->
+	
+	<!-- 배치 결과 조회 -->
+		<procedure id="MNG.SP_MNG1030M01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+	    	{ CALL SP_MNG1030M01_01(#txtDate1_From#, #txtDate1_To#, #tenantId#, #workResult#, #workNm#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+	
+	<procedure id="MNG.SP_MNG1030M01_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+	    	{ CALL SP_MNG1030M01_02(#txtDate1_From#, #txtDate1_To#, #tenantId#, #workResult#, #workNm#, #startRow#, #endRow#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+	
+	<!-- MNG1040 테이블 관리 START =================================================================================== -->
+  		<!-- 테이블 목록 조회  -->
+		<procedure id="MNG.SP_MNG1040M01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_MNG1040M01_01(#moduleGubun#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+  		<!-- 컬럼 목록 조회  -->
+		<procedure id="MNG.SP_MNG1040M01_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_MNG1040M01_02(#tableNm#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+ 		<!-- 테이블 컬럼 데이터 보관 주기 목록 조회  -->
+		<procedure id="MNG.SP_MNG1040M01_03" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_MNG1040M01_03( #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+
+		<!-- 테이블 컬럼 데이터 보관 주기 삭제  -->
+		<procedure id="MNG.SP_MNG1040M01_04" parameterClass="java.util.HashMap">
+			{ CALL SP_MNG1040M01_04(#periodId#) }
+		</procedure>
+
+ 		<!-- 테이블 컬럼 데이터 보관 주기 등록/수정  -->
+		<procedure id="MNG.SP_MNG1040S01_01" parameterClass="java.util.HashMap">
+			{ CALL SP_MNG1040S01_01(#glo_agentId#, #periodId#, #tableNm#, #columnNm#, #storagePeriod#, #exeQuery# ) }
+		</procedure>		
+	<!-- MNG1040 테이블 관리 END =================================================================================== -->	
+	
+		<!-- 테이블 컬럼 데이터 보관 주기 삭제  -->
+		<procedure id="MNG.SP_MNG1050M01_01" parameterClass="java.util.HashMap"  resultClass="egovMap">
+			{ CALL SP_MNG1050M01_01(#type#, #objNm#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		<procedure id="MNG.SP_MNG1050M01_02" parameterClass="java.util.HashMap"  resultClass="egovMap">
+			{ CALL SP_MNG1050M01_02(#objNm#, #type#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		
+		
+
+</sqlMap>

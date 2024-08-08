@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="procInfo">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="procInfo.getMaxProcessId" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : procInfo.getMaxProcessId */
+		select isnull(max(process_id),1000)+1 system_id
+			FROM tb_sys_procInfo
+	</select>
+	
+	<select id="procInfo.getMaxPortIdx" parameterClass="java.util.HashMap"	resultClass="egovMap">
+		/* ID : procInfo.getMaxPortIdx */
+		select isnull(max(port_idx)+1 ,0) port_idx
+			FROM tb_sys_procInfo
+		where system_id 	 = #systemId#
+			and process_code = #processCode#
+	</select>
+	
+	<select id="procInfo.getProcInfoCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : procInfo.getProcInfoCount */
+		select count(*) as cnt
+			FROM tb_sys_procInfo a 
+				join tb_mng_basecode b
+					on a.process_class = b.class_id
+					and a.process_code = b.code_id
+					and b.class_id = 'process_class'
+				join tb_sys_sysinfo c
+					on a.sys_group_id = c.sys_group_id
+					and a.system_id = c.system_id
+				join tb_sys_sysgroup d
+					on a.sys_group_id = d.sys_group_id
+				left outer join tb_sys_sysinfo e
+					on a.slave_system_id = e.system_id
+				left outer join tb_sys_procInfo f
+					on a.slave_system_id = f.system_id
+					and a.slave_process_id = f.process_id
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND"  property="findText">
+				<isEqual property="findKey" compareValue="a.process_name">  a.process_name  </isEqual>
+				Like '%'+ #findText# +'%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findSystemId">
+				a.system_id = #findSystemId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findProcessCode">
+				a.process_code = #findProcessCode#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+
+	<select id="procInfo.getProcInfoList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : procInfo.getProcInfoList */
+		select 
+				RTRIM(CAST(sys_group_id AS CHAR(10))) as sys_group_id, RTRIM(CAST(system_id AS CHAR(10))) as system_id
+				, RTRIM(CAST(process_id AS CHAR(10))) as process_id, process_name, process_param
+				, RTRIM(CAST(port_idx AS CHAR(10))) as port_idx, RTRIM(CAST(slave_system_id AS CHAR(10))) as slave_system_id
+				, slave_process_id, process_class, process_code, use_flag, alarm_flag, ini_content, process_desc, ins_id
+				, CONVERT(CHAR(23), ins_date, 21) as ins_date, upt_id, CONVERT(CHAR(23), upt_date, 21) as upt_date 
+				, process_code_name, system_name, slave_system_name, slave_process_name, sys_group_name, PROC_VER
+			from(
+				select * 
+					from (
+						select
+								Row_Number() over (order by sys_group_id desc , system_id desc, process_id desc) RowNum2,* 
+							from (
+								select 
+										Row_Number() over (order by a.sys_group_id, a.system_id, a.process_id) RowNum1
+										, a.sys_group_id, a.system_id , a.process_id, a.process_name, a.process_param, a.port_idx
+										, a.slave_system_id, a.slave_process_id, a.process_class , a.process_code, a.use_flag 
+										, a.alarm_flag, a.ini_content, a.process_desc, a.ins_id
+										, a.ins_date, a.upt_id, a.upt_date , b.code_name process_code_name, c.system_name
+										, e.system_name slave_system_name, f.process_name slave_process_name, d.sys_group_name, a.PROC_VER
+									FROM tb_sys_procInfo a 
+										join tb_mng_basecode b	
+											on a.process_class = b.class_id	
+											and a.process_code = b.code_id	
+											and b.class_id = 'process_class'
+										join tb_sys_sysinfo c	
+											on a.sys_group_id = c.sys_group_id	
+											and a.system_id = c.system_id
+										join tb_sys_sysgroup d	
+											on a.sys_group_id = d.sys_group_id
+										left outer join tb_sys_sysinfo e 
+											on a.slave_system_id = e.system_id
+										left outer join tb_sys_procInfo f	
+											on a.slave_system_id = f.system_id	
+											and a.slave_process_id = f.process_id
+								<dynamic prepend="WHERE">
+									<isNotEmpty prepend="AND"  property="findText">
+										<isEqual property="findKey" compareValue="a.process_name">  a.process_name  </isEqual>
+										Like '%'+ #findText# +'%'
+									</isNotEmpty>
+									<isNotEmpty prepend="AND" property="findSystemId">
+										a.system_id = #findSystemId#
+									</isNotEmpty>
+									<isNotEmpty prepend="AND" property="findProcessCode">
+										a.process_code = #findProcessCode#
+									</isNotEmpty>
+								</dynamic>
+								) TB_IN
+						WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+					) TB_OUT 
+				WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+			) tbl2
+		order by sys_group_id, system_id, process_id
+	</select>
+
+	<insert id="procInfo.setProcInfoInsert" parameterClass="java.util.HashMap">
+		/* ID : procInfo.setProcInfoInsert */
+		insert into tb_sys_procInfo
+			(
+			sys_group_id, system_id, process_id, process_name, slave_system_id, slave_process_id, process_param, port_idx
+			, process_class, process_code, use_flag, alarm_flag, ini_content, process_desc, ins_id, ins_date
+			) 
+		values 
+			(
+			#sysGroupId#, #systemId#, #processId#, #processName#, #slaveSystemId#, #slaveProcessId#, #processParam#, #portIdx#
+			, #processClass#, #processCode#, #useFlag#, #alarmFlag#, #iniContent#, #processDesc#, #insId#, getdate()
+			)
+	</insert>
+
+	<update id="procInfo.setProcInfoUpdate" parameterClass="java.util.HashMap" >
+		/* ID : procInfo.setProcInfoUpdate */
+		update tb_sys_procInfo set 
+			process_name		= #processName#
+			, slave_system_id 	= #slaveSystemId#
+			, slave_process_id 	= #slaveProcessId#
+			, process_param 	= #processParam#
+			, port_idx 			= #portIdx#
+			, process_class 	= #processClass#
+			, process_code 		= #processCode#
+			, use_flag 			= #useFlag#
+			, alarm_flag 		= #alarmFlag#
+			, ini_content 		= #iniContent#
+			, process_desc 		= #processDesc#
+			, upt_id			= #uptId#
+			, upt_date			= getdate()
+		where sys_group_id 		= #sysGroupId#
+			and system_id 		= #systemId#
+			and process_id 		= #processId#
+	</update>
+	
+	<delete id="procInfo.setProcInfoDelete" parameterClass="java.util.HashMap" >
+		/* ID : procInfo.setProcInfoDelete */
+		delete 
+			from tb_sys_procInfo
+		where sys_group_id = #sysGroupId#
+			and system_id  = #systemId#
+		 	and process_id = #processId#
+	</delete>
+	
+	<select id="procInfo.getProcSlaveComboList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : procInfo.getProcSlaveComboList */
+		select a.process_id as code, a.process_name + '_' + LTRIM(STR(a.process_id)) as code_nm
+			FROM tb_sys_procInfo a
+				join tb_mng_basecode b
+					on a.process_class = b.class_id
+					and a.process_code = b.code_id
+					and b.class_id = 'process_class'
+			<dynamic prepend="WHERE">
+				<isNotEmpty prepend="AND" property="systemId">
+					a.system_id = #systemId#
+				</isNotEmpty>
+				<isNotEmpty prepend="AND" property="findProcessCode">
+					a.process_code = #findProcessCode#
+				</isNotEmpty>
+			</dynamic>
+		order by a.system_id, a.process_id
+	</select>
+	
+	<select id="procInfo.getProcIniDefList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : procInfo.getProcIniDefList */
+		select 
+				process_code, key_order, process_name, section_name, key_name, key_title
+				, isnull(key_value,'') key_value, key_desc, input_type
+				, isnull(value_list,'') value_list, isnull(default_value,'') default_value
+			from TB_SYS_INI_DEF 
+		WHERE process_code = #iniProcessCode#
+			<isNotEmpty prepend="AND" property="processId">
+				process_id = #processId#
+			</isNotEmpty>
+		order by key_order asc		
+	</select>
+	
+	<insert id="procInfo.setSysIniDefInsert" parameterClass="java.util.HashMap">
+		/* ID : procInfo.setSysIniDefInsert */
+		<![CDATA[
+		insert into TB_SYS_INI_DEF 
+			(
+			process_code, process_name, section_name, key_name, key_order, key_title
+			, key_value, input_type, default_value, value_list, key_desc, process_id 
+			) 
+		VALUES 
+			(
+			#processCode#, #processName#, #selName#, #keyName#, #keyOrder#, #keyTitle#
+			, #keyValue#, #type#, #defaultVal#,	#valueList#, #keyDesc#, #processId#
+			) 	
+		]]>
+	</insert>
+	
+	<update id="procInfo.setSysIniDefUpdate" parameterClass="java.util.HashMap" >
+		/* ID : procInfo.setSysIniDefUpdate */
+		<![CDATA[
+		UPDATE TB_SYS_INI_DEF SET
+			key_value 		 = #keyValue#
+		WHERE process_code 	 = #processCode#  
+	  		and process_name = #processName#
+	  		and section_name = #selName#
+	  		and key_name 	 = #keyName#
+	  		and process_id 	 = #processId#
+		]]>
+	</update>
+	
+	<update id="procInfo.setSysIniContUpdate" parameterClass="java.util.HashMap" >
+		/* ID : procInfo.setSysIniContUpdate */
+		update tb_sys_procInfo set 
+			ini_content    = #iniContent#
+		where sys_group_id = #sysGroupId#
+			and system_id  = #systemId#
+			and process_id = #processId#
+	</update>
+
+</sqlMap>

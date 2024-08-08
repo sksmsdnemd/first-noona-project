@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ 	"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="sysCheck">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="sysCheck.getSummarySystem" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysCheck.getSummarySystem */
+		SELECT 
+				RM.system_id system_id, SI.system_name system_name, SYSTEM_IP, RM.res_code res_code, code_name
+				, RM.res_name res_name,	RM.res_max res_total, RM.res_max*USE_MAX/100 res_used, USE_MAX use_max_percent
+				, convert(varchar(14),RegTimeMin,121) as reg_time_min, RegTimeMax as reg_time_max
+			FROM (
+				select 
+						S.SYS_GROUP_ID, s.system_id, S.res_code, s.res_name, S.RES_MAX USE_MAX
+						, MIN(reg_date+reg_time) RegTimeMin, MAX(reg_date+reg_time) RegTimeMax
+					from( 
+						SELECT SYS_GROUP_ID, system_id, res_code,res_name, AVG(RES_AVG) RES_AVG, MAX(RES_AVG) RES_MAX
+							FROM TB_STA_RESOURCE
+						WHERE reg_date > CONVERT(VARCHAR, GETDATE()-15, 112)
+						GROUP BY SYS_GROUP_ID, system_id, res_code, res_name 
+						) S, TB_STA_RESOURCE R
+				WHERE 1=1
+					AND reg_date > CONVERT(VARCHAR, GETDATE()-15, 112)
+					AND R.system_id = S.system_id 
+					AND R.res_code  = S.res_code 
+					AND R.res_name  = S.res_name
+					AND R.res_avg   = S.RES_MAX
+				GROUP BY S.SYS_GROUP_ID, s.system_id, s.res_code, s.res_name, S.RES_MAX	
+				) TS, TB_SYS_SYSINFO SI, TB_SYS_RESMON RM,
+				(SELECT code_id, code_name FROM TB_MNG_BASECODE WHERE class_id='res_class') RC,
+				(SELECT SYS_GROUP_ID,SYSTEM_ID,SYSTEM_IP FROM TB_SYS_IPINFO) IP
+		WHERE SI.system_id 		= RM.system_id 
+			AND RM.SYS_GROUP_ID = SI.SYS_GROUP_ID 
+			AND RM.RES_CODE		= code_id
+			AND TS.SYSTEM_ID 	= SI.SYSTEM_ID 
+			AND TS.SYS_GROUP_ID = SI.SYS_GROUP_ID
+			AND TS.RES_CODE 	= RM.res_code 
+			AND RM.res_name 	= TS.res_name
+			AND IP.SYSTEM_ID 	= SI.SYSTEM_ID 
+			AND IP.SYS_GROUP_ID = SI.SYS_GROUP_ID
+			<isNotEmpty prepend="AND" property="findSysName">
+				SI.system_id = #findSysName#
+			</isNotEmpty>
+		ORDER BY SYSTEM_IP, RM.system_id, SI.system_name, res_code <!-- 수정 2014-09-29 res_id -> res_code -->
+	</select>
+
+	<select id="sysCheck.getSummaryProcess" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysCheck.getSummaryProcess */
+		SELECT 
+				P.system_id, system_name, P.process_id, process_name, PROC_VER, PORT_IDX MRS_PORT_IDX  
+				, case ISNULL(HA_MODE,'0') WHEN '2' then 'Std-' else 'Act-' END +
+					case ISNULL(act_flag,'0') WHEN '1' then 'Run' WHEN '2' then 'Down' WHEN '3' then 'Stop' else 'Wait' end ACT_FLAG  
+				, ISNULL(ERR_CNT,0) ERR_CNT 
+				, CASE LEFT(PROCESS_NAME,3) WHEN 'MRU' THEN ISNULL(MRU_REC_CNT,'') ELSE '' END MRU_REC_CNT 
+				, CASE LEFT(PROCESS_NAME,3) WHEN 'MRU' THEN ISNULL(MTU_REC_CNT,'') ELSE '' END MTU_REC_CNT
+				, CASE LEFT(PROCESS_NAME,3) WHEN 'MFU' THEN ISNULL(MFU_CNT,'') ELSE '' END MFU_CNT
+			FROM TB_SYS_PROCINFO P
+				LEFT OUTER JOIN (	
+					SELECT 1 sys_group_id, system_id,process_id, COUNT(*) ERR_CNT FROM TB_ERR_ERRLOG 
+					WHERE err_date >= CONVERT(VARCHAR, GETDATE()-1, 112)
+						AND err_msg LIKE 'Process fault%'
+					GROUP BY system_id ,process_id
+					) E 
+					ON E.system_id = P.system_id AND E.process_id = P.process_id AND E.sys_group_id = P.sys_group_id
+				LEFT OUTER JOIN TB_SYS_SYSINFO S 
+					ON S.system_id = P.system_id
+				LEFT OUTER JOIN (	
+					SELECT 1 sys_group_id, mrs_system_id, COUNT(*) MRU_REC_CNT 
+						FROM TB_REC_FILE F, TB_REC_FILE_INDEX I
+					WHERE F.rec_key = I.rec_key
+						AND F.rec_time BETWEEN CONVERT(VARCHAR, GETDATE(), 112) AND CONVERT(VARCHAR, GETDATE(), 112) + '99'
+						AND SEARCH_VISIBLE IN (0,1)
+					GROUP BY mrs_system_id 
+					) MRU_SUM 
+					ON P.system_id = MRU_SUM.mrs_system_id AND MRU_SUM.sys_group_id = P.sys_group_id
+				LEFT OUTER JOIN (	
+					SELECT 1 sys_group_id, MRS_SYSTEM_ID, COUNT(*) MTU_REC_CNT 
+						FROM TB_REC_FILE F, TB_REC_FILE_INDEX I
+					WHERE F.rec_key = I.rec_key
+						AND F.rec_time BETWEEN CONVERT(VARCHAR, GETDATE(), 112) AND CONVERT(VARCHAR, GETDATE(), 112) + '99'
+						AND search_visible = 1
+					GROUP BY mrs_system_id
+					) MTU_SUM 
+					ON P.system_id = MTU_SUM.mrs_system_id and MTU_SUM.sys_group_id = p.sys_group_id
+				LEFT OUTER JOIN ( 	
+					SELECT 'MFU' PROC_NAME,COUNT(*) MFU_CNT FROM TB_REC_RECLOG
+					WHERE WORK_SDATE > CONVERT(VARCHAR, GETDATE(),111)
+					) MFU_SUM 
+					ON process_name LIKE MFU_SUM.PROC_NAME + '%'
+		WHERE 1=1
+			<isNotEmpty prepend="AND" property="findSysName">
+				P.system_id = #findSysName# 
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findProcessName">
+		 		P.process_id =#findProcessName#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findActFalg">
+				<!-- 수정 2014-10-21 -->
+				<isEqual property="findActFalg" compareValue="0">			P.HA_MODE = '2' 					</isEqual>
+				<isEqual property="findActFalg" compareValue="1"><![CDATA[ 	ISNULL(P.HA_MODE,'0') <> '2' ]]> 	</isEqual>
+			</isNotEmpty>
+		ORDER BY P.system_id, process_id <!-- 수정 2014-09-29 process_code -> process_id -->
+	</select>
+
+	<select id="sysCheck.getSummaryRecode" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : sysCheck.getSummaryRecode */
+		select 
+				err_content, rec_date, mrs_system_id, dn_no, phone_ip, ISNULL(user_name ,'') user_name
+				, user_id, rec_x_cnt, rec_o_count, rec_all	
+			from (
+				select 
+						CASE WHEN user_name IS NULL THEN 'USER' ELSE err_content END err_content 
+						, rec_date, mrs_system_id, dn_no, phone_ip 
+						, CASE WHEN user_name IS NULL 
+							THEN CASE WHEN ts.user_id IS NULL THEN 'NotLogin' ELSE 'NotRegist' END 
+							ELSE user_name END user_name
+						, ts.user_id 
+						, ISNULL(SUM(rec_x_count),0) rec_x_cnt
+						, ISNULL(SUM(rec_o_count),0) rec_o_count 
+						, ISNULL(SUM(rec_x_count),0) + ISNULL(SUM(rec_o_count),0) rec_all
+					from (
+						select 
+								CASE LEN(ISNULL(user_id,'')) WHEN 0 THEN 'USER' ELSE 'PACKET' END err_content
+								, <![CDATA[ CASE WHEN i.upload_kind > '2' AND i.upload_kind < '9' THEN count(*) END rec_o_count ]]>
+								, <![CDATA[ CASE WHEN i.upload_kind < '3' OR i.upload_kind = '9' THEN count(*) END rec_x_count	]]>
+								, tenant_id, SUBSTRING(f.rec_time,1,8) rec_date, mrs_system_id, dn_no,phone_ip, f.user_id
+							FROM tb_rec_file f, tb_rec_file_index i
+						WHERE f.rec_key = i.rec_key
+							AND f.rec_time BETWEEN CONVERT(VARCHAR,GETDATE()-18,112) AND CONVERT(VARCHAR,GETDATE()+18,112)
+						GROUP BY tenant_id, SUBSTRING(f.rec_time,1,8),mrs_system_id, dn_no,phone_ip, f.user_id, i.upload_kind
+						) ts 
+						LEFT OUTER JOIN tb_mng_userinfo u 
+							on ts.tenant_id = u.tenant_id and ts.user_id = u.user_id
+				GROUP BY err_content, rec_date, mrs_system_id, dn_no, phone_ip, user_name, ts.user_id, ts.tenant_id
+				HAVING <![CDATA[ isnull(sum(rec_x_count),0) > 0 ]]> OR user_name IS NULL
+				) t
+		WHERE 1=1 
+			<isNotEmpty prepend="AND" property="findSysName">
+				mrs_system_id = #findSysName#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findUserName">
+		 		user_name = #findUserName#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findUserId">
+		 		user_id = #findUserId#
+			</isNotEmpty>
+			<isNotEmpty property="findErrCont">
+				<isEqual prepend="AND" property="findErrCont" compareValue="0">
+					err_content = 'USER'<!-- '사용자미등록녹취' 수정 2014-09-25 -->
+				</isEqual>
+				<isEqual prepend="AND" property="findErrCont" compareValue="1">
+					err_content = 'PACKET'<!-- '패킷미수신녹취' 수정 2014-09-25 -->
+				</isEqual>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findPhoneIp">
+		 		phone_ip like  #findPhoneIp# + '%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findDnNo">
+		 		dn_no = #findDnNo#
+			</isNotEmpty>
+		ORDER BY err_content, rec_date, mrs_system_id,dn_no, phone_ip, user_name 
+	</select>
+	
+	<select id="sysCheck.getRecCnfrmtyCnt" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : sysCheck.getRecCnfrmtyCnt */
+		SELECT COUNT(*) AS CNT
+		  FROM (
+			SELECT t1.REC_DATE AS APP_REC_DATE
+				 , t1.UCID AS APP_UCID
+				 , t1.DN_NO AS APP_DN_NO
+				 , t1.HOP AS APP_HOP
+				 , t1.CALL_KIND AS APP_CALL_KIND
+				 , t1.CALL_ID AS APP_CALL_ID
+				 , t1.USER_ID AS APP_USER_ID
+				 , t2.USER_NAME AS APP_USER_NAME
+				 , t1.CUST_TEL AS APP_CUST_TEL
+				 , t1.CUST_NO AS APP_CUST_NO
+				 , t1.CUST_NAME AS APP_CUST_NAME
+				 , t1.CUST_ETC1 AS APP_CUST_ETC1
+				 , t1.CUST_ETC2 AS APP_CUST_ETC2
+				 , t1.CUST_ETC3 AS APP_CUST_ETC3
+				 , t1.CUST_ETC4 AS APP_CUST_ETC4
+				 , t1.CUST_ETC5 AS APP_CUST_ETC5
+				 , t1.CUST_ETC6 AS APP_CUST_ETC6
+				 , t1.CUST_ETC7 AS APP_CUST_ETC7
+				 , t1.CUST_ETC8 AS APP_CUST_ETC8
+			  FROM TB_REC_CNFRMTY t1
+			  LEFT OUTER JOIN TB_MNG_USERINFO t2
+				ON t1.TENANT_ID = t2.TENANT_ID
+			   AND t1.USER_ID = t2.USER_ID
+			 WHERE t1.TENANT_ID = #findTenantId#
+			   AND t1.REC_DATE = #findRecDate#
+		  ) tt1
+		  LEFT OUTER JOIN (
+			SELECT t1.REC_TIME AS VEL_REC_TIME
+				 , t1.DN_NO AS VEL_DN_NO
+				 , t1.GROUP_ID AS VEL_GROUP_ID
+				 , t2.GROUP_NAME AS VEL_GROUP_NAME
+				 , t1.USER_ID AS VEL_USER_ID
+				 , t3.USER_NAME AS VEL_USER_NAME
+				 , t1.PHONE_IP AS VEL_PHONE_IP
+				 , t1.END_TIME AS VEL_END_TIME
+				 , t1.CALL_KIND AS VEL_CALL_KIND
+				 , t1.CALL_ID AS VEL_CALL_ID
+				 , t1.CUST_TEL AS VEL_CUST_TEL
+				 , t1.CUST_NO AS VEL_CUST_NO
+				 , t1.CUST_NAME AS VEL_CUST_NAME
+				 , t1.CUST_ETC1 AS VEL_CUST_ETC1
+				 , t1.CUST_ETC2 AS VEL_CUST_ETC2
+				 , t1.CUST_ETC3 AS VEL_CUST_ETC3
+				 , t1.CUST_ETC4 AS VEL_CUST_ETC4
+				 , t1.CUST_ETC5 AS VEL_CUST_ETC5
+				 , t1.CUST_ETC6 AS VEL_CUST_ETC6
+				 , t1.CUST_ETC7 AS VEL_CUST_ETC7
+				 , t1.CUST_ETC8 AS VEL_CUST_ETC8
+				 , t1.REC_GUBUN
+			  FROM TB_REC_FILE t1
+			  LEFT OUTER JOIN TB_MNG_GROUP t2
+				ON t1.TENANT_ID = t2.TENANT_ID
+			   AND t1.GROUP_ID = t2.GROUP_ID
+			  LEFT OUTER JOIN TB_MNG_USERINFO t3
+				ON t1.TENANT_ID = t3.TENANT_ID
+			   AND t1.USER_ID = t3.USER_ID
+			 WHERE t1.TENANT_ID = #findTenantId#
+			   AND t1.REC_TIME <![CDATA[ >= ]]> CONVERT(VARCHAR, DATEADD(DAY, -1, CONVERT(DATE, #findRecDate#)), 112) + '230000'
+			   AND t1.REC_TIME <![CDATA[ <= ]]> CONVERT(VARCHAR, DATEADD(DAY, 1, CONVERT(DATE, #findRecDate#)), 112) + '010000'
+		  ) tt2
+			ON tt1.APP_CALL_ID = tt2.VEL_CALL_ID
+		 WHERE 1 = 1
+		<isNotEmpty prepend="AND" property="findOmissionAt">
+			<isEqual property="findOmissionAt" compareValue="Y"> tt2.VEL_CALL_ID IS NULL</isEqual>
+			<isEqual property="findOmissionAt" compareValue="N"> tt2.VEL_CALL_ID IS NOT NULL</isEqual>
+		</isNotEmpty>
+	</select>
+	
+	<select id="sysCheck.getRecCnfrmtyList" parameterClass="java.util.HashMap" resultClass="egovMap" >
+		/* ID : sysCheck.getRecCnfrmtyList */
+		SELECT *
+		  FROM (
+			SELECT ROW_NUMBER() OVER (ORDER BY ISNULL(APP_REC_DATE, '99991231'), ISNULL(VEL_REC_TIME, '99991231')) ROWNUM2, TB_IN.*
+			  FROM (
+				SELECT tt1.*
+					 , tt2.*
+					 , CASE WHEN tt2.VEL_CALL_ID IS NULL THEN 'Y' ELSE 'N' END AS OMISSION_AT
+					 , ROW_NUMBER() OVER (ORDER BY ISNULL(tt1.APP_REC_DATE, '99991231') DESC, ISNULL(tt2.VEL_REC_TIME, '99991231') DESC) AS ROWNUM1
+				  FROM (
+					SELECT t1.REC_DATE AS APP_REC_DATE
+						 , t1.UCID AS APP_UCID
+						 , t1.DN_NO AS APP_DN_NO
+						 , t1.HOP AS APP_HOP
+						 , t1.CALL_KIND AS APP_CALL_KIND
+						 , t1.CALL_ID AS APP_CALL_ID
+						 , t1.USER_ID AS APP_USER_ID
+						 , t2.USER_NAME AS APP_USER_NAME
+						 , t1.CUST_TEL AS APP_CUST_TEL
+						 , t1.CUST_NO AS APP_CUST_NO
+						 , t1.CUST_NAME AS APP_CUST_NAME
+						 , t1.CUST_ETC1 AS APP_CUST_ETC1
+						 , t1.CUST_ETC2 AS APP_CUST_ETC2
+						 , t1.CUST_ETC3 AS APP_CUST_ETC3
+						 , t1.CUST_ETC4 AS APP_CUST_ETC4
+						 , t1.CUST_ETC5 AS APP_CUST_ETC5
+						 , t1.CUST_ETC6 AS APP_CUST_ETC6
+						 , t1.CUST_ETC7 AS APP_CUST_ETC7
+						 , t1.CUST_ETC8 AS APP_CUST_ETC8
+					  FROM TB_REC_CNFRMTY t1
+					  LEFT OUTER JOIN TB_MNG_USERINFO t2
+						ON t1.TENANT_ID = t2.TENANT_ID
+					   AND t1.USER_ID = t2.USER_ID
+					 WHERE t1.TENANT_ID = #findTenantId#
+					   AND t1.REC_DATE = #findRecDate#
+				  ) tt1
+				  LEFT OUTER JOIN (
+					SELECT t1.REC_TIME AS VEL_REC_TIME
+						 , t1.DN_NO AS VEL_DN_NO
+						 , t1.GROUP_ID AS VEL_GROUP_ID
+						 , t2.GROUP_NAME AS VEL_GROUP_NAME
+						 , t1.USER_ID AS VEL_USER_ID
+						 , t3.USER_NAME AS VEL_USER_NAME
+						 , t1.PHONE_IP AS VEL_PHONE_IP
+						 , t1.END_TIME AS VEL_END_TIME
+						 , t1.CALL_KIND AS VEL_CALL_KIND
+						 , t1.CALL_ID AS VEL_CALL_ID
+						 , t1.CUST_TEL AS VEL_CUST_TEL
+						 , t1.CUST_NO AS VEL_CUST_NO
+						 , t1.CUST_NAME AS VEL_CUST_NAME
+						 , t1.CUST_ETC1 AS VEL_CUST_ETC1
+						 , t1.CUST_ETC2 AS VEL_CUST_ETC2
+						 , t1.CUST_ETC3 AS VEL_CUST_ETC3
+						 , t1.CUST_ETC4 AS VEL_CUST_ETC4
+						 , t1.CUST_ETC5 AS VEL_CUST_ETC5
+						 , t1.CUST_ETC6 AS VEL_CUST_ETC6
+						 , t1.CUST_ETC7 AS VEL_CUST_ETC7
+						 , t1.CUST_ETC8 AS VEL_CUST_ETC8
+						 , t1.REC_GUBUN
+					  FROM TB_REC_FILE t1
+					  LEFT OUTER JOIN TB_MNG_GROUP t2
+						ON t1.TENANT_ID = t2.TENANT_ID
+					   AND t1.GROUP_ID = t2.GROUP_ID
+					  LEFT OUTER JOIN TB_MNG_USERINFO t3
+						ON t1.TENANT_ID = t3.TENANT_ID
+					   AND t1.USER_ID = t3.USER_ID
+					 WHERE t1.TENANT_ID = #findTenantId#
+					   AND t1.REC_TIME <![CDATA[ >= ]]> CONVERT(VARCHAR, DATEADD(DAY, -1, CONVERT(DATE, #findRecDate#)), 112) + '230000'
+					   AND t1.REC_TIME <![CDATA[ <= ]]> CONVERT(VARCHAR, DATEADD(DAY, 1, CONVERT(DATE, #findRecDate#)), 112) + '010000'
+				  ) tt2
+					ON tt1.APP_CALL_ID = tt2.VEL_CALL_ID
+				 WHERE 1 = 1
+				<isNotEmpty prepend="AND" property="findOmissionAt">
+					<isEqual property="findOmissionAt" compareValue="Y"> tt2.VEL_CALL_ID IS NULL</isEqual>
+					<isEqual property="findOmissionAt" compareValue="N"> tt2.VEL_CALL_ID IS NOT NULL</isEqual>
+				</isNotEmpty>
+			  ) TB_IN
+			 WHERE <![CDATA[ ROWNUM1 <= #iEPageNo# ]]>
+		  ) TB_OUT
+		 WHERE <![CDATA[ ROWNUM2 <= #iSPageNo# ]]>
+		 ORDER BY ISNULL(APP_REC_DATE, '99991231') DESC, ISNULL(VEL_REC_TIME, '99991231') DESC
+	</select>
+
+</sqlMap>

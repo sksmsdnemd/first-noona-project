@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="menu">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+
+	<select id="menu.getMenuList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getMenuList */
+		SELECT a.TENANT_ID, a.GRANT_ID, a.DEPTH1_ID, a.DEPTH2_ID, a.DEPTH3_ID
+		  	 , b.MENU_NAME, b.SRC_DO, b.MENU_AUTH_DEF, IFNULL(a.AUTH_KIND,'N') AS AUTH_KIND
+		  FROM TB_MNG_MENUAUTH a 
+		  JOIN TB_MNG_MENU b 
+			ON a.DEPTH1_ID = b.DEPTH1_ID 
+		   AND a.DEPTH2_ID = b.DEPTH2_ID 
+		   AND a.DEPTH3_ID = b.DEPTH3_ID
+    	   AND (b.SRC_DO IS NOT NULL AND b.SRC_DO != '')
+    	   AND a.TENANT_ID = #tenantId#	
+		   AND a.GRANT_ID = (SELECT GRANT_ID FROM TB_MNG_USERINFO WHERE TENANT_ID = #tenantId# AND USER_ID = #userId# AND GRANT_ID = #grantId#)
+		 ORDER BY DEPTH1_ID, DEPTH2_ID, DEPTH3_ID
+	</select>
+	
+	<select id="menu.getMenuAuthList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getMenuAuthList */
+		SELECT m.DEPTH1_ID, m.DEPTH2_ID, m.DEPTH3_ID, MENU_NAME, SRC_DO, AUTH_KIND
+			 , LPAD(' ', (CASE WHEN m.DEPTH2_ID = 0 THEN 0 ELSE 1 END + CASE WHEN m.DEPTH3_ID = 0 THEN 0 ELSE 1 END) * 4, ' ') AS HEAD
+			 , CASE WHEN m.DEPTH2_ID = 0 THEN 0 ELSE 1 END + CASE WHEN m.DEPTH3_ID = 0 THEN 0 ELSE 1 END AS DEPTH
+		  FROM TB_MNG_MENU m, TB_MNG_MENUAUTH ma
+		 WHERE m.DEPTH1_ID = ma.DEPTH1_ID 
+		   AND m.DEPTH2_ID = ma.DEPTH2_ID 
+		   AND m.DEPTH3_ID = ma.DEPTH3_ID
+		   AND GRANT_ID = #findGrantId#
+		   AND TENANT_ID = #findTenantId#
+		   AND (SRC_DO IS NOT NULL AND SRC_DO != '')
+		 ORDER BY m.DEPTH1_ID, m.DEPTH2_ID, m.DEPTH3_ID
+	</select>
+
+	<update id="menu.setMenuAuthUpdate" parameterClass="java.util.HashMap">
+		/* ID : menu.setMenuAuthUpdate */
+		UPDATE TB_MNG_MENUAUTH
+		   SET AUTH_KIND = NULLIF(#authKind#, '')
+			 , UPT_ID = NULLIF(#uptId#, '')
+			 , UPT_DATE = SYSDATE()
+		 WHERE TENANT_ID = #tenantId#
+			AND GRANT_ID = #grantId#
+			AND DEPTH1_ID = #depth1Id#
+			AND DEPTH2_ID = #depth2Id#
+			AND DEPTH3_ID = #depth3Id#
+	</update>
+		
+	<select id="menu.getColTitleList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getColTitleList */
+		SELECT IFNULL(TABLE_NAME, 'TB_REC_FILE') AS TABLE_NAME, f.FIELD_NAME, IFNULL(FIELD_TITLE, '') AS FIELD_TITLE
+			 , MASKING_FLAG, MASKING_TYPE 
+		  FROM (	
+			SELECT 'cust_etc1' AS FIELD_NAME
+			UNION ALL SELECT 'cust_etc2'
+			UNION ALL SELECT 'cust_etc3'
+			UNION ALL SELECT 'cust_etc4'
+			UNION ALL SELECT 'cust_etc5'
+			UNION ALL SELECT 'cust_etc6'
+			UNION ALL SELECT 'cust_etc7'
+			UNION ALL SELECT 'cust_etc8'
+		  ) f 
+		  LEFT OUTER JOIN (
+			SELECT TABLE_ID TABLE_NAME, COL_ID FIELD_NAME, COL_TEXT FIELD_TITLE, MASKING_FLAG, MASKING_TYPE 
+			  FROM TB_MNG_COL_TITLE
+			 WHERE TENANT_ID = #findTenantId#
+			   AND UPPER(TABLE_ID) = UPPER('TB_REC_FILE')
+		  ) t
+			ON UPPER(f.FIELD_NAME) = UPPER(t.FIELD_NAME)
+	</select>
+	
+	<update id="menu.setColTitleUpdate" parameterClass="java.util.HashMap">
+		/* ID : menu.setColTitleUpdate */
+		UPDATE TB_MNG_COL_TITLE
+		   SET COL_TEXT = NULLIF(#fieldTitle#, '')
+			 , MASKING_FLAG = NULLIF(#maskingFlag#, '')
+			 , MASKING_TYPE = NULLIF(#maskingType#, '')
+			 , UPT_ID = NULLIF(#uptId#, '')
+			 , UPT_DATE = SYSDATE()		
+		 WHERE TENANT_ID = #findTenantId#
+		   AND UPPER(TABLE_ID) = UPPER('TB_REC_FILE')
+		   AND COL_ID = #fieldName#
+	</update>
+	
+	<insert id="menu.setColTitleInsert" parameterClass="java.util.HashMap">
+		/* ID : menu.setColTitleInsert */
+		INSERT INTO TB_MNG_COL_TITLE (
+			TENANT_ID, TABLE_ID, COL_ID, COL_TEXT, MASKING_FLAG,
+			MASKING_TYPE, UPT_ID, UPT_DATE, INS_ID, INS_DATE
+		) VALUES (
+			NULLIF(#findTenantId#, ''), 'TB_REC_FILE', NULLIF(#fieldName#, ''), NULLIF(#fieldTitle#, ''), NULLIF(#maskingFlag#, ''),
+			NULLIF(#maskingType#, ''), NULLIF(#uptId#, ''), SYSDATE(), NULLIF(#uptId#, ''), SYSDATE()
+		)
+	</insert>
+	
+	<delete id="menu.setColTitleDelete" parameterClass="java.util.HashMap">
+		/* ID : menu.setColTitleDelete */
+		DELETE FROM TB_MNG_COL_TITLE 
+		 WHERE TENANT_ID = #findTenantId#
+		   AND UPPER(TABLE_ID) = UPPER('TB_REC_FILE')
+		   AND COL_ID = #fieldName#
+	</delete>
+	<select id="menu.getConfigSectionList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getConfigSectionList */
+		SELECT DISTINCT SECTION AS CODE, SECTION AS CODE_NM
+		  FROM TB_WAS_CONFIG
+		 ORDER BY SECTION 
+	</select>
+	
+	<select id="menu.getConfigMaxOrder" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getConfigMaxOrder */
+		SELECT IFNULL(MAX(KEY_ORDER)+1,1) AS MAX_KEY_ORDER
+		  FROM TB_WAS_CONFIG
+		WHERE SECTION = #section#
+	</select>
+				
+	<select id="menu.getConfigList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getConfigList */
+		SELECT SECTION, KEY_CODE, KEY_ORDER, RTRIM(CAST(VAL_TYPE AS CHAR(10))) AS VAL_TYPE
+			 , VAL_CUR, VAL_DEFAULT, VAL_LIST, TITLE_LIST, VAL_DESC
+		  FROM TB_WAS_CONFIG
+		<isNotEmpty property="findSection"> WHERE SECTION = #findSection#</isNotEmpty>
+		 ORDER BY SECTION, KEY_ORDER
+	</select>
+
+	<insert id="menu.setConfigInsert" parameterClass="java.util.HashMap">
+		/* ID : menu.setConfigInsert */
+		INSERT INTO TB_WAS_CONFIG ( 
+			SECTION, KEY_CODE, KEY_ORDER, VAL_TYPE, VAL_CUR,
+			VAL_DEFAULT, VAL_LIST, TITLE_LIST, UPT_DATE, UPT_ID, VAL_DESC 
+		) values ( 
+			NULLIF(#section#, ''), NULLIF(#keyCode#, ''), NULLIF(#keyOrder#, ''), NULLIF(#valType#, ''), NULLIF(#valCur#, ''),
+			NULLIF(#valDefault#, ''), NULLIF(#valList#, ''), NULLIF(#titleList#, ''), SYSDATE(), NULLIF(#userId#, ''), NULLIF(#valDesc#, '') 
+		)
+	</insert>
+	
+	<update id="menu.setConfigUpdate" parameterClass="java.util.HashMap">
+		/* ID : menu.setConfigUpdate */
+		UPDATE TB_WAS_CONFIG
+		   SET SECTION     = NULLIF(#section#, '')
+			 , KEY_CODE    = NULLIF(#keyCode#, '')
+			 , KEY_ORDER   = NULLIF(#keyOrder#, '')
+			 , VAL_TYPE    = NULLIF(#valType#, '')
+			 , VAL_CUR     = NULLIF(#valCur#, '')
+			 , VAL_DEFAULT = NULLIF(#valDefault#, '')
+			 , VAL_LIST    = NULLIF(#valList#, '')
+			 , TITLE_LIST  = NULLIF(#titleList#, '')
+			 , UPT_ID      = NULLIF(#userId#, '')
+			 , UPT_DATE    = SYSDATE()
+			 , VAL_DESC    = NULLIF(#valDesc#, '')
+		 WHERE SECTION     = #bkSection#
+		   AND KEY_CODE    = #bkKeyCode#
+		   AND KEY_ORDER   = #bkKeyOrder#
+	</update>
+	
+	<update id="menu.setConfigDelete" parameterClass="java.util.HashMap">
+		/* ID : menu.setConfigDelete */
+		DELETE FROM TB_WAS_CONFIG
+		 WHERE SECTION = #section#
+		   AND KEY_CODE = #keyCode#
+		   AND KEY_ORDER = #keyOrder#
+	</update>
+	
+	<update id="menu.setConfigSetting" parameterClass="java.util.HashMap">
+		/* ID : menu.setConfigSetting */
+		UPDATE TB_WAS_CONFIG
+		   SET VAL_CUR = NULLIF(#strKeyValue#, '')
+			 , UPT_ID = NULLIF(#userId#, '')
+			 , UPT_DATE = SYSDATE()
+		 WHERE SECTION = #strSection#
+		   AND KEY_CODE = #strKeyCode#
+		   AND KEY_ORDER = #strKeyOrder#
+	</update>
+	
+	<select id="menu.getSelectParam" parameterClass="java.util.HashMap" resultClass="String">
+		/* ID : menu.getSelectParam */
+		SELECT VAL_CUR 
+		  FROM TB_WAS_CONFIG
+		 WHERE SECTION = #section#
+		   AND KEY_CODE = #keyCode#
+	</select>
+	
+	<select id="menu.getMenuMngList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getMenuMngList */
+		SELECT RTRIM(CAST(DEPTH1_ID AS CHAR(10))) AS DEPTH1_ID
+			 , RTRIM(CAST(DEPTH2_ID AS CHAR(10))) AS DEPTH2_ID
+			 , RTRIM(CAST(DEPTH3_ID AS CHAR(10))) AS DEPTH3_ID
+			 , MENU_NAME, RTRIM(CAST(DISPLAY_FLAG AS CHAR(10))) AS DISPLAY_FLAG, LOG_FLAG, MENU_AUTH_DEF
+			 , SRC_LINK, HELP_SRC_LINK, SRC_DO
+			 , INS_ID, DATE_FORMAT(DATE_FORMAT(INS_DATE, '%Y-%m-%d %H:%i:%s'), '%Y-%m-%d %H:%i:%s') AS INS_DATE
+			 , UPT_ID, DATE_FORMAT(DATE_FORMAT(UPT_DATE, '%Y-%m-%d %H:%i:%s'), '%Y-%m-%d %H:%i:%s') AS UPT_DATE
+		  FROM TB_MNG_MENU 
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="findMenuName">
+				MENU_NAME LIKE CONCAT('%', #findMenuName#, '%')
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findDepth1">
+				DEPTH1_ID = #findDepth1#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findDepth2">
+				DEPTH2_ID = #findDepth2#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findDepth3">
+				DEPTH3_ID = #findDepth3#
+			</isNotEmpty>
+		</dynamic>
+		 ORDER BY DEPTH1_ID ASC, DEPTH2_ID ASC, DEPTH3_ID ASC
+	</select>
+	
+	<select id="menu.getDeptMenu1" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getDeptMenu1 */
+		SELECT DEPTH1_ID CODE, MENU_NAME CODE_NM 
+		  FROM TB_MNG_MENU
+		 WHERE DEPTH2_ID = '0'
+		   AND DEPTH3_ID = '0'
+		 ORDER BY DEPTH1_ID
+	</select>
+	
+	<select id="menu.getDeptMenu2" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getDeptMenu2 */
+		SELECT DEPTH2_ID CODE, MENU_NAME CODE_NM
+		  FROM TB_MNG_MENU
+		 WHERE DEPTH2_ID != '0'
+		   AND DEPTH3_ID  = '0'
+		   AND DEPTH1_ID  = #findDepth1#
+		 ORDER BY DEPTH2_ID
+	</select>
+	
+	<select id="menu.getDeptMenu3" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getDeptMenu3 */
+		SELECT DEPTH3_ID CODE, MENU_NAME CODE_NM 
+		  FROM TB_MNG_MENU
+		 WHERE DEPTH3_ID != '0'
+		   AND DEPTH1_ID  = #findDepth1#
+		   AND DEPTH2_ID  = #findDepth2#
+		 ORDER BY DEPTH3_ID
+	</select>
+	
+	<select id="menu.getDeptMenuMaxId1" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getDeptMenuMaxId1 */
+		SELECT RTRIM(CAST(MAX(DEPTH1_ID)+1 AS CHAR(10))) AS DEPTH1_ID 
+		  FROM TB_MNG_MENU 
+		 WHERE 1 = 1 
+		   AND DEPTH2_ID = '0' 
+		   AND DEPTH3_ID = '0'
+	</select>
+	
+	<select id="menu.getDeptMenuMaxId2" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getDeptMenuMaxId2 */
+		SELECT RTRIM(CAST(MAX(DEPTH2_ID)+1 AS CHAR(10))) AS DEPTH2_ID
+		  FROM TB_MNG_MENU 
+		 WHERE 1 = 1 
+		AND DEPTH1_ID = #depth1Id# 
+		AND DEPTH3_ID = '0'
+	</select>
+	
+	<select id="menu.getDeptMenuMaxId3" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : menu.getDeptMenuMaxId3 */
+		SELECT RTRIM(CAST(MAX(DEPTH3_ID)+1 AS CHAR(10))) AS DEPTH3_ID
+		  FROM TB_MNG_MENU 
+		 WHERE 1 = 1 
+		   AND DEPTH1_ID = #depth1Id# 
+		   AND DEPTH2_ID = #depth2Id#
+	</select>
+	
+	<insert id="menu.setMenuInsert" parameterClass="java.util.HashMap">
+		/* ID : menu.setMenuInsert */
+		INSERT INTO TB_MNG_MENU ( 
+			DEPTH1_ID, DEPTH2_ID, DEPTH3_ID, MENU_NAME, DISPLAY_FLAG,
+			SRC_DO, MENU_AUTH_DEF , INS_ID, INS_DATE 
+		) VALUES (
+			NULLIF(#depth1Id#, ''), NULLIF(#depth2Id#, ''), NULLIF(#depth3Id#, ''), NULLIF(#menuName#, ''), NULLIF(#displayFlag#, ''),
+			NULLIF(#srcDo#, ''), NULLIF(#menuAuthDef#, ''), NULLIF(#insId#, ''), SYSDATE() 
+		)
+	</insert>
+	
+	<update id="menu.setMenuUpdate" parameterClass="java.util.HashMap">
+		/* ID : menu.setMenuUpdate */
+		UPDATE TB_MNG_MENU
+		   SET MENU_NAME		= NULLIF(#menuName#, '')
+			 , DISPLAY_FLAG		= NULLIF(#displayFlag#, '')
+			 , SRC_DO			= NULLIF(#srcDo#, '')
+			 , MENU_AUTH_DEF	= NULLIF(#menuAuthDef#, '')
+			 , UPT_ID			= NULLIF(#uptId#, '')
+			 , UPT_DATE			= SYSDATE()
+		 WHERE DEPTH1_ID		= #depth1Id#
+		   AND DEPTH2_ID		= #depth2Id#
+		   AND DEPTH3_ID		= #depth3Id#
+	</update>
+	
+	<delete id="menu.setMenuDelete" parameterClass="java.util.HashMap">
+		/* ID : menu.setMenuDelete */
+		DELETE FROM TB_MNG_MENU
+		 WHERE DEPTH1_ID = #depth1Id#
+		   AND DEPTH2_ID = #depth2Id#
+		   AND DEPTH3_ID = #depth3Id#
+	</delete>
+	
+	<insert id="menu.setAuthByMenuInsert" parameterClass="java.util.HashMap">
+		/* ID : menu.setAuthByMenuInsert */
+		INSERT INTO TB_MNG_MENUAUTH ( 
+			TENANT_ID, GRANT_ID, DEPTH1_ID, DEPTH2_ID, DEPTH3_ID, AUTH_KIND, INS_ID, INS_DATE 
+		)
+		SELECT TENANT_ID, GRANT_ID
+			 , NULLIF(#depth1Id#, '') AS DEPTH1_ID, NULLIF(#depth2Id#, '') AS DEPTH2_ID, NULLIF(#depth3Id#, '') AS DEPTH3_ID
+			 , NULLIF(#menuAuthDef#, '') AS AUTH_KIND, NULLIF(#insId#, '') AS INS_ID, SYSDATE() AS INS_DATE
+		  FROM TB_MNG_AUTH 
+	</insert>
+	
+	<delete id="menu.setAuthByMenuDelete" parameterClass="java.util.HashMap">
+		/* ID : menu.setAuthByMenuDelete */
+		DELETE FROM TB_MNG_MENUAUTH
+		 WHERE DEPTH1_ID = #depth1Id#
+		   AND DEPTH2_ID = #depth2Id#
+		   AND DEPTH3_ID = #depth3Id#
+	</delete>
+	
+</sqlMap>

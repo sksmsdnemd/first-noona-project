@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="bkLabel">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="bkLabel.getBkLabelCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : bkLabel.getBkLabelCount */
+		select count(*) as cnt
+			FROM tb_sys_bklabel
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND"  property="findText">
+				<isEqual property="findKey" compareValue="bk_label_id">	bk_label_id	</isEqual>
+				<isEqual property="findKey" compareValue="bk_device">  	bk_device 	</isEqual>
+				<isEqual property="findKey" compareValue="last_worker"> last_worker </isEqual>
+				Like '%'+ #findText# +'%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findFromCondition">
+				<![CDATA[	from_condition >= #findFromCondition#	]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findEndCondition">
+				<![CDATA[	end_condition <= #findEndCondition#		]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="bkLabel.getBkLabelList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : bkLabel.getBkLabelList */
+		select	
+				bk_label_id, bk_device, media_kind, CONVERT(CHAR(19), from_condition, 20) as from_condition
+				, CONVERT(CHAR(19), end_condition, 20) as end_condition
+				, store_place, CAST(bk_file_cnt AS CHAR(10)) as bk_file_cnt
+				, CAST(used_space AS CHAR(10)) as used_space, CAST(usable_space AS CHAR(10)) as usable_space
+				, RTRIM(CAST(store_year AS CHAR(10))) as store_year
+				, last_worker, CONVERT(CHAR(19), last_bk_time, 20) as last_bk_time, bk_run_flag, use_rate
+		from(
+			select * 
+				from (
+					select
+							Row_Number() over (order by last_bk_time ) RowNum2,* 
+						from (
+							select 
+									Row_Number() over (order by last_bk_time desc) RowNum1
+									, bk_label_id, bk_device, media_kind, from_condition, end_condition
+									, store_place, isnull(bk_file_cnt,0) bk_file_cnt, isnull(used_space,0) used_space
+									, isnull(usable_space,0) usable_space, isnull(store_year,0) store_year
+									, last_worker, last_bk_time, case bk_run_flag when '1' then '진행' when '2' then '완료' else '' end as bk_run_flag
+									, (isnull(used_space,0)*100) / (isnull(used_space,0)+isnull(usable_space,0)) as use_rate
+								FROM tb_sys_bklabel
+							<dynamic prepend="WHERE">
+								<isNotEmpty prepend="AND"  property="findText">
+									<isEqual property="findKey" compareValue="bk_label_id"> bk_label_id </isEqual>
+									<isEqual property="findKey" compareValue="bk_device"> 	bk_device 	</isEqual>
+									<isEqual property="findKey" compareValue="last_worker"> last_worker </isEqual>
+									Like '%'+ #findText# +'%'
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findFromCondition">
+									<![CDATA[	from_condition >= #findFromCondition#	]]>
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findEndCondition">
+									<![CDATA[	end_condition <=	#findEndCondition#	]]>
+								</isNotEmpty>
+							</dynamic>
+							) TB_IN
+						<!-- WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]> -->
+					) TB_OUT 
+				<!-- WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]> -->
+			) tbl2
+		order by last_bk_time desc
+	</select>
+
+	<update id="bkLabel.setBkLabelUpdate" parameterClass="java.util.HashMap">
+		/* ID : bkLabel.setBkLabelUpdate */
+		update tb_sys_bklabel set 
+			last_worker		= #lastWorker#
+			, store_place	= #storePlace#
+			, store_year	= #storeYear#
+		where bk_label_id 	= #bkLabelId#
+	</update>
+							
+	<delete id="bkLabel.setBkLabelDelete" parameterClass="java.util.HashMap" >
+		/* ID : bkLabel.setBkLabelDelete */
+		delete 
+			from tb_sys_bklabel
+		where bk_label_id = #bkLabelId#
+	</delete>
+
+</sqlMap>

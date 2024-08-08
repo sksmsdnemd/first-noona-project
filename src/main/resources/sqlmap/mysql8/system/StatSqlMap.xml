@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="resource">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="resource.getResourceCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resource.getResourceCount */
+		SELECT CNT
+		  FROM (
+			SELECT COUNT(*) CNT
+			  FROM (
+				SELECT
+					<isEqual property="dateCol" compareValue=" a.reg_date , a.reg_time "> 
+						a.REG_DATE, a.REG_TIME	
+					</isEqual>
+					<isEqual property="dateCol" compareValue=" a.reg_date , substring(a.reg_time,1,2)  reg_time"> 
+						a.REG_DATE, SUBSTR(a.REG_TIME,1,2) REG_TIME	
+					</isEqual>
+					<isEqual property="dateCol" compareValue=" a.reg_date , '' reg_time">
+						a.REG_DATE , '' REG_TIME	
+					</isEqual>
+					<isEqual property="dateCol" compareValue=" substring(a.reg_date,1, 6)   reg_date , '' reg_time"> 
+						SUBSTR(a.REG_DATE,1, 6) REG_DATE, ' ' REG_TIME	
+					</isEqual>
+		 			 , a.SYS_GROUP_ID, a.SYSTEM_ID, b.SYSTEM_NAME, a.RES_CLASS, a.RES_CODE
+					 , MIN(a.RES_MIN) RES_MIN, FLOOR(AVG(a.RES_AVG)) RES_AVG, MAX(a.RES_MAX) RES_MAX
+				  FROM TB_STA_RESOURCE a 
+				  JOIN TB_SYS_SYSINFO b
+					ON a.SYS_GROUP_ID = b.SYS_GROUP_ID
+				   AND a.SYSTEM_ID = b.SYSTEM_ID
+				<dynamic prepend="WHERE">
+					<isNotEmpty prepend="AND" property="findSysGroupId">
+						b.SYS_GROUP_ID = #findSysGroupId#
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findSystemId">
+						a.SYSTEM_ID = #findSystemId#
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findClassId">
+						a.RES_CLASS = #findClassId#
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findResCode">
+						a.RES_CODE = #findResCode#
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findERegDate">
+						a.REG_DATE	BETWEEN #findSRegDate# AND #findERegDate# 
+					</isNotEmpty>
+					<isNotEmpty prepend="AND" property="findERegTime">
+						a.REG_TIME	BETWEEN #findSRegTime# AND #findERegTime# 
+					</isNotEmpty>
+				</dynamic>
+				 GROUP BY 
+					<isEqual property="dateCol" compareValue=" a.reg_date , a.reg_time ">
+						a.REG_DATE, a.REG_TIME	
+					</isEqual>
+					<isEqual property="dateCol" compareValue=" a.reg_date , substring(a.reg_time,1,2)  reg_time"> 
+						a.REG_DATE, SUBSTR(a.REG_TIME,1,2)	
+					</isEqual>
+					<isEqual property="dateCol" compareValue=" a.reg_date , '' reg_time">
+						a.REG_DATE 	
+					</isEqual>
+					<isEqual property="dateCol" compareValue=" substring(a.reg_date,1, 6)   reg_date , '' reg_time"> 
+						SUBSTR(a.REG_DATE,1, 6)	
+					</isEqual>
+					, a.SYS_GROUP_ID, a.SYSTEM_ID, b.SYSTEM_NAME, a.RES_CLASS, a.RES_CODE, a.RES_NAME
+				<isNotEmpty property="findResLimit">
+					HAVING AVG(a.RES_AVG) >= #findResLimit#
+				</isNotEmpty>
+			  ) a 
+			  JOIN TB_SYS_SYSGROUP c
+				ON a.SYS_GROUP_ID = c.SYS_GROUP_ID
+			  JOIN TB_MNG_BASECODE d
+				ON a.RES_CLASS = d.class_id
+			   AND a.RES_CODE = d.CODE_ID
+		  ) tbl
+	</select>
+
+	<select id="resource.getResourceList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resource.getResourceList */
+		SELECT REG_DATE, REG_TIME, SYS_GROUP_ID, SYSTEM_ID, RES_CLASS, RES_CODE, RES_NAME
+			 , SYS_GROUP_NAME, SYSTEM_NAME, RES_CODE_NAME, RES_MIN, RES_AVG, RES_MAX, RES_NAME_CONV 
+		  FROM (
+			SELECT * FROM (
+				SELECT TB_IN.* 
+				  FROM (
+					SELECT tbl.*
+					  FROM (
+						SELECT a.REG_DATE, a.REG_TIME, a.SYS_GROUP_ID, a.SYSTEM_ID, a.SYSTEM_NAME
+							 , a.RES_CLASS, a.RES_CODE, a.RES_NAME, c.SYS_GROUP_NAME, d.CODE_NAME AS RES_CODE_NAME
+							 , a.RES_MIN, a.RES_AVG, a.RES_MAX, CONCAT(d.CODE_NAME, '_', a.RES_NAME) AS RES_NAME_CONV 
+						  FROM (
+							SELECT
+								<isEqual property="dateCol" compareValue=" a.reg_date , a.reg_time "> 
+									a.REG_DATE, a.REG_TIME	
+								</isEqual>
+								<isEqual property="dateCol" compareValue=" a.reg_date , substring(a.reg_time,1,2)  reg_time">
+									a.REG_DATE, SUBSTR(a.REG_TIME,1,2) REG_TIME	
+								</isEqual>
+								<isEqual property="dateCol" compareValue=" a.reg_date , '' reg_time"> 
+									a.REG_DATE , ' ' REG_TIME	
+								</isEqual>
+								<isEqual property="dateCol" compareValue=" substring(a.reg_date,1, 6)   reg_date , '' reg_time"> 
+									SUBSTR(a.REG_DATE,1, 6) REG_DATE, ' ' REG_TIME	
+								</isEqual>
+								 , a.SYS_GROUP_ID, a.SYSTEM_ID, b.SYSTEM_NAME, a.RES_CLASS, a.RES_CODE, a.RES_NAME
+								 , MIN(a.RES_MIN) RES_MIN, FLOOR(AVG(a.RES_AVG)) RES_AVG, MAX(a.RES_MAX) RES_MAX
+							  FROM TB_STA_RESOURCE a 
+							  JOIN TB_SYS_SYSINFO b
+								ON a.SYS_GROUP_ID = b.SYS_GROUP_ID
+							   AND a.SYSTEM_ID = b.SYSTEM_ID
+							<dynamic prepend="WHERE">
+								<isNotEmpty prepend="AND" property="findSysGroupId">
+									b.SYS_GROUP_ID = #findSysGroupId#
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findSystemId">
+									a.SYSTEM_ID = #findSystemId#
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findClassId">
+									a.RES_CLASS = #findClassId#
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findResCode">
+									a.RES_CODE = #findResCode#
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findERegDate">
+									a.REG_DATE BETWEEN #findSRegDate# AND #findERegDate# 
+								</isNotEmpty>
+								<isNotEmpty prepend="AND" property="findERegTime">
+									a.REG_TIME BETWEEN #findSRegTime# AND #findERegTime# 
+								</isNotEmpty>
+							</dynamic>
+							 GROUP BY
+							<isEqual property="dateCol" compareValue=" a.reg_date , a.reg_time ">
+								a.REG_DATE, a.REG_TIME	
+							</isEqual>
+							<isEqual property="dateCol" compareValue=" a.reg_date , substring(a.reg_time,1,2)  reg_time"> 
+								a.REG_DATE, SUBSTR(a.REG_TIME,1,2)	
+							</isEqual>
+							<isEqual property="dateCol" compareValue=" a.reg_date , '' reg_time"> 
+								a.REG_DATE 	
+							</isEqual>
+							<isEqual property="dateCol" compareValue=" substring(a.reg_date,1, 6)   reg_date , '' reg_time"> 
+								SUBSTR(a.REG_DATE,1, 6)	
+							</isEqual>
+		 						, a.SYS_GROUP_ID, a.SYSTEM_ID, b.SYSTEM_NAME, a.RES_CLASS, a.RES_CODE, a.RES_NAME
+							<isNotEmpty property="findResLimit">
+								HAVING AVG(a.RES_AVG) >= #findResLimit#
+							</isNotEmpty>
+						  ) a 
+						  JOIN TB_SYS_SYSGROUP c
+							ON a.SYS_GROUP_ID = c.SYS_GROUP_ID
+						  JOIN TB_MNG_BASECODE d
+							ON a.RES_CLASS = d.CLASS_ID
+						   AND a.RES_CODE = d.CODE_ID
+					  ) tbl
+					 ORDER BY REG_DATE, REG_TIME, SYS_GROUP_ID, SYSTEM_ID, RES_CLASS, RES_CODE, RES_NAME
+					 LIMIT $iEPageNo$
+				  ) TB_IN
+				 ORDER BY REG_DATE DESC, REG_TIME DESC, SYS_GROUP_ID DESC, SYSTEM_ID DESC, RES_CLASS DESC, RES_CODE DESC, RES_NAME DESC
+				 LIMIT $iSPageNo$
+			) TB_OUT 
+		  ) tbl2
+		 ORDER BY REG_DATE, REG_TIME, SYS_GROUP_ID, SYSTEM_ID, RES_CLASS, RES_CODE, RES_NAME
+	</select>
+
+</sqlMap>

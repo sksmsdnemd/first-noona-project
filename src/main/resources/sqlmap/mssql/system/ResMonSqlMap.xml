@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="resMon">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	
+	<select id="resMon.getMaxResId" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resMon.getMaxResId */
+		select isnull(max(res_id),0)+1 res_id
+			FROM tb_sys_resmon
+		where system_id = #systemId#
+	</select>
+
+	<select id="resMon.getResMonCount" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resMon.getResMonCount */
+		select count(*) as cnt
+			FROM tb_sys_resmon a 
+				join tb_sys_sysinfo b
+					on a.sys_group_id = b.sys_group_id
+					and a.system_id = b.system_id
+				join tb_sys_sysgroup c
+					on a.sys_group_id = c.sys_group_id
+				join tb_mng_basecode d
+					on a.res_class = d.class_id
+					and a.res_code = d.code_id
+					and d.class_id = 'res_class'
+				join tb_sys_resmon_def e
+					on a.res_class = e.res_class
+					and a.res_code = e.res_code
+					and a.res_name = e.res_name
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND"  property="findText">
+				<isEqual property="findKey" compareValue="a.res_name">  e.res_desc  </isEqual>
+				Like '%'+ #findText# +'%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findSystemId">
+				a.system_id = #findSystemId#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="findResCode">
+				a.res_code = #findResCode#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+
+	<select id="resMon.getResMonList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resMon.getResMonList */
+		select 
+				RTRIM(CAST(sys_group_id AS CHAR(10))) as sys_group_id, RTRIM(CAST(system_id AS CHAR(10))) as system_id
+				, res_class, res_code, res_name, CAST(res_id AS CHAR(10)) as res_id
+				, CAST(res_max AS CHAR(10)) as res_max, CAST(res_used AS CHAR(10)) as res_used
+				, RTRIM(CAST(alarm_critical AS CHAR(10))) as alarm_critical, RTRIM(CAST(alarm_major AS CHAR(10))) as alarm_major
+				, RTRIM(CAST(alarm_minor AS CHAR(10))) as alarm_minor, CONVERT(CHAR(23), last_update, 21) as last_update
+				, system_name, res_code_name, sys_group_name, res_desc
+			from(
+				select * 
+					from (
+						select
+								Row_Number() over (order by sys_group_id desc, system_id desc, res_class desc, res_code desc, res_name desc) RowNum2,* 
+							from (
+								select 
+										Row_Number() over (order by a.sys_group_id, a.system_id, a.res_class, a.res_code, a.res_name) RowNum1
+										, a.sys_group_id, a.system_id, a.res_class, a.res_code, a.res_name
+										, a.res_id, isnull(res_max,0) res_max
+										, isnull(res_used,0) res_used	, isnull(alarm_critical,0) alarm_critical
+										, isnull(alarm_major,0) alarm_major, isnull(alarm_minor,0) alarm_minor
+										, last_update, b.system_name, d.code_name res_code_name, c.sys_group_name
+										, e.res_desc
+									FROM tb_sys_resmon a 
+										join tb_sys_sysinfo b
+											on a.sys_group_id = b.sys_group_id
+											and a.system_id = b.system_id
+										join tb_sys_sysgroup c
+											on a.sys_group_id = c.sys_group_id
+										join tb_mng_basecode d
+											on a.res_class = d.class_id
+											and a.res_code = d.code_id
+											and d.class_id = 'res_class'
+										join tb_sys_resmon_def e
+											on a.res_class = e.res_class
+											and a.res_code = e.res_code
+											and a.res_name = e.res_name
+								<dynamic prepend="WHERE">
+									<isNotEmpty prepend="AND"  property="findText">
+										<isEqual property="findKey" compareValue="a.res_name">  e.res_desc  </isEqual>
+										Like '%'+ #findText# +'%'
+									</isNotEmpty>
+									<isNotEmpty prepend="AND" property="findSystemId">
+										a.system_id = #findSystemId#
+									</isNotEmpty>
+									<isNotEmpty prepend="AND" property="findResCode">
+										a.res_code = #findResCode#
+									</isNotEmpty>
+								</dynamic>
+								) TB_IN
+						WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>
+						) TB_OUT 
+				WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+				) tbl2
+		order by sys_group_id, system_id, res_class, res_code, res_name
+	</select>
+
+	<insert id="resMon.setResMonInsert" parameterClass="java.util.HashMap">
+		/* ID : resMon.setResMonInsert */
+		insert into tb_sys_resmon
+			(
+			sys_group_id, system_id, res_class, res_code, res_name, res_id
+			, res_max, res_used, alarm_critical, alarm_major, alarm_minor
+			) 
+		values 
+			(#sysGroupId#, #systemId#, #resClass#, #resCode#, #resName#, #resId#
+			, #resMax# , #resUsed#, #alarmCritical#, #alarmMajor#, #alarmMinor#
+			)
+	</insert>
+
+	<update id="resMon.setResMonUpdate" parameterClass="java.util.HashMap">
+		/* ID : resMon.setResMonUpdate */
+		update tb_sys_resmon set 
+			res_max			 = #resMax#
+			, res_used		 = #resUsed#
+			, alarm_critical = #alarmCritical#
+			, alarm_major	 = #alarmMajor#
+			, alarm_minor	 = #alarmMinor#
+		where sys_group_id 	 = #sysGroupId#
+			and system_id 	 = #systemId#
+			and res_class 	 = #resClass#
+			and res_code 	 = #resCode#
+			and res_name 	 = #resName#
+	</update>
+	
+	<delete id="resMon.setResMonDelete" parameterClass="java.util.HashMap" >
+		/* ID : resMon.setResMonDelete */
+		delete 
+			from tb_sys_resmon
+		where sys_group_id = #sysGroupId#
+			and system_id  = #systemId#
+		 	and res_class  = #resClass#
+		 	and res_code   = #resCode#
+		 	and res_name   = #resName#
+	</delete>
+
+	<select id="resMon.getResComboList" parameterClass="java.util.HashMap" resultClass="egovMap">
+		/* ID : resMon.getResComboList */
+		select res_name as code, res_desc as code_nm 
+			FROM tb_sys_resmon_def
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="resCode">
+				res_code = #resCode#
+			</isNotEmpty>
+		</dynamic>
+		order by res_desc asc
+	</select>
+	
+</sqlMap>

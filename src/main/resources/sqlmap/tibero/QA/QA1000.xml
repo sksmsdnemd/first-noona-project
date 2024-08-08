@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "https://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="QA1000">
+	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap"/>
+   
+ 	<!-- HR1020  START =================================================================================== -->   
+	 	<!--  평가표 관리 리스트 -->
+	 	<procedure id="QA.SP_QA1020M01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_QA1020M01_01(#glo_tenantId#, #year#, #sheetNm#, #user1Id#, #glo_groupId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure> 	
+		<!--  평가표 내용 리스트 -->
+		<procedure id="QA.SP_QA1020M01_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_QA1020M01_02(#glo_tenantId#, #sheetId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure> 	
+			
+		<!--  평가표 복사 -->
+		<procedure id="QA.SP_QA1020M01_03" parameterClass="java.util.HashMap">
+			{ CALL SP_QA1020M01_03(#glo_tenantId#,#glo_userId#,#sheetId#) }
+		</procedure> 	
+		
+		<!--  평가표 관리 삭제 -->   
+		<procedure id="QA.SP_QA1020M01_04" parameterClass="java.util.HashMap">
+			{ CALL SP_QA1020M01_04(#glo_tenantId#, #sheetId#) }
+		</procedure>
+			
+		<!--  평가표 관리 등록수정 -->   
+		<procedure id="QA.SP_QA1020S01_01" parameterClass="java.util.HashMap"  resultClass="egovMap">
+			{ CALL SP_QA1020S01_01(#glo_tenantId#,#cudGubun#,#glo_userId#
+			      ,#sheetId#,#sheetNm#,#sheetType#,#hideYn#,#dept1Id#
+				  ,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>		
+		
+		<!--  평가항목편집 콤보박스 -->   
+		<procedure id="QA.SP_QA1020S02_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_QA1020S02_01(#glo_tenantId#, #gbn#, #majorCd#, #partCd#, #sheetId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		<!--  평가항목편집 데이터 -->   
+		<procedure id="QA.SP_QA1020S02_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_QA1020S02_02(#glo_tenantId#, #sheetId#,#majorCd#,#minorCd#,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		<!--  평가항목내용 데이터 컨트롤 -->   
+		<procedure id="QA.SP_QA1020S02_03" parameterClass="java.util.HashMap">
+			{ CALL SP_QA1020S02_03(#glo_tenantId#, #glo_userId#, #cudGubun#, #sheetId#, #sheetText#, #majorCd#, #minorCd#, #qaSebuCd#, #score#, #plusMinus#) }
+		</procedure>
+		
+		<!-- 평가표 정렬  -->
+		<procedure id="QA.SP_QA1020S02_04" parameterClass="java.util.HashMap">
+			{ CALL SP_QA1020S02_04(#glo_tenantId#, #sheetId#, #majorCd#, #minorCd#, #qaSebuCd#, #gubun#) }
+		</procedure>
+		
+		<!--  평가항목관리 리스트 -->   
+		<procedure id="QA.SP_QA1020S04_01" parameterClass="java.util.HashMap"  resultClass="egovMap">
+			{ CALL SP_QA1020S04_01(#glo_tenantId#,#gbn#,#majorCd#, #partCd#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		<!--  평가항목관리 데이터컨트롤 -->   
+		<procedure id="QA.SP_QA1020S04_02" parameterClass="java.util.HashMap">
+			{ CALL SP_QA1020S04_02(#glo_tenantId#, #gbn#, #cudGubun#, #majorCd#, #minorCd#, #itemNm#, #hideYn#, #glo_userId#, #sortSeq#, #partCd#) }
+		</procedure>
+		
+		<!--  평가항목관리 최상위 코드 리스트 -->   
+		<procedure id="QA.SP_QA1020S04_04" parameterClass="java.util.HashMap"  resultClass="egovMap">
+			{ CALL SP_QA1020S04_04(#glo_tenantId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		<!--  평가항목관리 최상위 코드 데이터 컨트롤 -->   
+		<procedure id="QA.SP_QA1020S04_05" parameterClass="java.util.HashMap"  resultClass="egovMap">
+			{ CALL SP_QA1020S04_05(#glo_tenantId#, #cudGubun#, #code#, #codeName#, #sortSeq#) }
+		</procedure>
+		
+		<!--  평가항목관리 최상위 코드 데이터 컨트롤 -->   
+		<select id="QA.SP_QA1020S04_06" parameterClass="java.util.HashMap"  resultClass="egovMap">
+			SELECT ITEM_CNT
+					,TENANT_NAME
+			FROM (
+				SELECT COUNT(*) AS ITEM_CNT
+						,B.TENANT_NAME
+				FROM TB_QA_SHEET_ITEM A INNER JOIN TB_MNG_COMPANY B
+				ON A.TENANT_ID = B.TENANT_ID
+				WHERE PART_CD = #code#
+				AND MINOR_CD = '00000'
+				GROUP BY B.TENANT_ID, B.TENANT_NAME
+			)
+			WHERE ROWNUM = 1
+		</select>
+		
+		<!--  평가계획 관리 조회(Tree) -->   
+		<procedure id="QA.SP_QA1030M01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_QA1030M01_01(#glo_tenantId#, #year# , #grantDeptCd#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		<!-- 평가계획 관리 상세조회 -->
+		<procedure id="QA.SP_QA1030M01_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_QA1030M01_02(#glo_tenantId#, #timesId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		<!-- 평가계획관리 데이터컨트롤 -->
+		<procedure id="QA.SP_QA1030M01_04" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_QA1030M01_04(#glo_tenantId#, #gbn#, #timesId#, #timesNm#, #kpiYn#, #qaEvalType#, #valueFrmDt#, #valueEndDt#, #recFrmDt#, #recEndDt#, #feedFrmDt#, #feedEndDt#, #recFrmTm#, #recEndTm#, #talkFrmTm#, #talkEndTm#, #sheetId#, #valueCnt#, #valueFocus#, #glo_userId#, #dept1Id#, #hideYn#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+
+		<!-- 평가계획 상세조회 -->
+		<procedure id="QA.SP_QA1030M02_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_QA1030M02_01(#glo_tenantId#, #timesId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		<!-- 평가계획 QAA 배정 조회-->
+		<procedure id="QA.SP_QA1030M02_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_QA1030M02_02(#glo_tenantId#, #timesId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		<!-- 평가계획 QAA 데이터 컨트롤-->
+		<procedure id="QA.SP_QA1030M02_03" parameterClass="java.util.HashMap">
+			{ CALL SP_QA1030M02_03(#glo_tenantId#,#gbn#, #timesId#, #qaaId#, #glo_userId# ) }
+		</procedure>
+		
+		<!-- 평가계획 상담원 배정 조회 -->
+		<procedure id="QA.SP_QA1030M03_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_QA1030M03_01(#glo_tenantId#, #timesId#, #qaaId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		<!-- QA 평가대상자 대상자조회 삭제    -->
+		<procedure id="QA.SP_QA1030M03_02" parameterClass="java.util.HashMap"  resultClass="egovMap">
+			{ CALL SP_QA1030M03_02(#glo_tenantId#,#timesId#,#qaaId#,#agentId# ) }
+		</procedure> 
+		
+		<!-- QA 평가자/피평가자 자동배분 -->
+		<procedure id="QA.SP_QA1030M03_03" parameterClass="java.util.HashMap"  resultClass="egovMap">
+			{ CALL SP_QA1030M03_03(#glo_tenantId#,#timesId#,#glo_userId# ) }
+		</procedure> 
+		
+		<!-- QA 평가대상자 전체조회    -->  
+		<procedure id="QA.SP_QA1030S01_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_QA1030S01_01(#glo_tenantId#,#dept1Id#,#timesId#, #type#, #agentNm#
+				  ,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		<!-- QA 평가대상자 대상자조회 -->
+		<procedure id="QA.SP_QA1030S01_02" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_QA1030S01_02(#glo_tenantId#,#timesId#, #qaaId# ,#result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		<!-- QA 평가대상자 대상자 등록    -->  
+		<procedure id="QA.SP_QA1030S01_04" parameterClass="java.util.HashMap">
+			{ CALL SP_QA1030S01_04(#glo_tenantId#,#timesId#,#qaaId#,#agentId#, #glo_userId# ) }
+		</procedure> 		
+		
+		<!-- QA 평가계획표 복사 생성 -->
+		<procedure id="QA.SP_QA1030S03_01" parameterClass="java.util.HashMap">
+			{ CALL SP_QA1030S03_01(#glo_tenantId#,#timesId#,#timesNm#, #stdMonth#, #qa#,#glo_userId# ) }
+		</procedure>
+		
+		<procedure id="QA.SP_QA1020S07_01" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_QA1020S07_01(#glo_tenantId#, #sheetId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+
+		<procedure id="QA.SP_QA1020S07_02" parameterClass="java.util.HashMap">
+			{ CALL SP_QA1020S07_02(#glo_tenantId#, #sheetId#, #majorCd#, #minorCd#, #sort#) }
+		</procedure>
+		
+		<procedure id="QA.SP_QA1030S02_02" parameterClass="java.util.HashMap" >
+			{ CALL SP_QA1030S02_02(#glo_tenantId#, #timesId#,#user1Id#,#bfAgentId#,#loginId#) }
+		</procedure>
+		
+		<procedure id="QA.SP_UC_GET_QA_TIMES_REC_YMD" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_UC_GET_QA_TIMES_REC_YMD(#glo_tenantId#, #timesId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		<procedure id="QA.SP_UC_GET_QA_SHEET" parameterClass="java.util.HashMap" resultClass="egovMap">
+			{ CALL SP_UC_GET_QA_SHEET(#glo_tenantId#, #sheetNm#, #glo_groupId#, #result,javaType=java.sql.ResultSet,jdbcType=TIBEROCURSOR,mode=OUT#) }
+		</procedure>
+		
+		
+		<select id="QA.recFileTableExistCheck" parameterClass="java.util.HashMap" resultClass="egovMap">
+			SELECT MIN(TABLE_NAME) AS MIN_REC_TABLE
+					,MAX(TABLE_NAME) AS MAX_REC_TABLE
+			FROM USER_TABLES
+			WHERE TABLE_NAME LIKE 'TB_REC_FILE_20%'
+			AND ((#recTableType# = 'YYYY' AND LENGTH(TABLE_NAME) = '16') OR (#recTableType# = 'YYYYMM' AND LENGTH(TABLE_NAME) = '18'))
+			ORDER BY TABLE_NAME
+		</select> 
+		
+		
+</sqlMap>

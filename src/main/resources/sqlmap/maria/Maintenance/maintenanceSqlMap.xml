@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+ "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="mt">
+	<typeAlias alias="egovMap"
+		type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+	<select id="mt.getTBList" parameterClass="java.util.HashMap"
+		resultClass="egovMap">
+		SELECT TABLE_NAME
+		FROM INFORMATION_SCHEMA.TABLES
+		WHERE UPPER(TABLE_SCHEMA) = UPPER(#owner#)
+		ORDER BY TABLE_NAME
+	</select>
+
+	<select id="mt.getColList" parameterClass="java.util.HashMap" remapResults="true" 
+		resultClass="egovMap">
+		SELECT COLUMN_NAME
+		FROM INFORMATION_SCHEMA.COLUMNS
+		WHERE UPPER(TABLE_SCHEMA) = UPPER(#owner#)
+		  AND TABLE_NAME = '$tableName$'
+		ORDER BY ORDINAL_POSITION
+	</select>
+
+	<select id="mt.getRowList" remapResults="true"  parameterClass="java.util.HashMap"
+		resultClass="egovMap">
+	select * from(															
+				select ROWNUM AS RowNum2, TB_IN.*  from (
+					<![CDATA[SELECT 
+					ROWNUM as  RowNum1
+					, A.* FROM $tableName$  A]]>
+					 ORDER BY ROWNUM DESC
+				) TB_IN
+  				WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>  
+		)
+  		WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>
+	</select>
+
+	<update id="mt.setDML" parameterClass="java.util.HashMap">
+	<![CDATA[$text$]]>
+	</update>
+	
+	<select id="mt.getRowListCnt" parameterClass="java.util.HashMap" remapResults="true" resultClass="egovMap">
+		<![CDATA[SELECT count(*) as cnt FROM $tableName$ ]]>
+	</select>
+	
+	<select id="mt.getDmlList" parameterClass="java.util.HashMap" remapResults="true" resultClass="egovMap">
+	
+		select * from(	
+			select ROWNUM AS RowNum2, TB_IN.*  from (
+				SELECT 
+					ROWNUM as  RowNum1
+					, A.* FROM(
+						<![CDATA[$text$]]>
+					 ) A
+					 ORDER BY ROWNUM DESC
+				) TB_IN
+  				WHERE <![CDATA[ RowNum1 <= #iEPageNo# ]]>  
+		)
+  		WHERE <![CDATA[ RowNum2 <= #iSPageNo# ]]>					 
+	</select>
+	
+	<select id="mt.getDmlCnt" parameterClass="java.util.HashMap" remapResults="true" resultClass="egovMap">
+	select count(*) as cnt from (
+		<![CDATA[$text$]]>
+	)
+	</select>
+	
+	<procedure id="mt.setExUserInfoADD" parameterClass="java.util.HashMap" resultClass="egovMap">
+    { CALL SP_ADDExAgent(#InFlag#,#InTenantId#,#InAgentId#,#InDeptCd#,#InAgentGrant#,#InAgentNm#,#InAgentPw#,#InDnNo#,#InTelephonIp#,#InVeloceSystem#,#InVeloceProcess#,#InDnRefNo#) }
+   </procedure>
+	
+	<procedure id="mt.setCustInfoADD" parameterClass="java.util.HashMap" resultClass="egovMap">
+    { CALL SP_SETCTICUSTINFO('', #InCallId#, #InCustName#, #InCustTel#, #InCustNo#, #InTransTel#, '', #InCustEtc#, #InCallKind#) }
+   </procedure>
+	
+	<procedure id="mt.setExUserInfoADD_OLD" parameterClass="java.util.HashMap" resultClass="egovMap">
+    { CALL SP_ADDExAgent(#InFlag#,#InTenantId#,#InAgentId#,#InDeptCd#,#InAgentGrant#,#InAgentNm#,#InAgentPw#,#InDnNo#,#InTelephonIp#,#InVeloceSystem#,#InVeloceProcess#,#InDnRefNo#,'','') }
+   </procedure>
+</sqlMap>
+	

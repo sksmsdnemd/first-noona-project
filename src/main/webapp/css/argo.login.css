@@ -1,0 +1,30 @@
+
+/* ============================================================
+  Login
+============================================================ */
+
+body{ background:#f7f7f7;}
+.login_wrap{ height:100%; width:100%;}
+.log_section{ width:600px; position:absolute; top:50%; left:50%; margin-left:-300px; margin-top:-171px;}
+.argo_logo{ text-align:right; padding-bottom:10px;}
+.login_box{width:600px; border:1px solid #aeadad; background:#fff; height:310px; box-sizing:border-box; padding:0 26px; }
+.login_box .login_title{ height:54px; border-bottom:1px solid #dcdcdc; text-align:center; line-height:54px; }
+.login_box .log_cont{ background:url(../images/login_bg.png) no-repeat 40px 50%; height:220px; box-sizing:border-box; padding-left:165px; }
+.login_box .log_cont .log_info{ height:73px; font-size:14px; font-weight:600; color:#656565; line-height:90px }
+.login_box .log_cont .log_info2{ height:73px; font-size:14px; color:#969494; line-height:90px }
+.login_box .log_cont .input_area{ position:relative;}
+.login_box .log_cont .input_area input{ width:245px; height:37px; border:1px solid #dddddd; font-size:14px; line-height:37px; padding-left:15px; }
+.login_box .log_cont .input_area input[type=text]{ margin-bottom:7px;}
+.login_box .log_cont .input_area .btn_login{ display:inline-block; width:109px; height:136px; background:#5b5a5a; border-radius:5px; text-align:center; line-height:135px; color:#fff; font-weight:600; font-size:16px; position:absolute; right:0; top:0; }
+.login_box .log_cont .check_area{ font-size:12px; color:#969696; padding-top:10px;}
+.login_box .log_cont .check_area .id_check{}
+.login_box .log_cont .input_area2{ position:relative;}
+.login_box .log_cont .input_area2 input{ width:200px; height:37px; border:1px solid #dddddd; font-size:14px; line-height:37px; padding-left:15px; }
+.login_box .log_cont .input_area2 input[type=text]{ margin-bottom:7px;}
+.login_box .log_cont .input_area2 .btn_login{ display:inline-block; width:109px; height:136px; background:#5b5a5a; border-radius:5px; text-align:center; line-height:135px; color:#fff; font-weight:600; font-size:16px; position:absolute; right:0; top:0; }
+.login_box .log_cont .check_area2{ font-size:12px; color:#969696; padding-top:10px;}
+.login_box .log_cont .check_area2 .id_check{}
+select{ padding-left:6px;}
+.mr15{ margin-right:15px !important; }
+
+.copyright{font-size:11px; color:#7d7d7d; text-align:right; padding-top:10px;}
